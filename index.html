@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Simple Tool Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for background and font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Dark theme primary background */
+            color: #e4e4e7; /* Light text color */
+            min-height: 100vh;
+        }
+        /* Custom scrollbar for aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #252541;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4e4e6c;
+            border-radius: 4px;
+        }
+        .tool-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(121, 93, 222, 0.3), 0 4px 6px -2px rgba(121, 93, 222, 0.2);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1a1a2e',
+                        'secondary-dark': '#252541',
+                        'accent-purple': '#795dde',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Header -->
+    <header class="text-center mb-10">
+        <h1 class="text-5xl sm:text-6xl font-extrabold text-white mb-2">My Tool Hub</h1>
+        <p class="text-lg text-gray-400">Organize your quick-access resources.</p>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto">
+
+        <!-- Tool Grid Container -->
+        <div id="toolGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Tool cards will be injected here by JavaScript -->
+        </div>
+
+        <!-- Add New Tool Button -->
+        <div class="mt-12 flex justify-center">
+            <button id="openModalBtn" class="bg-accent-purple hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-150 transform hover:scale-[1.02] flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Tool
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal for Adding New Tool -->
+    <div id="addToolModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
+        <div class="bg-secondary-dark p-8 rounded-xl w-full max-w-md shadow-2xl">
+            <h2 class="text-2xl font-bold text-white mb-6">Add New Tool</h2>
+            <form id="addToolForm">
+                <div class="mb-4">
+                    <label for="toolName" class="block text-gray-300 text-sm font-medium mb-1">Name</label>
+                    <input type="text" id="toolName" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                </div>
+                <div class="mb-4">
+                    <label for="toolDescription" class="block text-gray-300 text-sm font-medium mb-1">Description (Optional)</label>
+                    <input type="text" id="toolDescription" class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                </div>
+                <div class="mb-4">
+                    <label for="toolIcon" class="block text-gray-300 text-sm font-medium mb-1">Emoji Icon (e.g., 📝, 📅)</label>
+                    <input type="text" id="toolIcon" value="🔗" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                </div>
+                <div class="mb-6">
+                    <label for="toolLink" class="block text-gray-300 text-sm font-medium mb-1">Link URL</label>
+                    <input type="url" id="toolLink" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="closeModalBtn" class="py-2 px-4 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150">Cancel</button>
+                    <button type="submit" class="bg-accent-purple hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150">Add Tool</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Core Application Logic ---
+
+        // Define the key for localStorage
+        const STORAGE_KEY = 'myToolDashboardTools';
+
+        // Hardcoded list used if no data is found in localStorage
+        const defaultTools = [
+            { name: "Unit Converter", icon: "📐", description: "Convert between various measurement units.", link: "https://www.google.com/search?q=unit+converter" },
+            { name: "Color Palette Picker", icon: "🎨", description: "Select and generate beautiful color schemes.", link: "https://coolors.co/" },
+            { name: "Markdown Editor", icon: "📝", description: "Write and preview markdown quickly.", link: "https://dillinger.io/" },
+            { name: "Online Stopwatch", icon: "⏱️", description: "Simple, large display stopwatch and timer.", link: "https://www.google.com/search?q=stopwatch" },
+            { name: "Ct Data analyzer", icon: "📄", description: "Convert survey data into useable data.", link: "Ct Data analyzer.html" },
+            { name: "Password Generator", icon: "🔑", description: "Generate strong, random passwords.", link: "https://passwordsgenerator.net/" },
+           
+
+        ];
+        
+        // Load tools from localStorage or use the default list
+        let tools = loadTools();
+
+        const toolGrid = document.getElementById('toolGrid');
+        const modal = document.getElementById('addToolModal');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const addToolForm = document.getElementById('addToolForm');
+
+        /**
+         * Loads the tool list from localStorage.
+         * @returns {Array} The loaded tools or the default list.
+         */
+        function loadTools() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    // Combine stored tools with any default tools (in case the defaults were updated)
+                    const userTools = JSON.parse(stored);
+                    
+                    // Simple logic: if user has saved tools, use those. Otherwise, use defaults.
+                    // For a more complex app, you'd merge or check IDs, but for this simple dash, user preference overrides.
+                    return userTools.length > 0 ? userTools : defaultTools;
+                }
+            } catch (error) {
+                console.error("Error loading tools from localStorage:", error);
+            }
+            return defaultTools;
+        }
+
+        /**
+         * Saves the current tool list to localStorage.
+         */
+        function saveTools() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tools));
+            } catch (error) {
+                console.error("Error saving tools to localStorage:", error);
+                // Optionally display a user message that saving failed
+            }
+        }
+
+        /**
+         * Renders all tool cards into the grid container.
+         */
+        function renderTools() {
+            toolGrid.innerHTML = ''; // Clear existing content
+            tools.forEach((tool, index) => {
+                const card = document.createElement('a');
+                card.href = tool.link;
+                card.target = "_blank"; // Open in a new tab
+                card.className = 'tool-card p-6 bg-secondary-dark rounded-xl shadow-lg border border-gray-700 block relative group';
+                card.innerHTML = `
+                    <div class="text-4xl mb-4 transition-transform duration-300 group-hover:scale-105">${tool.icon}</div>
+                    <h3 class="text-xl font-semibold text-white mb-2">${tool.name}</h3>
+                    <p class="text-gray-400 mb-4 text-sm">${tool.description || 'Quickly access this essential tool.'}</p>
+                    <div class="text-accent-purple font-medium text-sm flex items-center">
+                        Open Tool
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </div>
+                    <!-- Delete button (only visible on hover/focus) -->
+                    <button data-index="${index}" class="delete-tool-btn absolute top-3 right-3 p-1 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" title="Delete Tool">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                toolGrid.appendChild(card);
+            });
+
+            // Re-attach delete listeners after re-rendering
+            document.querySelectorAll('.delete-tool-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault(); // Stop navigation
+                    e.stopPropagation(); // Stop card click
+                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
+                    deleteTool(index);
+                });
+            });
+        }
+
+        /**
+         * Deletes a tool by index, updates the array, saves, and re-renders the list.
+         * @param {number} index - The index of the tool to delete.
+         */
+        function deleteTool(index) {
+            tools.splice(index, 1);
+            saveTools(); // Save the new list to localStorage
+            renderTools();
+        }
+
+        // --- Event Listeners and Modal Control ---
+
+        openModalBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        addToolForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const newTool = {
+                name: document.getElementById('toolName').value,
+                description: document.getElementById('toolDescription').value,
+                icon: document.getElementById('toolIcon').value.trim() || '🔗', // Default to link icon
+                link: document.getElementById('toolLink').value,
+            };
+
+            tools.push(newTool);
+            saveTools(); // Save the new tool to localStorage
+            renderTools(); // Re-render the grid
+
+            // Reset form and close modal
+            addToolForm.reset();
+            modal.style.display = 'none';
+        });
+
+        // Initialize the dashboard on load
+        window.onload = renderTools;
+
+    </script>
+</body>
+</html>

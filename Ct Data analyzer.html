@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Data List Converter For CT Survey</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better readability and table behavior */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #190813;
+        }
+        /* Style for the copy feedback message */
+        #copyFeedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 12px 24px;
+            background-color: #10b981; /* Green-500 */
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        #copyFeedback.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    
+    <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-xl p-6 md:p-10">
+       <a href="index.html">  <button id="back-button" class="w-full sm:w-auto px-8 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 transition duration-150 ease-in-out transform hover:scale-[1.01] active:scale-[0.99]" style="position: fixed;top:10%;left:15%">
+                    <  Back to Dashboard
+                </button></a>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">JSON Data List Converter For CT Survey</h1>
+
+        <!-- JSON Input Area -->
+        <div class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
+            <label for="jsonInput" class="block text-lg font-medium text-gray-700 mb-3">Paste Your JSON Array Below (e.g., `[...]`):</label>
+            <textarea id="jsonInput" rows="8" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 text-sm font-mono transition duration-150"></textarea>
+            
+            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                <button id="convertButton" class="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 ease-in-out transform hover:scale-[1.01] active:scale-[0.99]">
+                    Generate List Preview
+                </button>
+                <!-- Removed old generic copy button -->
+            </div>
+            
+            <p id="errorMessage" class="mt-3 text-sm font-medium text-red-600 hidden"></p>
+        </div>
+
+        <!-- Surname Input Field -->
+        <div class="mb-4">
+            <label for="surnameInput" class="block text-md font-medium text-gray-700 mb-2">Optional Surname (Affects Job Data Column Only)</label>
+            <input type="text" id="surnameInput" placeholder="e.g., Smith (appended to name)" class="w-full md:w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 transition duration-150">
+        </div>
+
+        <!-- List Output Area: Now a two-column grid -->
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Generated List Preview</h2>
+        
+        <div id="previewContainer" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Left Column: Formatted List (Job Data) -->
+            <div id="leftColumn" class="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+                <p class="font-bold text-gray-700 p-3 bg-gray-100 border-b border-gray-200 text-lg flex items-center justify-between">
+                    Job Suitable Data
+                    <!-- NEW COPY BUTTON FOR LEFT COLUMN -->
+                    <button id="copyJobDataButton" class="text-sm px-3 py-1 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:opacity-50" disabled>
+                        Copy Data
+                    </button>
+                </p>
+                <div id="formattedListHeader" class="font-bold text-gray-600 p-3 bg-gray-50 border-b border-gray-200 font-mono text-sm">
+                    Name, Race, Age, Sex, Job Title
+                </div>
+                <div id="formattedListContent">
+                    <!-- Job data lines go here -->
+                </div>
+            </div>
+            
+            <!-- Right Column: Relationship Data -->
+            <div id="rightColumn" class="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+                <p class="font-bold text-gray-700 p-3 bg-gray-100 border-b border-gray-200 text-lg flex items-center justify-between">
+                    Relationship Data
+                    <span class="flex items-center space-x-2">
+                        <!-- Relationship Type Dropdown -->
+                        <select id="relationshipType" class="text-sm font-normal p-1 border border-gray-300 rounded-lg bg-white">
+                            <option value="Child">Child</option>
+                            <option value="Sibling">Sibling</option>
+                        </select>
+                        <!-- NEW COPY BUTTON FOR RIGHT COLUMN -->
+                        <button id="copyRelationshipDataButton" class="text-sm px-3 py-1 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:opacity-50" disabled>
+                            Copy Data
+                        </button>
+                    </span>
+                </p>
+                <!-- UPDATED HEADER -->
+                <div id="relationshipListHeader" class="font-bold text-gray-600 p-3 bg-gray-50 border-b border-gray-200 font-mono text-sm">
+                    Name, Race, Age, Relationship Type, Job Title
+                </div>
+                <div id="relationshipListContent">
+                    <!-- Relationship data lines go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy Feedback Message -->
+    <div id="copyFeedback">Copied to clipboard!</div>
+
+    <script>
+        // Define the mapping for specific question153 values (Sex)
+        const QUESTION153_MAPPING = {
+            "Item 1": "Female",
+            "Item 2": "Male",
+            "Item 3": "Non-binary"
+        };
+        
+        // Define the mapping for specific question154 values (Race)
+        const QUESTION154_MAPPING = {
+            "Item 1": "Dwarf",
+            "Item 2": "Elf",
+            "Item 3": "Halfling",
+            "Item 4": "Human",
+            "Item 5": "Dragonborn",
+            "Item 6": "Gnome",
+            "Item 7": "Half-Elf",
+            "Item 8": "Half-Orc",
+            "Item 9": "Tiefling"
+        };
+
+        // New mappings for relationship column (Sex to Relationship Type)
+        const CHILD_MAPPING = {
+            "Female": "Daughter",
+            "Male": "Son",
+            "Non-binary": "Non-binary"
+        };
+
+        const SIBLING_MAPPING = {
+            "Female": "Sister",
+            "Male": "Brother",
+            "Non-binary": "Non-binary"
+        };
+        
+        // Default JSON data (formatted nicely for display in the textarea)
+        const initialJsonData = JSON.stringify([
+            {"question153":"Item 2","question152":"Lucas","question154":"Item 4","question155":"18","question157":true,"question158":"Item 2","question162":"11. Knight – A noble warrior."},
+            {"question155":"15","question153":"Item 1","question154":"Item 4","question152":"Kathleen"},
+            {"question152":"Quinnlan ","question153":"Item 1","question154":"Item 4","question155":"15"},
+            {"question152":"Colin","question153":"Item 2","question154":"Item 4","question155":"9"},
+            // Example with job in question165
+            {"question152":"Alex","question153":"Item 3","question154":"Item 1","question155":"25", "question157": true, "question165": "20. Bard – A musical adventurer."}, 
+            {"question152":"Zoe","question153":"Item 1","question154":"Item 8","question155":"31"},
+            // Example with job in question170 (new test case)
+            {"question152":"Roric","question153":"Item 2","question154":"Item 5","question155":"19", "question157": true, "question170": "05. Paladin – A holy warrior."} 
+        ], null, 2);
+
+        /**
+         * Shows a temporary copy feedback message.
+         */
+        function showCopyFeedback() {
+            const feedback = document.getElementById('copyFeedback');
+            feedback.classList.add('show');
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 1200);
+        }
+
+        /**
+         * Cleans up and applies mappings for a field value.
+         * @param {string} key - The question key.
+         * @param {Object} item - The data object.
+         * @returns {string} The cleaned and mapped display value, or '-'.
+         */
+        function processField(key, item) {
+            let value = item[key];
+            if (value === undefined || value === null) {
+                return '-'; 
+            } 
+            
+            let displayValue = String(value).trim();
+            
+            // Apply Sex mapping (question153)
+            if (key === 'question153') {
+                return QUESTION153_MAPPING[displayValue] || displayValue;
+            } 
+            
+            // Apply Race mapping (question154)
+            else if (key === 'question154') {
+                return QUESTION154_MAPPING[displayValue] || displayValue;
+            }
+            
+            // Default cleanup for other text fields (like Name and Age)
+            return displayValue.replace(/,/g, ' ');
+        }
+        
+        /**
+         * Logic to extract the Job Title from a JSON item.
+         * This logic is shared by both columns now.
+         * @param {Object} item - The data object.
+         * @returns {string} The extracted job title or '-' if not found.
+         */
+        function extractJobTitle(item) {
+            let jobTitle = '-';
+            // Check if the "has job" flag is true (case-insensitive check for string 'true' or boolean true)
+            const hasJob = item["question157"] === true || String(item["question157"]).toLowerCase() === 'true';
+
+            if (hasJob) {
+                // Iterate through all properties to find the job title field
+                for (const key in item) {
+                    if (Object.prototype.hasOwnProperty.call(item, key)) {
+                        const jobField = item[key];
+                        if (typeof jobField === 'string') {
+                            // Regex: Find anything after a dot and optional spaces, up to the dash (e.g., "11. Knight – A noble warrior.")
+                            const match = jobField.match(/\.\s*([^-]+)\s*–/);
+                            
+                            if (match && match[1]) {
+                                jobTitle = match[1].trim();
+                                break; 
+                            }
+                        }
+                    }
+                }
+            }
+            return jobTitle;
+        }
+
+        /**
+         * Logic for the LEFT column: Name (with optional Surname), Race, Age, Sex, Job Title
+         */
+        function generateJobData(data, surname) {
+            const PRIMARY_KEYS = ["question152", "question154", "question155", "question153"];
+            const normalizedSurname = surname ? surname.trim() : '';
+
+            const formattedLines = data.map(item => {
+                const rowData = PRIMARY_KEYS.map(key => {
+                    let displayValue = processField(key, item);
+                    
+                    // Special handling for Name (question152) to append the surname
+                    if (key === 'question152') {
+                        let fullName = displayValue;
+                        if (normalizedSurname) {
+                            // Append surname without a comma
+                            fullName += ' ' + normalizedSurname;
+                        }
+                        return fullName.replace(/,/g, ' '); 
+                    }
+                    return displayValue;
+                });
+                
+                // 2. Calculate the fifth field: Job Title
+                const jobTitle = extractJobTitle(item);
+                
+                const finalRowData = rowData.slice(); 
+                // Only append job title if it was found
+                if (jobTitle !== '-') { 
+                    finalRowData.push(jobTitle);
+                } 
+                
+                return finalRowData.join(', ');
+            });
+
+            return { header: "Name, Race, Age, Sex, Job Title", lines: formattedLines };
+        }
+
+        /**
+         * Logic for the RIGHT column: Name, Race, Age, Relationship Type, Job Title
+         */
+        function generateRelationshipData(data, relationshipType) {
+            // Keys for Name, Race, Age
+            const PRIMARY_KEYS = ["question152", "question154", "question155"]; 
+            const MAPPING = relationshipType === 'Child' ? CHILD_MAPPING : SIBLING_MAPPING;
+
+            const formattedLines = data.map(item => {
+                // 1. Process Name, Race, Age
+                const rowData = PRIMARY_KEYS.map(key => processField(key, item));
+                
+                // 2. Calculate the fourth field: Relationship Type
+                let sex = processField('question153', item); // Get mapped Sex (Male/Female/Non-binary)
+                let relationship = MAPPING[sex] || sex; // Apply relationship mapping
+                
+                // Combine Name, Race, Age, Relationship
+                const finalRowData = rowData.slice();
+                finalRowData.push(relationship);
+
+                // 3. Calculate the fifth field: Job Title
+                const jobTitle = extractJobTitle(item);
+                
+                // --- FIX: Only push job title if it exists. If not, the line ends here, avoiding a trailing comma. ---
+                if (jobTitle !== '-') {
+                    finalRowData.push(jobTitle);
+                }
+
+                return finalRowData.join(', ');
+            });
+
+            // UPDATED HEADER
+            return { header: "Name, Race, Age, Relationship Type, Job Title", lines: formattedLines };
+        }
+        
+        /**
+         * Displays the formatted data as a list of lines in the UI.
+         */
+        function displayData(data, containerId, headerId) {
+            const container = document.getElementById(containerId);
+            const headerElement = document.getElementById(headerId);
+            
+            container.innerHTML = ''; 
+            
+            if (!data || data.lines.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 p-4 text-center">No data available.</p>';
+                headerElement.style.display = 'none';
+                return;
+            }
+            
+            headerElement.style.display = 'block'; 
+            
+            data.lines.forEach((line, index) => {
+                const p = document.createElement('p');
+                p.textContent = line;
+                p.className = `p-3 font-mono text-sm ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b border-gray-100`;
+                container.appendChild(p);
+            });
+        }
+
+
+        /**
+         * Generic function to copy data to the clipboard.
+         * @param {string} csvString - The data string to copy.
+         */
+        function copyToClipboard(csvString) {
+            const textarea = document.createElement('textarea');
+            textarea.value = csvString;
+            textarea.style.position = 'fixed'; 
+            textarea.style.top = '0';
+            textarea.style.left = '0';
+            textarea.style.opacity = '0'; 
+            
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopyFeedback();
+                } else {
+                    console.error('Copy operation failed using document.execCommand.');
+                }
+            } catch (err) {
+                console.error('Could not copy text:', err);
+            }
+
+            document.body.removeChild(textarea);
+        }
+
+        /**
+         * Handler for copying the Job Data (Left Column).
+         */
+        function copyJobData() {
+            const inputElement = document.getElementById('jsonInput');
+            const surnameElement = document.getElementById('surnameInput');
+            const rawJson = inputElement.value.trim();
+            const surname = surnameElement.value.trim();
+            
+            try {
+                const data = JSON.parse(rawJson);
+                const formattedResult = generateJobData(data, surname);
+                
+                if (formattedResult.lines.length > 0) {
+                    const csvString = formattedResult.lines.join('\n'); 
+                    copyToClipboard(csvString);
+                }
+            } catch (error) {
+                console.error("Error formatting job data for copy:", error);
+            }
+        }
+        
+        /**
+         * Handler for copying the Relationship Data (Right Column).
+         */
+        function copyRelationshipData() {
+            const inputElement = document.getElementById('jsonInput');
+            const relationshipTypeElement = document.getElementById('relationshipType');
+            const rawJson = inputElement.value.trim();
+            const relationshipType = relationshipTypeElement.value;
+            
+            try {
+                const data = JSON.parse(rawJson);
+                const formattedResult = generateRelationshipData(data, relationshipType);
+                
+                if (formattedResult.lines.length > 0) {
+                    const csvString = formattedResult.lines.join('\n'); 
+                    copyToClipboard(csvString);
+                }
+            } catch (error) {
+                console.error("Error formatting relationship data for copy:", error);
+            }
+        }
+
+
+        /**
+         * Utility function to display an error message.
+         */
+        function showError(message) {
+            const errorMessageElement = document.getElementById('errorMessage');
+            errorMessageElement.textContent = message;
+            errorMessageElement.classList.remove('hidden');
+            
+            // Clear both preview columns
+            document.getElementById('formattedListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">Click \'Generate List Preview\' to see your data here.</p>';
+            document.getElementById('relationshipListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">Relationship data will appear here.</p>';
+            
+            document.getElementById('formattedListHeader').style.display = 'none';
+            document.getElementById('relationshipListHeader').style.display = 'none';
+
+            // Disable copy buttons on error
+            document.getElementById('copyJobDataButton').disabled = true;
+            document.getElementById('copyRelationshipDataButton').disabled = true;
+        }
+
+        /**
+         * Main handler to process user input JSON and update both columns.
+         */
+        function handleConvert() {
+            const inputElement = document.getElementById('jsonInput');
+            const surnameElement = document.getElementById('surnameInput');
+            const relationshipTypeElement = document.getElementById('relationshipType');
+            const errorMessageElement = document.getElementById('errorMessage');
+            
+            errorMessageElement.classList.add('hidden');
+
+            const rawJson = inputElement.value.trim();
+            const surname = surnameElement.value.trim(); 
+            const relationshipType = relationshipTypeElement.value;
+
+            if (!rawJson) {
+                showError('Please paste JSON data to generate the list.');
+                return;
+            }
+
+            try {
+                const parsedData = JSON.parse(rawJson);
+
+                if (!Array.isArray(parsedData) || parsedData.some(item => typeof item !== 'object' || item === null)) {
+                    showError('Input must be a valid JSON array of objects (e.g., [{"key": "value"}, {"key": "value"}]).');
+                    return;
+                }
+
+                // 1. Generate and display Job Data (Left Column)
+                const jobResult = generateJobData(parsedData, surname);
+                displayData(jobResult, 'formattedListContent', 'formattedListHeader');
+
+                // 2. Generate and display Relationship Data (Right Column)
+                const relationshipResult = generateRelationshipData(parsedData, relationshipType);
+                displayData(relationshipResult, 'relationshipListContent', 'relationshipListHeader');
+
+                // Update copy button states based on data presence
+                document.getElementById('copyJobDataButton').disabled = jobResult.lines.length === 0;
+                document.getElementById('copyRelationshipDataButton').disabled = relationshipResult.lines.length === 0;
+
+            } catch (error) {
+                console.error("Conversion Error:", error);
+                showError('Invalid JSON format. Please check for syntax errors.');
+            }
+        }
+
+        // Setup on load
+        window.onload = () => {
+            const jsonInput = document.getElementById('jsonInput');
+            
+            // Set default JSON data in the textarea
+            jsonInput.value = initialJsonData;
+            
+            // Attach event listeners
+            document.getElementById('convertButton').addEventListener('click', handleConvert);
+            
+            // Attach event listeners for the new copy buttons
+            document.getElementById('copyJobDataButton').addEventListener('click', copyJobData);
+            document.getElementById('copyRelationshipDataButton').addEventListener('click', copyRelationshipData);
+
+
+            // Re-run conversion if surname changes (affects left column)
+            document.getElementById('surnameInput').addEventListener('input', handleConvert);
+            
+            // Re-run conversion if relationship type changes (affects right column)
+            document.getElementById('relationshipType').addEventListener('change', handleConvert);
+            
+            // Run the conversion once on load with the default data
+            handleConvert();
+        };
+    </script>
+
+</body>
+</html>
