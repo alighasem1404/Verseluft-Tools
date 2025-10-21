@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON Data List Converter For CT Survey</title>
+    <title>JSON Data List Converter</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for better readability and table behavior */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #190813;
+            background-color: #f7f7f7;
         }
         /* Style for the copy feedback message */
         #copyFeedback {
@@ -34,32 +34,32 @@
     </style>
 </head>
 <body class="p-4 sm:p-8">
-    
+
     <div class="max-w-7xl mx-auto bg-white shadow-xl rounded-xl p-6 md:p-10">
-       <a href="index.html">  <button id="back-button" class="w-full sm:w-auto px-8 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 transition duration-150 ease-in-out transform hover:scale-[1.01] active:scale-[0.99]" style="position: fixed;top:10%;left:15%">
-                    <  Back to Dashboard
-                </button></a>
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">JSON Data List Converter For CT Survey</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">JSON to Formatted Data Converter</h1>
+
+        <!-- Controls Area (Relationship and Surname) -->
+        <div class="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+            
+            <!-- Surname Input Field -->
+            <div class="flex-1">
+                <label for="surnameInput" class="block text-md font-medium text-gray-700 mb-2">1. Optional Surname (Appended to **Children** and **Siblings** Only)</label>
+                <input type="text" id="surnameInput" placeholder="e.g., Smith" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 transition duration-150">
+            </div>
+        </div>
 
         <!-- JSON Input Area -->
         <div class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-            <label for="jsonInput" class="block text-lg font-medium text-gray-700 mb-3">Paste Your JSON Array Below (e.g., `[...]`):</label>
+            <label for="jsonInput" class="block text-lg font-medium text-gray-700 mb-3">2. Paste Your FULL JSON Array Below (All Types Mixed for Auto-Detection):</label>
             <textarea id="jsonInput" rows="8" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 text-sm font-mono transition duration-150"></textarea>
             
             <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                 <button id="convertButton" class="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 ease-in-out transform hover:scale-[1.01] active:scale-[0.99]">
-                    Generate List Preview
+                    Process All Data
                 </button>
-                <!-- Removed old generic copy button -->
             </div>
             
             <p id="errorMessage" class="mt-3 text-sm font-medium text-red-600 hidden"></p>
-        </div>
-
-        <!-- Surname Input Field -->
-        <div class="mb-4">
-            <label for="surnameInput" class="block text-md font-medium text-gray-700 mb-2">Optional Surname (Affects Job Data Column Only)</label>
-            <input type="text" id="surnameInput" placeholder="e.g., Smith (appended to name)" class="w-full md:w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 transition duration-150">
         </div>
 
         <!-- List Output Area: Now a two-column grid -->
@@ -71,7 +71,6 @@
             <div id="leftColumn" class="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
                 <p class="font-bold text-gray-700 p-3 bg-gray-100 border-b border-gray-200 text-lg flex items-center justify-between">
                     Job Suitable Data
-                    <!-- NEW COPY BUTTON FOR LEFT COLUMN -->
                     <button id="copyJobDataButton" class="text-sm px-3 py-1 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:opacity-50" disabled>
                         Copy Data
                     </button>
@@ -88,19 +87,10 @@
             <div id="rightColumn" class="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
                 <p class="font-bold text-gray-700 p-3 bg-gray-100 border-b border-gray-200 text-lg flex items-center justify-between">
                     Relationship Data
-                    <span class="flex items-center space-x-2">
-                        <!-- Relationship Type Dropdown -->
-                        <select id="relationshipType" class="text-sm font-normal p-1 border border-gray-300 rounded-lg bg-white">
-                            <option value="Child">Child</option>
-                            <option value="Sibling">Sibling</option>
-                        </select>
-                        <!-- NEW COPY BUTTON FOR RIGHT COLUMN -->
-                        <button id="copyRelationshipDataButton" class="text-sm px-3 py-1 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:opacity-50" disabled>
-                            Copy Data
-                        </button>
-                    </span>
+                    <button id="copyRelationshipDataButton" class="text-sm px-3 py-1 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-150 disabled:opacity-50" disabled>
+                        Copy Data
+                    </button>
                 </p>
-                <!-- UPDATED HEADER -->
                 <div id="relationshipListHeader" class="font-bold text-gray-600 p-3 bg-gray-50 border-b border-gray-200 font-mono text-sm">
                     Name, Race, Age, Relationship Type, Job Title
                 </div>
@@ -115,50 +105,137 @@
     <div id="copyFeedback">Copied to clipboard!</div>
 
     <script>
-        // Define the mapping for specific question153 values (Sex)
-        const QUESTION153_MAPPING = {
-            "Item 1": "Female",
-            "Item 2": "Male",
-            "Item 3": "Non-binary"
+        // --- CONFIGURATION MAPPINGS ---
+        
+        // Maps input item codes (e.g., "Item 1") to standard output values (e.g., "Female")
+        const QUESTION_CODE_MAPPINGS = {
+            // Sex Mappings (q153 / q81 / q103 / q141 / q135 / q215)
+            SEX: {
+                "Item 1": "Female",
+                "Item 2": "Male",
+                "Item 3": "Non-binary"
+            },
+            // Race Mappings (q154 / q82 / q104 / q142 / q136 / q335)
+            RACE: {
+                "Item 1": "Dwarf",
+                "Item 2": "Elf",
+                "Item 3": "Halfling",
+                "Item 4": "Human",
+                "Item 5": "Dragonborn",
+                "Item 6": "Gnome",
+                "Item 7": "Half-Elf",
+                "Item 8": "Half-Orc",
+                "Item 9": "Tiefling"
+            },
         };
         
-        // Define the mapping for specific question154 values (Race)
-        const QUESTION154_MAPPING = {
-            "Item 1": "Dwarf",
-            "Item 2": "Elf",
-            "Item 3": "Halfling",
-            "Item 4": "Human",
-            "Item 5": "Dragonborn",
-            "Item 6": "Gnome",
-            "Item 7": "Half-Elf",
-            "Item 8": "Half-Orc",
-            "Item 9": "Tiefling"
+        // Maps standard Sex value to a Relationship Type (used for the right column)
+        const RELATIONSHIP_TYPE_MAPPINGS = {
+            CHILD: {
+                "Female": "Daughter",
+                "Male": "Son",
+                "Non-binary": "Non-binary"
+            },
+            SIBLING: {
+                "Female": "Sister",
+                "Male": "Brother",
+                "Non-binary": "Non-binary"
+            },
+            ROOMMATE: { 
+                "Female": "Roommate",
+                "Male": "Roommate",
+                "Non-binary": "Roommate"
+            },
+            SERVANT: { 
+                "Female": "Servant",
+                "Male": "Servant",
+                "Non-binary": "Servant"
+            },
+            // UPDATED: Partner's Sibling naming convention
+            PARTNERSIBLING: { 
+                "Female": "Partner's Sister", 
+                "Male": "Partner's Brother",   
+                "Non-binary": "Partner's Sibling"
+            }
         };
 
-        // New mappings for relationship column (Sex to Relationship Type)
-        const CHILD_MAPPING = {
-            "Female": "Daughter",
-            "Male": "Son",
-            "Non-binary": "Non-binary"
+        // Defines which question keys belong to which relationship structure
+        const CONFIG_MAPPINGS = {
+            'Child': {
+                NAME: "question152",
+                SEX: "question153",
+                RACE: "question154",
+                AGE: "question155",
+                JOB_FLAG: "question157", // The flag that indicates a job exists
+            },
+            'Sibling': {
+                NAME: "question80",
+                SEX: "question81",
+                RACE: "question82",
+                AGE: "question83", // Using q83 as it contains the age value in the sample
+                JOB_FLAG: "question86", // The flag that indicates a job exists
+            },
+            'PartnerSibling': { 
+                NAME: "question214",
+                SEX: "question215",
+                RACE: "question335",
+                AGE: "question336",
+                JOB_FLAG: "question338", // The flag that indicates a job exists
+            },
+            'Roommate': { 
+                NAME: "question102",
+                SEX: "question103",
+                RACE: "question104",
+                AGE: "question105",
+                JOB_FLAG: "question107", // The flag that indicates a job exists
+            },
+            'Servant_14x': { // Servant with Q14x keys
+                NAME: "question140",
+                SEX: "question141",
+                RACE: "question142",
+                AGE: "question143",
+                // JOB_FLAG omitted as it's not present in sample, we rely on full scan
+            },
+            'Servant_13x': { // Servant with Q13x keys
+                NAME: "question134",
+                SEX: "question135",
+                RACE: "question136",
+                AGE: "question137",
+                // JOB_FLAG omitted as it's not present in sample, we rely on full scan
+            },
         };
 
-        const SIBLING_MAPPING = {
-            "Female": "Sister",
-            "Male": "Brother",
-            "Non-binary": "Non-binary"
+        // Helper map to quickly find the type based on the NAME key presence.
+        const PRIMARY_KEY_LOOKUP = {
+            "question152": "Child",
+            "question80": "Sibling",
+            "question214": "PartnerSibling",
+            "question102": "Roommate",
+            "question140": "Servant_14x",
+            "question134": "Servant_13x",
         };
         
-        // Default JSON data (formatted nicely for display in the textarea)
+        // Defines the MANDATORY display order for the output lists
+        const DISPLAY_ORDER = ['Child', 'Sibling', 'PartnerSibling', 'Roommate', 'Servant_14x', 'Servant_13x'];
+
+
+        // --- END CONFIGURATION MAPPINGS ---
+        
+        // Default JSON data (including all samples)
         const initialJsonData = JSON.stringify([
+            // Child Examples (receives surname)
             {"question153":"Item 2","question152":"Lucas","question154":"Item 4","question155":"18","question157":true,"question158":"Item 2","question162":"11. Knight – A noble warrior."},
-            {"question155":"15","question153":"Item 1","question154":"Item 4","question152":"Kathleen"},
-            {"question152":"Quinnlan ","question153":"Item 1","question154":"Item 4","question155":"15"},
-            {"question152":"Colin","question153":"Item 2","question154":"Item 4","question155":"9"},
-            // Example with job in question165
-            {"question152":"Alex","question153":"Item 3","question154":"Item 1","question155":"25", "question157": true, "question165": "20. Bard – A musical adventurer."}, 
-            {"question152":"Zoe","question153":"Item 1","question154":"Item 8","question155":"31"},
-            // Example with job in question170 (new test case)
-            {"question152":"Roric","question153":"Item 2","question154":"Item 5","question155":"19", "question157": true, "question170": "05. Paladin – A holy warrior."} 
+            // Sibling Example (receives surname)
+            {"question81":"Item 2","question82":"Item 1","question83":"196","question80":"Glim","question86":true,"question95":"33. Caravan Master – Leads trading caravans."},
+            // Partner Sibling Example (surname NOT added)
+            {"question214":"Addi","question215":"Item 3","question335":"Item 7","question336":"20","question338":true,"question351":"Item 3","question354":"21. Tanner’s Apprentice – Processes hides into leather."},
+            // Roommate Examples (surname NOT added)
+            {"question102":"Artan Bearefooth","question103":"Item 2","question104":"Item 8","question105":"25","question107":true,"question119":"Item 1","question120":"3. Carpenter – Works wood for structures and furniture."},
+            // Servant 14x Example (surname NOT added)
+            {"question141":"Item 1","question140":"Tubbi Poetski","question142":"Item 9","question143":"28","question145":"1. Maid – Cleans rooms, makes beds, keeps things tidy."},
+            // Servant 13x Examples (surname NOT added)
+            {"question134":"Vorn Longfinger","question135":"Item 2","question136":"Item 4","question137":"49","question139":"6. Guard – Protects the household and its people."},
+            {"question134":"Marenth Crintch","question135":"Item 1","question136":"Item 6","question139":"2. Cook/Chef – Prepares meals for the household.","question137":"150"},
         ], null, 2);
 
         /**
@@ -171,48 +248,59 @@
                 feedback.classList.remove('show');
             }, 1200);
         }
-
+        
         /**
-         * Cleans up and applies mappings for a field value.
-         * @param {string} key - The question key.
-         * @param {Object} item - The data object.
-         * @returns {string} The cleaned and mapped display value, or '-'.
+         * Cleans up and applies mappings for a field value based on the configuration key.
          */
-        function processField(key, item) {
+        function processField(fieldType, item, key) {
             let value = item[key];
             if (value === undefined || value === null) {
-                return '-'; 
+                return ''; // Return empty string for clean output if value is missing
             } 
             
             let displayValue = String(value).trim();
             
-            // Apply Sex mapping (question153)
-            if (key === 'question153') {
-                return QUESTION153_MAPPING[displayValue] || displayValue;
+            // Apply Sex mapping
+            if (fieldType === 'SEX') {
+                return QUESTION_CODE_MAPPINGS.SEX[displayValue] || displayValue;
             } 
             
-            // Apply Race mapping (question154)
-            else if (key === 'question154') {
-                return QUESTION154_MAPPING[displayValue] || displayValue;
+            // Apply Race mapping
+            else if (fieldType === 'RACE') {
+                return QUESTION_CODE_MAPPINGS.RACE[displayValue] || displayValue;
             }
             
-            // Default cleanup for other text fields (like Name and Age)
+            // Default cleanup for other text fields (Name, Age)
             return displayValue.replace(/,/g, ' ');
         }
         
         /**
-         * Logic to extract the Job Title from a JSON item.
-         * This logic is shared by both columns now.
-         * @param {Object} item - The data object.
-         * @returns {string} The extracted job title or '-' if not found.
+         * Determines the record type (Child, Sibling, Servant, etc.) by checking which primary keys exist in the item.
          */
-        function extractJobTitle(item) {
-            let jobTitle = '-';
-            // Check if the "has job" flag is true (case-insensitive check for string 'true' or boolean true)
-            const hasJob = item["question157"] === true || String(item["question157"]).toLowerCase() === 'true';
+        function getRecordTypeAndConfig(item) {
+            for (const key in item) {
+                const type = PRIMARY_KEY_LOOKUP[key];
+                if (type) {
+                    const config = CONFIG_MAPPINGS[type];
+                    if (config) {
+                        return { config: config, type: type };
+                    }
+                }
+            }
+            return null; // Type could not be determined
+        }
 
-            if (hasJob) {
-                // Iterate through all properties to find the job title field
+        /**
+         * Logic to extract the Job Title from a JSON item.
+         */
+        function extractJobTitle(item, config) {
+            let jobTitle = '-';
+            
+            const shouldScan = config.JOB_FLAG === undefined || 
+                               item[config.JOB_FLAG] === true || 
+                               String(item[config.JOB_FLAG]).toLowerCase() === 'true';
+
+            if (shouldScan) {
                 for (const key in item) {
                     if (Object.prototype.hasOwnProperty.call(item, key)) {
                         const jobField = item[key];
@@ -234,74 +322,70 @@
         /**
          * Logic for the LEFT column: Name (with optional Surname), Race, Age, Sex, Job Title
          */
-        function generateJobData(data, surname) {
-            const PRIMARY_KEYS = ["question152", "question154", "question155", "question153"];
+        function generateJobLine(item, surname, config, type) {
+            const PRIMARY_KEYS = [config.NAME, config.RACE, config.AGE, config.SEX];
             const normalizedSurname = surname ? surname.trim() : '';
+            
+            // Only Child and Sibling receive the optional surname.
+            const SURNAME_APPLICABLE_TYPES = ['Child', 'Sibling']; 
 
-            const formattedLines = data.map(item => {
-                const rowData = PRIMARY_KEYS.map(key => {
-                    let displayValue = processField(key, item);
+            const rowData = PRIMARY_KEYS.map(key => {
+                let fieldType = (key === config.SEX) ? 'SEX' : (key === config.RACE) ? 'RACE' : 'OTHER';
+                let displayValue = processField(fieldType, item, key);
+                
+                if (key === config.NAME) {
+                    let fullName = displayValue;
                     
-                    // Special handling for Name (question152) to append the surname
-                    if (key === 'question152') {
-                        let fullName = displayValue;
-                        if (normalizedSurname) {
-                            // Append surname without a comma
-                            fullName += ' ' + normalizedSurname;
-                        }
-                        return fullName.replace(/,/g, ' '); 
+                    if (normalizedSurname && SURNAME_APPLICABLE_TYPES.includes(type)) {
+                        fullName += ' ' + normalizedSurname;
                     }
-                    return displayValue;
-                });
-                
-                // 2. Calculate the fifth field: Job Title
-                const jobTitle = extractJobTitle(item);
-                
-                const finalRowData = rowData.slice(); 
-                // Only append job title if it was found
-                if (jobTitle !== '-') { 
-                    finalRowData.push(jobTitle);
-                } 
-                
-                return finalRowData.join(', ');
+                    
+                    return fullName.replace(/,/g, ' '); 
+                }
+                return displayValue;
             });
-
-            return { header: "Name, Race, Age, Sex, Job Title", lines: formattedLines };
+            
+            const jobTitle = extractJobTitle(item, config);
+            
+            const finalRowData = rowData.slice(); 
+            if (jobTitle !== '-') { 
+                finalRowData.push(jobTitle);
+            } 
+            
+            return finalRowData.join(', ');
         }
 
         /**
          * Logic for the RIGHT column: Name, Race, Age, Relationship Type, Job Title
          */
-        function generateRelationshipData(data, relationshipType) {
-            // Keys for Name, Race, Age
-            const PRIMARY_KEYS = ["question152", "question154", "question155"]; 
-            const MAPPING = relationshipType === 'Child' ? CHILD_MAPPING : SIBLING_MAPPING;
+        function generateRelationshipLine(item, relationshipType, config) {
+            // Converts relationshipType (e.g., 'Servant_14x') to base type (e.g., 'SERVANT') for mapping lookup
+            const baseRelationshipType = relationshipType.split('_')[0].toUpperCase();
+            const RELATIONSHIP_MAP = RELATIONSHIP_TYPE_MAPPINGS[baseRelationshipType] || RELATIONSHIP_TYPE_MAPPINGS.CHILD;
 
-            const formattedLines = data.map(item => {
-                // 1. Process Name, Race, Age
-                const rowData = PRIMARY_KEYS.map(key => processField(key, item));
-                
-                // 2. Calculate the fourth field: Relationship Type
-                let sex = processField('question153', item); // Get mapped Sex (Male/Female/Non-binary)
-                let relationship = MAPPING[sex] || sex; // Apply relationship mapping
-                
-                // Combine Name, Race, Age, Relationship
-                const finalRowData = rowData.slice();
-                finalRowData.push(relationship);
+            // 1. Process Name, Race, Age
+            const rowData = [
+                processField('OTHER', item, config.NAME),
+                processField('RACE', item, config.RACE),
+                processField('OTHER', item, config.AGE)
+            ];
+            
+            // 2. Calculate the fourth field: Relationship Type
+            let sex = processField('SEX', item, config.SEX); // Get mapped Sex (Male/Female/Non-binary)
+            let relationship = RELATIONSHIP_MAP[sex] || sex; // Apply relationship mapping
+            
+            // Combine Name, Race, Age, Relationship
+            const finalRowData = rowData.slice();
+            finalRowData.push(relationship);
 
-                // 3. Calculate the fifth field: Job Title
-                const jobTitle = extractJobTitle(item);
-                
-                // --- FIX: Only push job title if it exists. If not, the line ends here, avoiding a trailing comma. ---
-                if (jobTitle !== '-') {
-                    finalRowData.push(jobTitle);
-                }
+            // 3. Calculate the fifth field: Job Title
+            const jobTitle = extractJobTitle(item, config);
+            
+            if (jobTitle !== '-') {
+                finalRowData.push(jobTitle);
+            }
 
-                return finalRowData.join(', ');
-            });
-
-            // UPDATED HEADER
-            return { header: "Name, Race, Age, Relationship Type, Job Title", lines: formattedLines };
+            return finalRowData.join(', ');
         }
         
         /**
@@ -314,7 +398,7 @@
             container.innerHTML = ''; 
             
             if (!data || data.lines.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 p-4 text-center">No data available.</p>';
+                container.innerHTML = '<p class="text-gray-400 p-4 text-center">No recognizable data available.</p>';
                 headerElement.style.display = 'none';
                 return;
             }
@@ -332,7 +416,6 @@
 
         /**
          * Generic function to copy data to the clipboard.
-         * @param {string} csvString - The data string to copy.
          */
         function copyToClipboard(csvString) {
             const textarea = document.createElement('textarea');
@@ -358,70 +441,14 @@
 
             document.body.removeChild(textarea);
         }
-
-        /**
-         * Handler for copying the Job Data (Left Column).
-         */
-        function copyJobData() {
-            const inputElement = document.getElementById('jsonInput');
-            const surnameElement = document.getElementById('surnameInput');
-            const rawJson = inputElement.value.trim();
-            const surname = surnameElement.value.trim();
-            
-            try {
-                const data = JSON.parse(rawJson);
-                const formattedResult = generateJobData(data, surname);
-                
-                if (formattedResult.lines.length > 0) {
-                    const csvString = formattedResult.lines.join('\n'); 
-                    copyToClipboard(csvString);
-                }
-            } catch (error) {
-                console.error("Error formatting job data for copy:", error);
-            }
-        }
         
         /**
-         * Handler for copying the Relationship Data (Right Column).
-         */
-        function copyRelationshipData() {
-            const inputElement = document.getElementById('jsonInput');
-            const relationshipTypeElement = document.getElementById('relationshipType');
-            const rawJson = inputElement.value.trim();
-            const relationshipType = relationshipTypeElement.value;
-            
-            try {
-                const data = JSON.parse(rawJson);
-                const formattedResult = generateRelationshipData(data, relationshipType);
-                
-                if (formattedResult.lines.length > 0) {
-                    const csvString = formattedResult.lines.join('\n'); 
-                    copyToClipboard(csvString);
-                }
-            } catch (error) {
-                console.error("Error formatting relationship data for copy:", error);
-            }
-        }
-
-
-        /**
-         * Utility function to display an error message.
+         * Displays error message to the user.
          */
         function showError(message) {
             const errorMessageElement = document.getElementById('errorMessage');
             errorMessageElement.textContent = message;
             errorMessageElement.classList.remove('hidden');
-            
-            // Clear both preview columns
-            document.getElementById('formattedListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">Click \'Generate List Preview\' to see your data here.</p>';
-            document.getElementById('relationshipListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">Relationship data will appear here.</p>';
-            
-            document.getElementById('formattedListHeader').style.display = 'none';
-            document.getElementById('relationshipListHeader').style.display = 'none';
-
-            // Disable copy buttons on error
-            document.getElementById('copyJobDataButton').disabled = true;
-            document.getElementById('copyRelationshipDataButton').disabled = true;
         }
 
         /**
@@ -430,17 +457,17 @@
         function handleConvert() {
             const inputElement = document.getElementById('jsonInput');
             const surnameElement = document.getElementById('surnameInput');
-            const relationshipTypeElement = document.getElementById('relationshipType');
             const errorMessageElement = document.getElementById('errorMessage');
             
             errorMessageElement.classList.add('hidden');
 
             const rawJson = inputElement.value.trim();
             const surname = surnameElement.value.trim(); 
-            const relationshipType = relationshipTypeElement.value;
 
             if (!rawJson) {
-                showError('Please paste JSON data to generate the list.');
+                // Do not show an error if empty, just clear the list on input change
+                document.getElementById('formattedListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">No data pasted yet.</p>';
+                document.getElementById('relationshipListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">No data pasted yet.</p>';
                 return;
             }
 
@@ -452,23 +479,138 @@
                     return;
                 }
 
-                // 1. Generate and display Job Data (Left Column)
-                const jobResult = generateJobData(parsedData, surname);
+                // Initialize groups for sorting
+                const groupedJobLines = {};
+                const groupedRelationshipLines = {};
+                DISPLAY_ORDER.forEach(type => {
+                    groupedJobLines[type] = [];
+                    groupedRelationshipLines[type] = [];
+                });
+                
+                let processedCount = 0;
+
+                parsedData.forEach(item => {
+                    const typeConfig = getRecordTypeAndConfig(item);
+                    
+                    if (typeConfig) {
+                        const { config, type } = typeConfig;
+                        
+                        const jobLine = generateJobLine(item, surname, config, type); 
+                        const relationshipLine = generateRelationshipLine(item, type, config);
+                        
+                        // Push to the correct group based on detected type
+                        groupedJobLines[type].push(jobLine);
+                        groupedRelationshipLines[type].push(relationshipLine);
+                        processedCount++;
+                    } else {
+                        console.warn("Skipping item: Could not determine record type based on keys.", item);
+                    }
+                });
+                
+                if (processedCount === 0) {
+                    showError('No recognizable family/servant records found in the input JSON array.');
+                    return;
+                }
+                
+                // Concatenate groups in the defined order
+                let allJobLines = [];
+                let allRelationshipLines = [];
+
+                DISPLAY_ORDER.forEach(type => {
+                    allJobLines = allJobLines.concat(groupedJobLines[type]);
+                    allRelationshipLines = allRelationshipLines.concat(groupedRelationshipLines[type]);
+                });
+
+
+                // Display aggregated results
+                const jobResult = { lines: allJobLines };
                 displayData(jobResult, 'formattedListContent', 'formattedListHeader');
 
-                // 2. Generate and display Relationship Data (Right Column)
-                const relationshipResult = generateRelationshipData(parsedData, relationshipType);
+                const relationshipResult = { lines: allRelationshipLines };
                 displayData(relationshipResult, 'relationshipListContent', 'relationshipListHeader');
 
-                // Update copy button states based on data presence
+                // Update copy button states
                 document.getElementById('copyJobDataButton').disabled = jobResult.lines.length === 0;
                 document.getElementById('copyRelationshipDataButton').disabled = relationshipResult.lines.length === 0;
 
             } catch (error) {
                 console.error("Conversion Error:", error);
-                showError('Invalid JSON format. Please check for syntax errors.');
+                showError('Invalid JSON format. Please check for syntax errors. Error details: ' + error.message);
             }
         }
+
+        /**
+         * Handler for copying the Job Data (Left Column) with correct sorting.
+         */
+        function copyJobData() {
+            const inputElement = document.getElementById('jsonInput');
+            const surnameElement = document.getElementById('surnameInput');
+            const rawJson = inputElement.value.trim();
+            const surname = surnameElement.value.trim();
+
+            try {
+                const data = JSON.parse(rawJson);
+                const groupedJobLines = {};
+                DISPLAY_ORDER.forEach(type => groupedJobLines[type] = []);
+                let allJobLines = [];
+
+
+                data.forEach(item => {
+                    const typeConfig = getRecordTypeAndConfig(item);
+                    if (typeConfig) {
+                        groupedJobLines[typeConfig.type].push(generateJobLine(item, surname, typeConfig.config, typeConfig.type));
+                    }
+                });
+                
+                // Concatenate in order
+                DISPLAY_ORDER.forEach(type => {
+                    allJobLines = allJobLines.concat(groupedJobLines[type]);
+                });
+                
+                if (allJobLines.length > 0) {
+                    const csvString = allJobLines.join('\n'); 
+                    copyToClipboard(csvString);
+                }
+            } catch (error) {
+                console.error("Error formatting job data for copy:", error);
+            }
+        }
+        
+        /**
+         * Handler for copying the Relationship Data (Right Column) with correct sorting.
+         */
+        function copyRelationshipData() {
+            const inputElement = document.getElementById('jsonInput');
+            const rawJson = inputElement.value.trim();
+            
+            try {
+                const data = JSON.parse(rawJson);
+                const groupedRelationshipLines = {};
+                DISPLAY_ORDER.forEach(type => groupedRelationshipLines[type] = []);
+                let allRelationshipLines = [];
+
+
+                data.forEach(item => {
+                    const typeConfig = getRecordTypeAndConfig(item);
+                    if (typeConfig) {
+                        groupedRelationshipLines[typeConfig.type].push(generateRelationshipLine(item, typeConfig.type, typeConfig.config));
+                    }
+                });
+                
+                // Concatenate in order
+                DISPLAY_ORDER.forEach(type => {
+                    allRelationshipLines = allRelationshipLines.concat(groupedRelationshipLines[type]);
+                });
+                
+                if (allRelationshipLines.length > 0) {
+                    const csvString = allRelationshipLines.join('\n'); 
+                    copyToClipboard(csvString);
+                }
+            } catch (error) {
+                console.error("Error formatting relationship data for copy:", error);
+            }
+        }
+
 
         // Setup on load
         window.onload = () => {
@@ -485,11 +627,8 @@
             document.getElementById('copyRelationshipDataButton').addEventListener('click', copyRelationshipData);
 
 
-            // Re-run conversion if surname changes (affects left column)
+            // Re-run conversion whenever controls change
             document.getElementById('surnameInput').addEventListener('input', handleConvert);
-            
-            // Re-run conversion if relationship type changes (affects right column)
-            document.getElementById('relationshipType').addEventListener('change', handleConvert);
             
             // Run the conversion once on load with the default data
             handleConvert();
