@@ -50,7 +50,7 @@
 
         <!-- JSON Input Area -->
         <div class="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-            <label for="jsonInput" class="block text-lg font-medium text-gray-700 mb-3">2. Paste Your FULL JSON Array Below (All Types Mixed for Auto-Detection):</label>
+            <label for="jsonInput" class="block text-lg font-medium text-gray-700 mb-3">2. Paste Your FULL JSON Array Below (Concatenated arrays like `[{...}] [{...}]` are now supported):</label>
             <textarea id="jsonInput" rows="8" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600 text-sm font-mono transition duration-150"></textarea>
             
             <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
@@ -222,18 +222,22 @@
         // --- END CONFIGURATION MAPPINGS ---
         
         // Default JSON data (including all samples)
+        // Note: Updated with user's specific sample data and formatted for readability.
         const initialJsonData = JSON.stringify([
-            // Child Examples (receives surname)
-            {"question153":"Item 2","question152":"Lucas","question154":"Item 4","question155":"18","question157":true,"question158":"Item 2","question162":"11. Knight – A noble warrior."},
-            // Sibling Example (receives surname)
+            // --- USER'S SAMPLE DATA ---
+            // 1. Child - Thron (no job, receives surname)
+            {"question153":"Item 2","question154":"Item 1","question155":"32","question152":"Thron"},
+            // 2. Sibling - Glim (has job, receives surname)
             {"question81":"Item 2","question82":"Item 1","question83":"196","question80":"Glim","question86":true,"question95":"33. Caravan Master – Leads trading caravans."},
-            // Partner Sibling Example (surname NOT added)
-            {"question214":"Addi","question215":"Item 3","question335":"Item 7","question336":"20","question338":true,"question351":"Item 3","question354":"21. Tanner’s Apprentice – Processes hides into leather."},
-            // Roommate Examples (surname NOT added)
-            {"question102":"Artan Bearefooth","question103":"Item 2","question104":"Item 8","question105":"25","question107":true,"question119":"Item 1","question120":"3. Carpenter – Works wood for structures and furniture."},
-            // Servant 14x Example (surname NOT added)
+            // 3. Partner Sibling - Valla Boldstride (has job, does not receive surname)
+            {"question215":"Item 1","question335":"Item 1","question336":"87","question214":"Valla Boldstride","question338":true,"question349":"50. Guild Officer – Oversees guild business."},
+
+            // --- EXISTING SAMPLE DATA ---
+            // Roommate
+            {"question102":"Artan Bearefooth","question103":"Item 2","question104":"Item 8","question105":"25","question107":true,"question120":"3. Carpenter – Works wood for structures and furniture."},
+            // Servant 14x
             {"question141":"Item 1","question140":"Tubbi Poetski","question142":"Item 9","question143":"28","question145":"1. Maid – Cleans rooms, makes beds, keeps things tidy."},
-            // Servant 13x Examples (surname NOT added)
+            // Servant 13x
             {"question134":"Vorn Longfinger","question135":"Item 2","question136":"Item 4","question137":"49","question139":"6. Guard – Protects the household and its people."},
             {"question134":"Marenth Crintch","question135":"Item 1","question136":"Item 6","question139":"2. Cook/Chef – Prepares meals for the household.","question137":"150"},
         ], null, 2);
@@ -347,12 +351,16 @@
             
             const jobTitle = extractJobTitle(item, config);
             
-            const finalRowData = rowData.slice(); 
-            if (jobTitle !== '-') { 
-                finalRowData.push(jobTitle);
-            } 
+            // Ensure 4 elements (Name, Race, Age, Sex) are always included
+            const finalFields = [rowData[0], rowData[1], rowData[2], rowData[3]];
             
-            return finalRowData.join(', ');
+            // Conditionally append the jobTitle only if it's not the placeholder
+            if (jobTitle !== '-') {
+                finalFields.push(jobTitle);
+            }
+            
+            // Join the fields (4 or 5 elements)
+            return finalFields.join(', ');
         }
 
         /**
@@ -374,17 +382,19 @@
             let sex = processField('SEX', item, config.SEX); // Get mapped Sex (Male/Female/Non-binary)
             let relationship = RELATIONSHIP_MAP[sex] || sex; // Apply relationship mapping
             
-            // Combine Name, Race, Age, Relationship
+            // Combine Name, Race, Age, Relationship (4 mandatory fields)
             const finalRowData = rowData.slice();
             finalRowData.push(relationship);
 
             // 3. Calculate the fifth field: Job Title
             const jobTitle = extractJobTitle(item, config);
             
+            // Conditionally append the jobTitle only if it's not the placeholder
             if (jobTitle !== '-') {
                 finalRowData.push(jobTitle);
             }
 
+            // Join the fields (4 or 5 elements)
             return finalRowData.join(', ');
         }
         
@@ -452,6 +462,50 @@
         }
 
         /**
+         * Cleans the raw input string, merging multiple concatenated JSON arrays 
+         * (e.g., '[{"a":1}] [{"b":2}]') into a single flattened array for parsing.
+         * @param {string} rawJson - The raw string input from the textarea.
+         * @returns {Array<Object>} The single, flattened array of data objects.
+         */
+        function robustParseMultipleArrays(rawJson) {
+            let cleanedJson = rawJson.trim();
+            
+            // 1. Merge concatenated arrays: replace ']\s*[' with '],['
+            // This transforms multiple root arrays into one big, valid JSON array of arrays.
+            // e.g., '[{...}] [{...}]' -> '[{...}], [{...}]'
+            cleanedJson = cleanedJson.replace(/\]\s*\[/g, '],[')
+
+            let parsed;
+            try {
+                // 2. Parse the merged structure (which is typically Array<Array<Object>>)
+                parsed = JSON.parse(cleanedJson);
+            } catch (e) {
+                // Re-throw if the final merged string is not valid JSON
+                throw new Error("Invalid JSON structure after merging. Ensure all array elements are properly closed. Error details: " + e.message);
+            }
+            
+            if (!Array.isArray(parsed)) {
+                throw new Error("Input must resolve to a valid JSON array.");
+            }
+            
+            // 3. Flatten the array structure
+            const flattened = [];
+            
+            parsed.forEach(item => {
+                if (Array.isArray(item)) {
+                    // If the item is an array (expected from the merge step), flatten its contents
+                    flattened.push(...item);
+                } else if (typeof item === 'object' && item !== null) {
+                    // If the item is a direct object (in case the input was a single, flat array), add it
+                    flattened.push(item);
+                }
+            });
+
+            return flattened;
+        }
+
+
+        /**
          * Main handler to process user input JSON and update both columns.
          */
         function handleConvert() {
@@ -461,21 +515,25 @@
             
             errorMessageElement.classList.add('hidden');
 
-            const rawJson = inputElement.value.trim();
+            const rawJsonFull = inputElement.value.trim();
             const surname = surnameElement.value.trim(); 
 
-            if (!rawJson) {
-                // Do not show an error if empty, just clear the list on input change
+            if (!rawJsonFull) {
+                // Clear the list if input is empty
                 document.getElementById('formattedListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">No data pasted yet.</p>';
                 document.getElementById('relationshipListContent').innerHTML = '<p class="text-gray-400 p-4 text-center">No data pasted yet.</p>';
+                // Disable buttons
+                document.getElementById('copyJobDataButton').disabled = true;
+                document.getElementById('copyRelationshipDataButton').disabled = true;
                 return;
             }
-
+            
             try {
-                const parsedData = JSON.parse(rawJson);
+                // Use the new robust parser to handle concatenated arrays (e.g., [{...}] [{...}])
+                const parsedData = robustParseMultipleArrays(rawJsonFull);
 
-                if (!Array.isArray(parsedData) || parsedData.some(item => typeof item !== 'object' || item === null)) {
-                    showError('Input must be a valid JSON array of objects (e.g., [{"key": "value"}, {"key": "value"}]).');
+                if (parsedData.some(item => typeof item !== 'object' || item === null)) {
+                    showError('Input must resolve to a valid array containing only objects (e.g., [{"key": "value"}, {"key": "value"}]).');
                     return;
                 }
 
@@ -508,7 +566,7 @@
                 });
                 
                 if (processedCount === 0) {
-                    showError('No recognizable family/servant records found in the input JSON array.');
+                    showError('No recognizable family/servant records found in the input JSON array. Please ensure records contain the correct keys (e.g., question152, question80, etc.).');
                     return;
                 }
                 
@@ -535,7 +593,8 @@
 
             } catch (error) {
                 console.error("Conversion Error:", error);
-                showError('Invalid JSON format. Please check for syntax errors. Error details: ' + error.message);
+                // Catch the errors thrown by robustParseMultipleArrays
+                showError(error.message);
             }
         }
 
@@ -549,7 +608,8 @@
             const surname = surnameElement.value.trim();
 
             try {
-                const data = JSON.parse(rawJson);
+                // Use robust parser for copy operations as well
+                const data = robustParseMultipleArrays(rawJson);
                 const groupedJobLines = {};
                 DISPLAY_ORDER.forEach(type => groupedJobLines[type] = []);
                 let allJobLines = [];
@@ -573,6 +633,7 @@
                 }
             } catch (error) {
                 console.error("Error formatting job data for copy:", error);
+                showError("Copy failed due to invalid JSON format. Please re-check the input.");
             }
         }
         
@@ -584,7 +645,8 @@
             const rawJson = inputElement.value.trim();
             
             try {
-                const data = JSON.parse(rawJson);
+                // Use robust parser for copy operations as well
+                const data = robustParseMultipleArrays(rawJson);
                 const groupedRelationshipLines = {};
                 DISPLAY_ORDER.forEach(type => groupedRelationshipLines[type] = []);
                 let allRelationshipLines = [];
@@ -608,6 +670,7 @@
                 }
             } catch (error) {
                 console.error("Error formatting relationship data for copy:", error);
+                showError("Copy failed due to invalid JSON format. Please re-check the input.");
             }
         }
 
