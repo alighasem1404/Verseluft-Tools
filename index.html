@@ -3,256 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Simple Tool Dashboard</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for background and font */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a1a2e; /* Dark theme primary background */
-            color: #e4e4e7; /* Light text color */
-            min-height: 100vh;
-        }
-        /* Custom scrollbar for aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #252541;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4e4e6c;
-            border-radius: 4px;
-        }
-        .tool-card {
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .tool-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(121, 93, 222, 0.3), 0 4px 6px -2px rgba(121, 93, 222, 0.2);
-        }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary-dark': '#1a1a2e',
-                        'secondary-dark': '#252541',
-                        'accent-purple': '#795dde',
-                    }
-                }
-            }
-        }
-    </script>
+    <meta name="theme-color" content="#0a0712">
+    <title>Verseluft Tools</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="p-4 sm:p-8">
+<body>
+    <div class="page">
+        <header class="shell header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Offline tool hub</div>
+                <h1 class="title">Verseluft <span>Tools</span></h1>
+                <p class="lede">
+                    A dark, elegant launchpad for your local HTML and JS utilities. No CDN, no remote font, no online framework required to open this page.
+                </p>
 
-    <!-- Header -->
-    <header class="text-center mb-10">
-        <h1 class="text-5xl sm:text-6xl font-extrabold text-white mb-2">My Tool Hub</h1>
-        <p class="text-lg text-gray-400">Organize your quick-access resources.</p>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto">
-
-        <!-- Tool Grid Container -->
-        <div id="toolGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <!-- Tool cards will be injected here by JavaScript -->
-        </div>
-
-        <!-- Add New Tool Button -->
-        <div class="mt-12 flex justify-center">
-            <button id="openModalBtn" class="bg-accent-purple hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-150 transform hover:scale-[1.02] flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add New Tool
-            </button>
-        </div>
-    </main>
-
-    <!-- Modal for Adding New Tool -->
-    <div id="addToolModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
-        <div class="bg-secondary-dark p-8 rounded-xl w-full max-w-md shadow-2xl">
-            <h2 class="text-2xl font-bold text-white mb-6">Add New Tool</h2>
-            <form id="addToolForm">
-                <div class="mb-4">
-                    <label for="toolName" class="block text-gray-300 text-sm font-medium mb-1">Name</label>
-                    <input type="text" id="toolName" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                <div class="actions">
+                    <button id="openModalBtn" class="btn btn-primary soft-focus" type="button">
+                        <span aria-hidden="true">+</span>
+                        Add New Tool
+                    </button>
+                    <a class="btn btn-ghost soft-focus" href="#toolGrid">
+                        Browse tools
+                    </a>
                 </div>
-                <div class="mb-4">
-                    <label for="toolDescription" class="block text-gray-300 text-sm font-medium mb-1">Description (Optional)</label>
-                    <input type="text" id="toolDescription" class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+            </section>
+
+            <aside class="stats" aria-label="Dashboard summary">
+                <div class="stat">
+                    <span id="toolCount" class="value">0</span>
+                    <span class="label">Tools saved</span>
                 </div>
-                <div class="mb-4">
-                    <label for="toolIcon" class="block text-gray-300 text-sm font-medium mb-1">Emoji Icon (e.g., 📝, 📅)</label>
-                    <input type="text" id="toolIcon" value="🔗" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                <div class="stat">
+                    <span class="value">Offline</span>
+                    <span class="label">Ready</span>
                 </div>
-                <div class="mb-6">
-                    <label for="toolLink" class="block text-gray-300 text-sm font-medium mb-1">Link URL</label>
-                    <input type="url" id="toolLink" required class="w-full p-3 rounded-lg bg-primary-dark border border-gray-600 focus:ring-accent-purple focus:border-accent-purple text-white">
+                <div class="stat">
+                    <span class="value">Purple</span>
+                    <span class="label">Accent</span>
                 </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="closeModalBtn" class="py-2 px-4 rounded-lg text-gray-300 hover:bg-gray-700 transition duration-150">Cancel</button>
-                    <button type="submit" class="bg-accent-purple hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150">Add Tool</button>
+            </aside>
+        </header>
+
+        <section class="controls">
+            <div class="panel">
+                <div class="panel-title">
+                    <h3>Quick search</h3>
+                    <span class="badge">Local only</span>
+                </div>
+                <input id="searchInput" class="search soft-focus" type="search" placeholder="Search your tools...">
+                <div class="helper-grid">
+                    <div class="helper-card">
+                        <div class="small">Primary use</div>
+                        <div class="big">Daily utilities</div>
+                    </div>
+                    <div class="helper-card">
+                        <div class="small">Storage</div>
+                        <div class="big">Browser localStorage</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <h3>Offline note</h3>
+                    <span class="badge">Important</span>
+                </div>
+                <p class="muted" style="line-height: 1.7;">
+                    This dashboard itself now works offline. External websites in your tools list will still need internet to open, but your local HTML pages will run normally.
+                </p>
+            </div>
+        </section>
+
+        <section style="margin-top: 24px;">
+            <div class="section-head">
+                <div>
+                    <h3>Your tools</h3>
+                    <p class="muted" style="margin-top: 6px;">Open any card in a new tab. Add local files for a fully offline workflow.</p>
+                </div>
+                <div id="resultsMeta" class="muted"></div>
+            </div>
+
+            <div id="toolGrid" class="grid"></div>
+        </section>
+    </div>
+
+    <div id="addToolModal" class="modal" aria-hidden="true">
+        <div class="dialog">
+            <div class="dialog-head">
+                <div>
+                    <h2>Add New Tool</h2>
+                    <p>Save a local HTML file or any shortcut you want close at hand.</p>
+                </div>
+                <button id="closeModalBtn" class="close soft-focus" type="button">Close</button>
+            </div>
+
+            <form id="addToolForm" class="form">
+                <div class="field">
+                    <label for="toolName">Name</label>
+                    <input id="toolName" type="text" required placeholder="Example: Invoice Builder">
+                </div>
+                <div class="field">
+                    <label for="toolDescription">Description</label>
+                    <input id="toolDescription" type="text" placeholder="Short explanation of what it does">
+                </div>
+                <div class="field">
+                    <label for="toolIcon">Icon text</label>
+                    <input id="toolIcon" type="text" value="LT" placeholder="Two letters or a short symbol">
+                </div>
+                <div class="field">
+                    <label for="toolLink">Link or local file</label>
+                    <input id="toolLink" type="text" required placeholder="checker 3.0.html or https://...">
+                </div>
+
+                <div class="form-actions">
+                    <button id="cancelModalBtn" class="btn btn-ghost soft-focus" type="button">Cancel</button>
+                    <button class="btn btn-primary soft-focus" type="submit">Add Tool</button>
+                </div>
+
+                <div class="muted-note">
+                    Tip: use relative file names like <code>my-tool.html</code> for truly offline tools.
                 </div>
             </form>
         </div>
     </div>
 
-
     <script>
-        // --- Core Application Logic ---
-
-        // Define the key for localStorage
         const STORAGE_KEY = 'myToolDashboardTools';
 
-        // Hardcoded list used if no data is found in localStorage
         const defaultTools = [
-            { name: "Character Generator", icon: "🧝", description: "Create a D&D character.", link: "https://perchance.org/fantasynpcgenerator" },
-            { name: "Color Palette Picker", icon: "🎨", description: "Select and generate beautiful color schemes.", link: "https://coolors.co/" },
-            { name: "SRD Copyright Checker", icon: "📝", description: "Check Copyrighted words of WOC.", link: "checker 3.0.html" },
-            { name: "Online Stopwatch", icon: "⏱️", description: "Simple, large display stopwatch and timer.", link: "https://www.google.com/search?q=stopwatch" },
-            { name: "Ct Data analyzer", icon: "📄", description: "Convert survey data into useable data.", link: "Ct Data analyzer.html" },
-            { name: "Password Generator", icon: "🔑", description: "Generate strong, random passwords.", link: "https://passwordsgenerator.net/" },
-           
-
+            {
+                name: 'SRD Copyright Checker',
+                icon: 'SC',
+                description: 'Check copyrighted words locally in your browser.',
+                link: 'checker 3.0.html'
+            },
+            {
+                name: 'CT Data Analyzer',
+                icon: 'CT',
+                description: 'Open the local survey data analyzer.',
+                link: 'Ct Data analyzer.html'
+            },
+            {
+                name: 'Password Generator',
+                icon: 'PG',
+                description: 'A shortcut to your password generator tool.',
+                link: 'password-generator.html'
+            },
+            {
+                name: 'Stopwatch',
+                icon: 'SW',
+                description: 'Quick access to your offline stopwatch page.',
+                link: 'stopwatch.html'
+            },
+            {
+                name: 'Palette Picker',
+                icon: 'PP',
+                description: 'Launch your local color palette helper.',
+                link: 'palette-picker.html'
+            },
+            {
+                name: 'Fast WebP Convertor',
+                icon: 'WP',
+                description: 'Convert images to WebP completely offline.',
+                link: 'fast webp convertor.html'
+            },
+            {
+                name: 'Template Tool',
+                icon: 'TT',
+                description: 'A placeholder for your next local HTML utility.',
+                link: 'tool-template.html'
+            }
         ];
-        
-        // Load tools from localStorage or use the default list
+
         let tools = loadTools();
 
         const toolGrid = document.getElementById('toolGrid');
         const modal = document.getElementById('addToolModal');
         const openModalBtn = document.getElementById('openModalBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelModalBtn = document.getElementById('cancelModalBtn');
         const addToolForm = document.getElementById('addToolForm');
+        const searchInput = document.getElementById('searchInput');
+        const toolCount = document.getElementById('toolCount');
+        const resultsMeta = document.getElementById('resultsMeta');
 
-        /**
-         * Loads the tool list from localStorage.
-         * @returns {Array} The loaded tools or the default list.
-         */
         function loadTools() {
             try {
                 const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    // Combine stored tools with any default tools (in case the defaults were updated)
-                    const userTools = JSON.parse(stored);
-                    
-                    // Simple logic: if user has saved tools, use those. Otherwise, use defaults.
-                    // For a more complex app, you'd merge or check IDs, but for this simple dash, user preference overrides.
-                    return userTools.length > 0 ? userTools : defaultTools;
+                if (!stored) {
+                    return defaultTools;
                 }
+
+                const parsed = JSON.parse(stored);
+                if (!Array.isArray(parsed) || !parsed.length) {
+                    return defaultTools;
+                }
+
+                const merged = [...defaultTools, ...parsed];
+                const seen = new Set();
+                return merged.filter((tool) => {
+                    const key = `${normalize(tool.name)}|${normalize(tool.link)}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
             } catch (error) {
-                console.error("Error loading tools from localStorage:", error);
+                console.error('Error loading tools:', error);
+                return defaultTools;
             }
-            return defaultTools;
         }
 
-        /**
-         * Saves the current tool list to localStorage.
-         */
         function saveTools() {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(tools));
             } catch (error) {
-                console.error("Error saving tools to localStorage:", error);
-                // Optionally display a user message that saving failed
+                console.error('Error saving tools:', error);
             }
         }
 
-        /**
-         * Renders all tool cards into the grid container.
-         */
+        function normalize(value) {
+            return String(value || '').toLowerCase().trim();
+        }
+
+        function makeCard(tool, index) {
+            const card = document.createElement('a');
+            card.className = 'card fade-in soft-focus';
+            card.href = tool.link || '#';
+            card.style.animationDelay = `${Math.min(index * 30, 240)}ms`;
+            card.innerHTML = `
+                <div class="card-top">
+                    <div class="icon">${escapeHtml(tool.icon || 'LT')}</div>
+                    <span class="pill">Open</span>
+                </div>
+                <h4>${escapeHtml(tool.name)}</h4>
+                <p>${escapeHtml(tool.description || 'Quickly access this essential tool.')}</p>
+                <div class="launch">
+                    Launch tool
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M13 7L18 12L13 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M6 12H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                </div>
+            `;
+            return card;
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
         function renderTools() {
-            toolGrid.innerHTML = ''; // Clear existing content
-            tools.forEach((tool, index) => {
-                const card = document.createElement('a');
-                card.href = tool.link;
-                card.target = "_blank"; // Open in a new tab
-                card.className = 'tool-card p-6 bg-secondary-dark rounded-xl shadow-lg border border-gray-700 block relative group';
-                card.innerHTML = `
-                    <div class="text-4xl mb-4 transition-transform duration-300 group-hover:scale-105">${tool.icon}</div>
-                    <h3 class="text-xl font-semibold text-white mb-2">${tool.name}</h3>
-                    <p class="text-gray-400 mb-4 text-sm">${tool.description || 'Quickly access this essential tool.'}</p>
-                    <div class="text-accent-purple font-medium text-sm flex items-center">
-                        Open Tool
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                    </div>
-                    <!-- Delete button (only visible on hover/focus) -->
-                    <button data-index="${index}" class="delete-tool-btn absolute top-3 right-3 p-1 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" title="Delete Tool">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+            const query = normalize(searchInput.value);
+            const filtered = tools.filter((tool) => {
+                if (!query) return true;
+                return (
+                    normalize(tool.name).includes(query) ||
+                    normalize(tool.description).includes(query) ||
+                    normalize(tool.link).includes(query)
+                );
+            });
+
+            toolCount.textContent = String(tools.length);
+            resultsMeta.textContent = `${filtered.length} of ${tools.length} visible`;
+            toolGrid.innerHTML = '';
+
+            if (!filtered.length) {
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.innerHTML = `
+                    <div class="orb">✦</div>
+                    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 850;">No tools found</h3>
+                    <p class="muted" style="margin-top: 8px;">Try a different search or add a new local shortcut.</p>
                 `;
-                toolGrid.appendChild(card);
-            });
+                toolGrid.appendChild(empty);
+                return;
+            }
 
-            // Re-attach delete listeners after re-rendering
-            document.querySelectorAll('.delete-tool-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault(); // Stop navigation
-                    e.stopPropagation(); // Stop card click
-                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
-                    deleteTool(index);
-                });
+            filtered.forEach((tool, index) => {
+                toolGrid.appendChild(makeCard(tool, index));
             });
         }
 
-        /**
-         * Deletes a tool by index, updates the array, saves, and re-renders the list.
-         * @param {number} index - The index of the tool to delete.
-         */
-        function deleteTool(index) {
-            tools.splice(index, 1);
-            saveTools(); // Save the new list to localStorage
-            renderTools();
+        function openModal() {
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('toolName').focus();
         }
 
-        // --- Event Listeners and Modal Control ---
+        function closeModal() {
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            addToolForm.reset();
+            document.getElementById('toolIcon').value = 'LT';
+        }
 
-        openModalBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
+        openModalBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelModalBtn.addEventListener('click', closeModal);
 
-        closeModalBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
             }
         });
 
-        addToolForm.addEventListener('submit', (e) => {
-            e.preventDefault();
+        addToolForm.addEventListener('submit', (event) => {
+            event.preventDefault();
 
             const newTool = {
-                name: document.getElementById('toolName').value,
-                description: document.getElementById('toolDescription').value,
-                icon: document.getElementById('toolIcon').value.trim() || '🔗', // Default to link icon
-                link: document.getElementById('toolLink').value,
+                name: document.getElementById('toolName').value.trim(),
+                description: document.getElementById('toolDescription').value.trim(),
+                icon: document.getElementById('toolIcon').value.trim() || 'LT',
+                link: document.getElementById('toolLink').value.trim()
             };
 
-            tools.push(newTool);
-            saveTools(); // Save the new tool to localStorage
-            renderTools(); // Re-render the grid
-
-            // Reset form and close modal
-            addToolForm.reset();
-            modal.style.display = 'none';
+            tools.unshift(newTool);
+            saveTools();
+            renderTools();
+            closeModal();
         });
 
-        // Initialize the dashboard on load
-        window.onload = renderTools;
+        searchInput.addEventListener('input', renderTools);
 
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && modal.classList.contains('open')) {
+                closeModal();
+            }
+        });
+
+        renderTools();
     </script>
 </body>
 </html>

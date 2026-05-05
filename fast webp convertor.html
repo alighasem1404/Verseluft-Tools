@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Fast WebP Convertor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page">
+        <header class="shell header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Offline image tool</div>
+                <h1 class="title">Fast <span>WebP Convertor</span></h1>
+                <p class="lede">
+                    Drop images in, convert them to WebP, and download them locally. Simple, fast, and fully offline.
+                </p>
+
+                <div class="actions">
+                    <a class="btn btn-ghost soft-focus" href="index.html">Back to hub</a>
+                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Clear</button>
+                </div>
+            </section>
+
+            <aside class="stats" aria-label="Converter summary">
+                <div class="stat">
+                    <span id="fileCount" class="value">0</span>
+                    <span class="label">Images loaded</span>
+                </div>
+                <div class="stat">
+                    <span class="value">WebP</span>
+                    <span class="label">Output</span>
+                </div>
+                <div class="stat">
+                    <span class="value">Offline</span>
+                    <span class="label">Ready</span>
+                </div>
+            </aside>
+        </header>
+
+        <main style="margin-top: 24px;">
+            <section class="tool-interface converter-shell">
+                <div class="converter-inline">
+                    <div class="field">
+                        <label for="fileInput">Choose images</label>
+                        <input id="fileInput" type="file" accept="image/*" multiple>
+                    </div>
+                    <div class="converter-quality">
+                        <label for="qualityRange">Quality: <span id="qualityValue">0.85</span></label>
+                        <input id="qualityRange" type="range" min="0.4" max="1" step="0.01" value="0.85">
+                    </div>
+                </div>
+
+                <div id="dropzone" class="converter-dropzone soft-focus" tabindex="0" role="button" aria-label="Drop images here or click to select">
+                    <strong>Drop images here</strong>
+                    <div class="muted">or click to browse files from your computer</div>
+                    <div class="muted-note" style="margin-top: 10px;">PNG, JPG, GIF, BMP, and other browser-supported images work here.</div>
+                </div>
+
+                <div class="converter-meta">
+                    <button id="convertBtn" class="btn btn-primary soft-focus" type="button">Convert to WebP</button>
+                    <span id="statusText" class="muted">No images loaded yet.</span>
+                </div>
+
+                <div>
+                    <div class="panel-title">
+                        <h3>Preview and downloads</h3>
+                        <span class="badge">Local files only</span>
+                    </div>
+                    <div id="previewList" class="converter-list"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewList = document.getElementById('previewList');
+        const fileCount = document.getElementById('fileCount');
+        const statusText = document.getElementById('statusText');
+        const qualityRange = document.getElementById('qualityRange');
+        const qualityValue = document.getElementById('qualityValue');
+
+        let files = [];
+        let resultUrls = [];
+
+        function setStatus(message) {
+            statusText.textContent = message;
+        }
+
+        function clearResultUrls() {
+            resultUrls.forEach((url) => URL.revokeObjectURL(url));
+            resultUrls = [];
+        }
+
+        function formatSize(bytes) {
+            if (!bytes && bytes !== 0) return '-';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let value = bytes;
+            let unit = 0;
+            while (value >= 1024 && unit < units.length - 1) {
+                value /= 1024;
+                unit += 1;
+            }
+            return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function baseName(name) {
+            return String(name || 'image')
+                .replace(/\.[^.]+$/, '')
+                .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+                .trim() || 'image';
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error(`Could not read ${file.name}`));
+                };
+                img.src = url;
+            });
+        }
+
+        function canvasToWebp(canvas, quality) {
+            return new Promise((resolve, reject) => {
+                if (!canvas.toBlob) {
+                    reject(new Error('This browser does not support canvas WebP export.'));
+                    return;
+                }
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('WebP conversion failed.'));
+                    }
+                }, 'image/webp', quality);
+            });
+        }
+
+        function renderFiles() {
+            fileCount.textContent = String(files.length);
+            previewList.innerHTML = '';
+            clearResultUrls();
+
+            if (!files.length) {
+                previewList.innerHTML = `
+                    <div class="empty">
+                        <div class="orb">✦</div>
+                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 850;">No images selected</h3>
+                        <p class="muted" style="margin-top: 8px;">Choose one or more images to preview and convert them.</p>
+                    </div>
+                `;
+                setStatus('No images loaded yet.');
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'converter-item fade-in';
+                item.style.animationDelay = `${Math.min(index * 30, 240)}ms`;
+                item.innerHTML = `
+                    <div class="converter-thumb">
+                        <img alt="" src="">
+                    </div>
+                    <div class="converter-info">
+                        <div class="name">${escapeHtml(file.name)}</div>
+                        <div class="sub">${formatSize(file.size)} · ${file.type || 'image/*'}</div>
+                    </div>
+                <div class="converter-actions">
+                        <a class="btn btn-ghost soft-focus" href="#" download>Download WebP</a>
+                    </div>
+                `;
+
+                const img = item.querySelector('img');
+                const downloadLink = item.querySelector('a');
+                const thumbUrl = URL.createObjectURL(file);
+                img.src = thumbUrl;
+                img.onload = () => URL.revokeObjectURL(thumbUrl);
+                downloadLink.setAttribute('aria-disabled', 'true');
+                downloadLink.style.opacity = '0.6';
+                downloadLink.style.pointerEvents = 'none';
+                previewList.appendChild(item);
+            });
+
+            setStatus('Images ready. Click convert to generate WebP files.');
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        async function convertFiles() {
+            if (!files.length) {
+                setStatus('Pick some images first.');
+                return;
+            }
+
+            convertBtn.disabled = true;
+            convertBtn.textContent = 'Converting...';
+            clearResultUrls();
+
+            try {
+                const quality = Number(qualityRange.value);
+                const items = Array.from(previewList.querySelectorAll('.converter-item'));
+
+                for (let i = 0; i < files.length; i += 1) {
+                    const file = files[i];
+                    const img = await loadImageFromFile(file);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    const webpBlob = await canvasToWebp(canvas, quality);
+                    const webpUrl = URL.createObjectURL(webpBlob);
+                    resultUrls.push(webpUrl);
+
+                    const item = items[i];
+                    const downloadLink = item.querySelector('a');
+                    downloadLink.href = webpUrl;
+                    downloadLink.download = `${baseName(file.name)}.webp`;
+                    downloadLink.textContent = `Download ${baseName(file.name)}.webp`;
+                    downloadLink.removeAttribute('aria-disabled');
+                    downloadLink.style.opacity = '';
+                    downloadLink.style.pointerEvents = '';
+
+                    const info = item.querySelector('.sub');
+                    info.textContent = `${formatSize(file.size)} → ${formatSize(webpBlob.size)} · quality ${quality.toFixed(2)}`;
+                }
+
+                setStatus(`Converted ${files.length} image${files.length === 1 ? '' : 's'} to WebP.`);
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || 'Conversion failed.');
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = 'Convert to WebP';
+            }
+        }
+
+        function setFiles(nextFiles) {
+            files = Array.from(nextFiles || []).filter((file) => file && file.type.startsWith('image/'));
+            renderFiles();
+        }
+
+        fileInput.addEventListener('change', () => {
+            setFiles(fileInput.files);
+        });
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            dropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            dropzone.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', (event) => {
+            const dropped = Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith('image/'));
+            if (dropped.length) {
+                fileInput.value = '';
+                setFiles(dropped);
+            }
+        });
+
+        convertBtn.addEventListener('click', convertFiles);
+
+        clearBtn.addEventListener('click', () => {
+            files = [];
+            fileInput.value = '';
+            clearResultUrls();
+            renderFiles();
+            setStatus('Cleared.');
+        });
+
+        qualityRange.addEventListener('input', () => {
+            qualityValue.textContent = Number(qualityRange.value).toFixed(2);
+        });
+
+        qualityValue.textContent = Number(qualityRange.value).toFixed(2);
+        renderFiles();
+    </script>
+</body>
+</html>
