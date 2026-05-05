@@ -14,7 +14,7 @@
                 <div class="eyebrow"><span class="dot"></span>Offline image tool</div>
                 <h1 class="title">Fast <span>WebP Convertor</span></h1>
                 <p class="lede">
-                    Drop images in, convert them to WebP, and download them locally. Simple, fast, and fully offline.
+                    Drop images in, paste an image URL, convert everything to WebP, and download it locally.
                 </p>
 
                 <div class="actions">
@@ -52,10 +52,18 @@
                     </div>
                 </div>
 
+                <div class="converter-inline">
+                    <div class="field">
+                        <label for="urlInput">Image URL</label>
+                        <input id="urlInput" type="url" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <button id="addUrlBtn" class="btn btn-ghost soft-focus" type="button">Add URL</button>
+                </div>
+
                 <div id="dropzone" class="converter-dropzone soft-focus" tabindex="0" role="button" aria-label="Drop images here or click to select">
                     <strong>Drop images here</strong>
                     <div class="muted">or click to browse files from your computer</div>
-                    <div class="muted-note" style="margin-top: 10px;">PNG, JPG, GIF, BMP, and other browser-supported images work here.</div>
+                    <div class="muted-note" style="margin-top: 10px;">You can also paste an image URL above. Remote URLs need CORS access.</div>
                 </div>
 
                 <div class="converter-meta">
@@ -66,7 +74,7 @@
                 <div>
                     <div class="panel-title">
                         <h3>Preview and downloads</h3>
-                        <span class="badge">Local files only</span>
+                        <span class="badge">Files + URLs</span>
                     </div>
                     <div id="previewList" class="converter-list"></div>
                 </div>
@@ -79,13 +87,15 @@
         const dropzone = document.getElementById('dropzone');
         const convertBtn = document.getElementById('convertBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const addUrlBtn = document.getElementById('addUrlBtn');
         const previewList = document.getElementById('previewList');
         const fileCount = document.getElementById('fileCount');
         const statusText = document.getElementById('statusText');
         const qualityRange = document.getElementById('qualityRange');
         const qualityValue = document.getElementById('qualityValue');
+        const urlInput = document.getElementById('urlInput');
 
-        let files = [];
+        let items = [];
         let resultUrls = [];
 
         function setStatus(message) {
@@ -116,9 +126,13 @@
                 .trim() || 'image';
         }
 
-        function loadImageFromFile(file) {
+        function createObjectUrl(entry) {
+            return URL.createObjectURL(entry.blob);
+        }
+
+        function loadImageFromBlob(blob) {
             return new Promise((resolve, reject) => {
-                const url = URL.createObjectURL(file);
+                const url = URL.createObjectURL(blob);
                 const img = new Image();
                 img.onload = () => {
                     URL.revokeObjectURL(url);
@@ -126,10 +140,71 @@
                 };
                 img.onerror = () => {
                     URL.revokeObjectURL(url);
-                    reject(new Error(`Could not read ${file.name}`));
+                    reject(new Error('Could not read image data.'));
                 };
                 img.src = url;
             });
+        }
+
+        function normalizeUrl(value) {
+            return String(value || '').trim();
+        }
+
+        function guessNameFromUrl(urlText) {
+            try {
+                const parsed = new URL(urlText, window.location.href);
+                const last = parsed.pathname.split('/').filter(Boolean).pop() || 'image';
+                return decodeURIComponent(last.split('?')[0].split('#')[0]) || 'image';
+            } catch {
+                return 'image';
+            }
+        }
+
+        function isImageBlob(blob) {
+            return blob && typeof blob.type === 'string' && blob.type.startsWith('image/');
+        }
+
+        function makeEntryFromFile(file) {
+            return {
+                name: file.name,
+                size: file.size,
+                type: file.type || 'image/*',
+                blob: file,
+                source: 'file'
+            };
+        }
+
+        async function makeEntryFromUrl(urlText) {
+            const cleanUrl = normalizeUrl(urlText);
+            if (!cleanUrl) {
+                throw new Error('Paste an image URL first.');
+            }
+
+            let resolvedUrl;
+            try {
+                resolvedUrl = new URL(cleanUrl, window.location.href).href;
+            } catch {
+                throw new Error('That URL is not valid.');
+            }
+
+            const response = await fetch(resolvedUrl);
+            if (!response.ok) {
+                throw new Error(`Could not load the image. HTTP ${response.status}.`);
+            }
+
+            const blob = await response.blob();
+            if (!isImageBlob(blob)) {
+                throw new Error('The URL did not return an image.');
+            }
+
+            return {
+                name: guessNameFromUrl(resolvedUrl),
+                size: blob.size,
+                type: blob.type || 'image/*',
+                blob,
+                source: 'url',
+                url: resolvedUrl
+            };
         }
 
         function canvasToWebp(canvas, quality) {
@@ -149,24 +224,33 @@
             });
         }
 
-        function renderFiles() {
-            fileCount.textContent = String(files.length);
+        function escapeHtml(text) {
+            return String(text)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function renderItems() {
+            fileCount.textContent = String(items.length);
             previewList.innerHTML = '';
             clearResultUrls();
 
-            if (!files.length) {
+            if (!items.length) {
                 previewList.innerHTML = `
                     <div class="empty">
                         <div class="orb">✦</div>
                         <h3 style="margin: 0; font-size: 1.2rem; font-weight: 850;">No images selected</h3>
-                        <p class="muted" style="margin-top: 8px;">Choose one or more images to preview and convert them.</p>
+                        <p class="muted" style="margin-top: 8px;">Choose files or add an image URL to preview and convert them.</p>
                     </div>
                 `;
                 setStatus('No images loaded yet.');
                 return;
             }
 
-            files.forEach((file, index) => {
+            items.forEach((entry, index) => {
                 const item = document.createElement('div');
                 item.className = 'converter-item fade-in';
                 item.style.animationDelay = `${Math.min(index * 30, 240)}ms`;
@@ -175,17 +259,17 @@
                         <img alt="" src="">
                     </div>
                     <div class="converter-info">
-                        <div class="name">${escapeHtml(file.name)}</div>
-                        <div class="sub">${formatSize(file.size)} · ${file.type || 'image/*'}</div>
+                        <div class="name">${escapeHtml(entry.name)}</div>
+                        <div class="sub">${formatSize(entry.size)} · ${entry.type || 'image/*'}${entry.source === 'url' ? ' · URL' : ''}</div>
                     </div>
-                <div class="converter-actions">
+                    <div class="converter-actions">
                         <a class="btn btn-ghost soft-focus" href="#" download>Download WebP</a>
                     </div>
                 `;
 
                 const img = item.querySelector('img');
                 const downloadLink = item.querySelector('a');
-                const thumbUrl = URL.createObjectURL(file);
+                const thumbUrl = createObjectUrl(entry);
                 img.src = thumbUrl;
                 img.onload = () => URL.revokeObjectURL(thumbUrl);
                 downloadLink.setAttribute('aria-disabled', 'true');
@@ -197,17 +281,8 @@
             setStatus('Images ready. Click convert to generate WebP files.');
         }
 
-        function escapeHtml(text) {
-            return String(text)
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
-        }
-
-        async function convertFiles() {
-            if (!files.length) {
+        async function convertItems() {
+            if (!items.length) {
                 setStatus('Pick some images first.');
                 return;
             }
@@ -218,11 +293,11 @@
 
             try {
                 const quality = Number(qualityRange.value);
-                const items = Array.from(previewList.querySelectorAll('.converter-item'));
+                const previewItems = Array.from(previewList.querySelectorAll('.converter-item'));
 
-                for (let i = 0; i < files.length; i += 1) {
-                    const file = files[i];
-                    const img = await loadImageFromFile(file);
+                for (let i = 0; i < items.length; i += 1) {
+                    const entry = items[i];
+                    const img = await loadImageFromBlob(entry.blob);
                     const canvas = document.createElement('canvas');
                     canvas.width = img.naturalWidth || img.width;
                     canvas.height = img.naturalHeight || img.height;
@@ -234,20 +309,20 @@
                     const webpUrl = URL.createObjectURL(webpBlob);
                     resultUrls.push(webpUrl);
 
-                    const item = items[i];
-                    const downloadLink = item.querySelector('a');
+                    const previewItem = previewItems[i];
+                    const downloadLink = previewItem.querySelector('a');
                     downloadLink.href = webpUrl;
-                    downloadLink.download = `${baseName(file.name)}.webp`;
-                    downloadLink.textContent = `Download ${baseName(file.name)}.webp`;
+                    downloadLink.download = `${baseName(entry.name)}.webp`;
+                    downloadLink.textContent = `Download ${baseName(entry.name)}.webp`;
                     downloadLink.removeAttribute('aria-disabled');
                     downloadLink.style.opacity = '';
                     downloadLink.style.pointerEvents = '';
 
-                    const info = item.querySelector('.sub');
-                    info.textContent = `${formatSize(file.size)} → ${formatSize(webpBlob.size)} · quality ${quality.toFixed(2)}`;
+                    const info = previewItem.querySelector('.sub');
+                    info.textContent = `${formatSize(entry.size)} → ${formatSize(webpBlob.size)} · quality ${quality.toFixed(2)}`;
                 }
 
-                setStatus(`Converted ${files.length} image${files.length === 1 ? '' : 's'} to WebP.`);
+                setStatus(`Converted ${items.length} image${items.length === 1 ? '' : 's'} to WebP.`);
             } catch (error) {
                 console.error(error);
                 setStatus(error.message || 'Conversion failed.');
@@ -257,13 +332,29 @@
             }
         }
 
-        function setFiles(nextFiles) {
-            files = Array.from(nextFiles || []).filter((file) => file && file.type.startsWith('image/'));
-            renderFiles();
+        function replaceItems(nextItems, emptyMessage) {
+            if (!nextItems.length) {
+                setStatus('No supported images found.');
+                return;
+            }
+
+            clearResultUrls();
+            items = nextItems;
+            renderItems();
+            setStatus(emptyMessage || 'Images ready. Click convert to generate WebP files.');
+        }
+
+        function addFiles(nextFiles) {
+            const additions = Array.from(nextFiles || [])
+                .filter((file) => file && file.type && file.type.startsWith('image/'))
+                .map(makeEntryFromFile);
+
+            replaceItems(additions);
         }
 
         fileInput.addEventListener('change', () => {
-            setFiles(fileInput.files);
+            addFiles(fileInput.files);
+            fileInput.value = '';
         });
 
         dropzone.addEventListener('click', () => fileInput.click());
@@ -289,20 +380,44 @@
         });
 
         dropzone.addEventListener('drop', (event) => {
-            const dropped = Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith('image/'));
+            const dropped = Array.from(event.dataTransfer.files || []).filter((file) => file.type && file.type.startsWith('image/'));
             if (dropped.length) {
                 fileInput.value = '';
-                setFiles(dropped);
+                addFiles(dropped);
             }
         });
 
-        convertBtn.addEventListener('click', convertFiles);
+        convertBtn.addEventListener('click', convertItems);
+
+        addUrlBtn.addEventListener('click', async () => {
+            const url = normalizeUrl(urlInput.value);
+            if (!url) {
+                setStatus('Paste an image URL first.');
+                return;
+            }
+
+            addUrlBtn.disabled = true;
+            addUrlBtn.textContent = 'Adding...';
+
+            try {
+                const entry = await makeEntryFromUrl(url);
+                urlInput.value = '';
+                replaceItems([entry], `Added ${entry.name}.`);
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || 'Could not add URL image.');
+            } finally {
+                addUrlBtn.disabled = false;
+                addUrlBtn.textContent = 'Add URL';
+            }
+        });
 
         clearBtn.addEventListener('click', () => {
-            files = [];
+            items = [];
             fileInput.value = '';
+            urlInput.value = '';
             clearResultUrls();
-            renderFiles();
+            renderItems();
             setStatus('Cleared.');
         });
 
@@ -311,7 +426,7 @@
         });
 
         qualityValue.textContent = Number(qualityRange.value).toFixed(2);
-        renderFiles();
+        renderItems();
     </script>
 </body>
 </html>
