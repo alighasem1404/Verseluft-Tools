@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backer Data Analysis - PDF & POD Extractor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse for highly reliable CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for preview tables */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+    <!-- -->
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-md py-4 px-6 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-400 p-2 rounded-lg text-indigo-900">
+                <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Backer Data Analysis</h1>
+                <p class="text-xs text-indigo-200 font-medium">Fulfillment Segregation & Multi-Project Exporter</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div id="localSaveIndicator" class="hidden text-xs bg-indigo-800 px-3 py-1.5 rounded border border-indigo-700 text-indigo-100 flex items-center gap-1.5">
+                <i data-lucide="database" id="saveIcon" class="w-4 h-4 text-emerald-400"></i>
+                <span id="saveStatusText">Saved to Browser</span>
+            </div>
+            <div class="text-xs bg-indigo-800 px-3 py-1.5 rounded border border-indigo-700 text-indigo-100 flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                100% Secure Client-Side Database
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Instruction & Intro Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <h2 class="text-lg font-semibold text-slate-900">Separate Your Digital (PDF) & Print (POD) Backers</h2>
+                <p class="text-sm text-slate-500">
+                    Upload your raw CSV records. Stacking automatically appends sheets and prefixes items with their originating file name to keep multiple projects separate.
+                </p>
+            </div>
+            <button id="loadDemoBtn" class="flex items-center gap-2 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-4 py-2.5 rounded-lg border border-indigo-200 transition-colors shrink-0">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                Load Demo CSV Data
+            </button>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="statusToast" class="hidden transform transition-all duration-300 p-4 rounded-lg flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <i id="toastIcon" class="w-5 h-5"></i>
+                <span id="toastMessage" class="text-sm font-medium"></span>
+            </div>
+            <button onclick="dismissToast()" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Step 1: Upload Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Upload & Manual Paste -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1 flex flex-col">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-indigo-500"></i>
+                        1. Select CSV Input
+                    </h3>
+                    
+                    <!-- Drag and Drop Zone -->
+                    <div id="dropZone" class="border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50 hover:bg-indigo-50/20 group relative">
+                        <input type="file" id="csvFileInput" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-transform mb-3">
+                            <i data-lucide="file-spreadsheet" class="w-8 h-8"></i>
+                        </div>
+                        <p class="text-sm font-medium text-slate-700">Drag & drop your CSV file here</p>
+                        <p class="text-xs text-slate-400 mt-1">or click to browse your computer</p>
+                    </div>
+
+                    <!-- Stack & Merge Controls -->
+                    <div class="mt-4 p-3 bg-indigo-50/40 rounded-lg border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <label class="flex items-start gap-2.5 cursor-pointer group select-none">
+                            <input type="checkbox" id="stackInputsCheckbox" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 mt-0.5 transition-transform group-hover:scale-110">
+                            <div class="text-xs">
+                                <span class="font-semibold text-slate-800 block">Stack & Accumulate Inputs</span>
+                                <span class="text-slate-500 text-[11px]">Append sheets & merge duplicates by Email</span>
+                            </div>
+                        </label>
+                        <button id="clearDbBtn" class="text-[11px] font-medium text-rose-600 hover:text-rose-800 flex items-center gap-1 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-all" title="Clear backer database to start fresh">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            Clear
+                        </button>
+                    </div>
+
+                    <!-- OR Divider -->
+                    <div class="relative my-5 text-center">
+                        <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-slate-200"></span></div>
+                        <span class="relative bg-white px-3 text-xs uppercase text-slate-400 font-medium">Or Paste CSV Plaintext</span>
+                    </div>
+
+                    <!-- Text Area Input -->
+                    <div class="flex-1 flex flex-col gap-2 min-h-[220px]">
+                        <input type="text" id="pasteLabelInput" placeholder="Project Name Label (e.g. Project_Alpha)" class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50" />
+                        <textarea id="rawCsvTextArea" placeholder="Paste raw CSV content here (including headers)..." class="w-full flex-1 p-3 text-xs font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+                        <button id="parseRawBtn" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Parse Pasted Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration & Fields Mapping -->
+            <div id="configPanel" class="lg:col-span-2 bg-slate-100 opacity-60 pointer-events-none rounded-xl border border-slate-200 p-6 flex flex-col justify-between transition-all">
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                        <i data-lucide="settings" class="w-4 h-4 text-indigo-500"></i>
+                        2. Verify Fields & Automation
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <!-- Left: Core Identifiers -->
+                        <div class="bg-white rounded-lg p-4 border border-slate-200 space-y-3">
+                            <h4 class="text-xs font-bold text-slate-700 border-b border-slate-100 pb-2">Core Contact Mappings</h4>
+                            <div>
+                                <label class="block text-xs text-slate-500 font-medium mb-1">Email Field</label>
+                                <select id="mapEmail" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:ring-1 focus:ring-indigo-500"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 font-medium mb-1">Backer Name Field (Username)</label>
+                                <select id="mapBackerName" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:ring-1 focus:ring-indigo-500"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 font-medium mb-1">Secondary Name Field (Optional)</label>
+                                <select id="mapAltName" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:ring-1 focus:ring-indigo-500">
+                                    <option value="">-- None --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 font-medium mb-1">Reward Title Column</label>
+                                <select id="mapReward" class="w-full text-xs border border-slate-200 rounded p-1.5 focus:ring-1 focus:ring-indigo-500"></select>
+                            </div>
+                        </div>
+
+                        <!-- Right: Automation Notice -->
+                        <div class="bg-white rounded-lg p-4 border border-slate-200 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-700 border-b border-slate-100 pb-2">⚡ Intelligent Keyword Processing</h4>
+                                <p class="text-xs text-slate-600 mt-3 leading-relaxed">
+                                    Hands-free automatic column scanning detects and processes project-specific targets:
+                                </p>
+                                <ul class="text-[11px] text-slate-500 mt-2.5 space-y-1.5 list-disc pl-4">
+                                    <li>Columns matching <strong class="text-indigo-600">PDF</strong> are scanned for digital files.</li>
+                                    <li>Columns matching <strong class="text-amber-600 font-semibold">POD, Print, Hardcover, or Paperback</strong> are scanned for print rewards.</li>
+                                    <li>Values are prefixed as: <code class="bg-slate-100 px-0.5 rounded text-indigo-700 font-semibold">file_name _ reward_name</code> to prevent mix-ups when stacking sheets.</li>
+                                </ul>
+                            </div>
+                            <div class="mt-4 p-2 bg-emerald-50 rounded border border-emerald-100 text-[11px] text-emerald-800 flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                                File-prefixed cataloging is active.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-200 pt-4 mt-auto">
+                    <span class="text-xs text-slate-500 flex items-center gap-1">
+                        <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+                        Changing mappings will instantly refresh your filtered lists below.
+                    </span>
+                    <button id="processBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-6 py-2 rounded-lg transition-all shadow-sm flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Re-Process Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyzed Files Section -->
+        <div id="analyzedFilesSection" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <i data-lucide="folder-open" class="w-4 h-4 text-indigo-500"></i>
+                    Analyzed Project Files in Database
+                </h3>
+                <span id="analyzedFilesCount" class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-0.5 rounded-full border border-indigo-100">0 Files</span>
+            </div>
+            <div id="analyzedFilesList" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Step 2: Stats Grid -->
+        <div id="statsSection" class="hidden grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Rows</p>
+                <p id="statTotal" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+            </div>
+            <div class="bg-indigo-50/50 p-4 rounded-xl shadow-sm border border-indigo-100">
+                <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Unique Backers</p>
+                <p id="statUnique" class="text-2xl font-bold text-indigo-950 mt-1">0</p>
+            </div>
+            <div class="bg-indigo-50/30 p-4 rounded-xl shadow-sm border border-indigo-100/60">
+                <p class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">PDF Backers</p>
+                <p id="statPdf" class="text-2xl font-bold text-indigo-900 mt-1">0</p>
+            </div>
+            <div class="bg-amber-50/50 p-4 rounded-xl shadow-sm border border-amber-100">
+                <p class="text-xs font-semibold text-amber-500 uppercase tracking-wider">POD Backers</p>
+                <p id="statPod" class="text-2xl font-bold text-amber-950 mt-1">0</p>
+            </div>
+            <div class="bg-emerald-50/50 p-4 rounded-xl shadow-sm border border-emerald-100">
+                <p class="text-xs font-semibold text-emerald-500 uppercase tracking-wider">Overlap (Both)</p>
+                <p id="statBoth" class="text-2xl font-bold text-emerald-950 mt-1">0</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Neither (Free)</p>
+                <p id="statNeither" class="text-2xl font-bold text-slate-700 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Step 3: Main Output Split Panels -->
+        <div id="outputsWrapper" class="hidden space-y-6">
+            
+            <!-- Tab Controls -->
+            <div class="border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <nav class="flex flex-wrap gap-4 -mb-px" aria-label="Tabs">
+                    <button id="tabPdfBtn" class="border-indigo-600 text-indigo-600 border-b-2 py-3 px-1 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        PDF Records
+                        <span id="tabPdfCount" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button id="tabPodBtn" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        POD Records
+                        <span id="tabPodCount" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button id="tabNeitherBtn" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        Neither (Free Space)
+                        <span id="tabNeitherCount" class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button id="tabItemsBtn" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="mail-check" class="w-4 h-4"></i>
+                        Emails by Item
+                        <span id="tabItemsCount" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button id="tabExportBtn" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-3 px-1 text-sm font-semibold flex items-center gap-2 text-indigo-700">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                        Master Export Suite
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                        <input id="tableSearchInput" type="text" placeholder="Search preview entries..." class="pl-9 pr-4 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white w-48 md:w-64">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outputs Grid -->
+            <div class="grid grid-cols-1 gap-6">
+
+                <!-- PDF Content Panel -->
+                <div id="panelPdf" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
+                    <div class="p-4 bg-indigo-50/50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                Backers with PDF Rewards
+                            </h3>
+                            <p class="text-xs text-slate-400">Contains digital PDF tier rewards or PDF add-ons</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="copyEmails('pdf')" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                Copy Emails List
+                            </button>
+                            <button onclick="downloadAsCsv('pdf')" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                Download PDF.csv
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600 border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 uppercase text-[10px] font-bold text-slate-400 tracking-wider">
+                                    <th class="py-3 px-4">Row</th>
+                                    <th class="py-3 px-4">Email</th>
+                                    <th class="py-3 px-4">Backer Name (Username)</th>
+                                    <th class="py-3 px-4" id="pdfAltHeader">Secondary Name</th>
+                                    <th class="py-3 px-4">Qualifying Items</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pdfTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- POD Content Panel -->
+                <div id="panelPod" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
+                    <div class="p-4 bg-amber-50/50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                Backers with Print-on-Demand (POD) Rewards
+                            </h3>
+                            <p class="text-xs text-slate-400">Contains POD, print-on-demand, or hardcover items</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="copyEmails('pod')" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                Copy Emails List
+                            </button>
+                            <button onclick="downloadAsCsv('pod')" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                Download POD.csv
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600 border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 uppercase text-[10px] font-bold text-slate-400 tracking-wider">
+                                    <th class="py-3 px-4">Row</th>
+                                    <th class="py-3 px-4">Email</th>
+                                    <th class="py-3 px-4">Backer Name (Username)</th>
+                                    <th class="py-3 px-4" id="podAltHeader">Secondary Name</th>
+                                    <th class="py-3 px-4">Qualifying Items</th>
+                                </tr>
+                            </thead>
+                            <tbody id="podTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Neither Content Panel -->
+                <div id="panelNeither" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
+                    <div class="p-4 bg-slate-100 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                Backers with Neither (Free Space)
+                            </h3>
+                            <p class="text-xs text-slate-400">Tips, Standard custom pledges, or items with no PDF or POD keywords</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button onclick="copyEmails('neither')" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                Copy Emails List
+                            </button>
+                            <button onclick="downloadAsCsv('neither')" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                Download Neither.csv
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600 border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 uppercase text-[10px] font-bold text-slate-400 tracking-wider">
+                                    <th class="py-3 px-4">Row</th>
+                                    <th class="py-3 px-4">Email</th>
+                                    <th class="py-3 px-4">Backer Name (Username)</th>
+                                    <th class="py-3 px-4" id="neitherAltHeader">Secondary Name</th>
+                                    <th class="py-3 px-4">Base Reward Title</th>
+                                </tr>
+                            </thead>
+                            <tbody id="neitherTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Emails Per Item Content Panel -->
+                <div id="panelItems" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
+                    <div class="p-4 bg-emerald-50/50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                Fulfillment Emails Grouped by Item
+                            </h3>
+                            <p class="text-xs text-slate-400">View and copy target email lists sorted separately by unique tier rewards or auto-detected add-on items.</p>
+                        </div>
+                        <button onclick="copyAllItemsReport()" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-1">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                            Copy Entire Item-Email Report
+                        </button>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div id="itemsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </div>
+                </div>
+
+                <!-- Custom Master Exporters Suite Tab -->
+                <div id="panelExportSuite" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- Card 1: User-Oriented Database (Export A) -->
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                            <div class="space-y-2">
+                                <div class="bg-indigo-50 p-2.5 rounded-lg text-indigo-700 w-fit">
+                                    <i data-lucide="users" class="w-6 h-6"></i>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-900">Export A: User-Oriented Database</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed">
+                                    Generates a comprehensive directory keyed by unique **Backer Email**. Look up any user instantly to see their full profile, fulfillment categories, originating projects, and a concatenated list of every item owned.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 flex gap-2">
+                                <button onclick="downloadUserOrientedDatabase()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Download User-Oriented CSV (Export A)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Item-Oriented Matrix (Export B) -->
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                            <div class="space-y-2">
+                                <div class="bg-emerald-50 p-2.5 rounded-lg text-emerald-700 w-fit">
+                                    <i data-lucide="grid" class="w-6 h-6"></i>
+                                </div>
+                                <h3 class="text-base font-bold text-slate-900">Export B: Item-Oriented Matrix</h3>
+                                <p class="text-xs text-slate-500 leading-relaxed">
+                                    Generates an aligned column-per-item roster. Each column header is a unique prefixed reward item, containing strictly backer emails underneath. Perfect for copy-pasting email rows straight into digital fulfillment managers.
+                                </p>
+                            </div>
+                            <div class="pt-4 border-t border-slate-100 flex gap-2">
+                                <button onclick="downloadItemOrientedMatrix()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Download Item-Oriented Matrix (Export B)
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-center text-xs mt-auto shrink-0">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p>&copy; 2026 Backer Data Analysis. All rights reserved.</p>
+            <p class="flex items-center gap-1 justify-center">
+                Built with <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-500 fill-current"></i> for D&D Publishers.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Standard Script Tag for Client-side Databases -->
+    <script>
+        window.parsedData = [];
+        window.headers = [];
+        window.pdfRecords = [];
+        window.podRecords = [];
+        window.neitherRecords = [];
+        window.itemEmailMap = {}; // Maps item name -> { type: 'Base'|'Addon', backers: [ {name, email, index} ] }
+        window.currentTab = 'pdf'; // 'pdf', 'pod', 'neither', 'items', 'export'
+
+        // Map configs
+        window.mappedFields = {
+            email: '',
+            backerName: '',
+            altName: '',
+            rewardTitle: ''
+        };
+
+        const DB_NAME = 'BackerDataAnalysisDB';
+        const STORE_NAME = 'backerStateStore';
+        const DB_VERSION = 1;
+
+        // Opens IndexedDB connection wrapper
+        function getDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // Saves current backer state cleanly into the local browser sandbox
+        async function saveStateToBrowser() {
+            const saveIndicator = document.getElementById('localSaveIndicator');
+            const saveStatusText = document.getElementById('saveStatusText');
+            const saveIcon = document.getElementById('saveIcon');
+
+            if (saveIndicator) saveIndicator.classList.remove('hidden');
+            if (saveStatusText) saveStatusText.textContent = "Saving to browser...";
+            if (saveIcon) saveIcon.setAttribute('class', "w-4 h-4 text-amber-400 animate-pulse");
+
+            try {
+                const db = await getDB();
+                const state = {
+                    serializedData: JSON.stringify(window.parsedData),
+                    headers: window.headers,
+                    mappedFields: window.mappedFields,
+                    updatedAt: new Date().toISOString()
+                };
+
+                await new Promise((resolve, reject) => {
+                    const transaction = db.transaction(STORE_NAME, 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.put(state, 'current');
+                    request.onsuccess = () => resolve();
+                    request.onerror = (e) => reject(e.target.error);
+                });
+
+                if (saveStatusText) saveStatusText.textContent = "Saved to Browser";
+                if (saveIcon) saveIcon.setAttribute('class', "w-4 h-4 text-emerald-400");
+            } catch (err) {
+                console.error("Local DB Save Error:", err);
+                if (saveStatusText) saveStatusText.textContent = "Local save failed";
+                if (saveIcon) saveIcon.setAttribute('class', "w-4 h-4 text-rose-400");
+            }
+        }
+
+        // Restores the persistent local browser database on page reload
+        async function loadStateFromBrowser() {
+            const saveIndicator = document.getElementById('localSaveIndicator');
+            const saveStatusText = document.getElementById('saveStatusText');
+            const saveIcon = document.getElementById('saveIcon');
+
+            try {
+                const db = await getDB();
+                const state = await new Promise((resolve, reject) => {
+                    const transaction = db.transaction(STORE_NAME, 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get('current');
+                    request.onsuccess = (e) => resolve(e.target.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+
+                if (state) {
+                    window.parsedData = JSON.parse(state.serializedData || "[]");
+                    window.headers = state.headers || [];
+                    window.mappedFields = state.mappedFields || { email: '', backerName: '', altName: '', rewardTitle: '' };
+
+                    if (window.parsedData.length > 0) {
+                        const configPanel = document.getElementById('configPanel');
+                        configPanel.classList.remove('opacity-60', 'pointer-events-none');
+
+                        populateMappingDropdowns();
+
+                        // Set dropdown inputs to reflect recovered maps
+                        document.getElementById('mapEmail').value = window.mappedFields.email;
+                        document.getElementById('mapBackerName').value = window.mappedFields.backerName;
+                        document.getElementById('mapAltName').value = window.mappedFields.altName;
+                        document.getElementById('mapReward').value = window.mappedFields.rewardTitle;
+
+                        runFulfillmentSegregation();
+
+                        document.getElementById('statsSection').classList.remove('hidden');
+                        document.getElementById('outputsWrapper').classList.remove('hidden');
+                        
+                        showToast(`Restored ${window.parsedData.length} records from browser database!`, 'success');
+                    }
+                }
+                
+                if (saveIndicator) saveIndicator.classList.remove('hidden');
+                if (saveStatusText) saveStatusText.textContent = "Saved to Browser";
+                if (saveIcon) saveIcon.setAttribute('class', "w-4 h-4 text-emerald-400");
+            } catch (err) {
+                console.error("Failed to restore state:", err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+
+            const csvFileInput = document.getElementById('csvFileInput');
+            const dropZone = document.getElementById('dropZone');
+            const rawCsvTextArea = document.getElementById('rawCsvTextArea');
+            const parseRawBtn = document.getElementById('parseRawBtn');
+            const processBtn = document.getElementById('processBtn');
+            const loadDemoBtn = document.getElementById('loadDemoBtn');
+            const tableSearchInput = document.getElementById('tableSearchInput');
+
+            // Binding file input and drag-and-drop actions securely
+            csvFileInput.addEventListener('change', handleFileSelect);
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-indigo-500', 'bg-indigo-50/20');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/20');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/20');
+                if (e.dataTransfer.files.length > 0) {
+                    csvFileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+
+            parseRawBtn.addEventListener('click', () => {
+                const text = rawCsvTextArea.value.trim();
+                if (!text) {
+                    showToast('Please paste valid CSV plaintext before running!', 'error');
+                    return;
+                }
+                const labelInput = document.getElementById('pasteLabelInput').value.trim();
+                const projectLabel = labelInput || "Pasted_CSV";
+                parseCsvText(text, projectLabel);
+            });
+
+            processBtn.addEventListener('click', runFulfillmentSegregation);
+            loadDemoBtn.addEventListener('click', loadDemoDataset);
+            tableSearchInput.addEventListener('input', handleTableSearch);
+
+            const clearDbBtn = document.getElementById('clearDbBtn');
+            if (clearDbBtn) {
+                clearDbBtn.addEventListener('click', clearDatabase);
+            }
+
+            // Setup tab listeners
+            document.getElementById('tabPdfBtn').addEventListener('click', () => switchTab('pdf'));
+            document.getElementById('tabPodBtn').addEventListener('click', () => switchTab('pod'));
+            document.getElementById('tabNeitherBtn').addEventListener('click', () => switchTab('neither'));
+            document.getElementById('tabItemsBtn').addEventListener('click', () => switchTab('items'));
+            document.getElementById('tabExportBtn').addEventListener('click', () => switchTab('export'));
+
+            // Setup dynamic live listeners on identifier changes
+            document.getElementById('mapEmail').addEventListener('change', updateMappingConfig);
+            document.getElementById('mapBackerName').addEventListener('change', updateMappingConfig);
+            document.getElementById('mapAltName').addEventListener('change', updateMappingConfig);
+            document.getElementById('mapReward').addEventListener('change', updateMappingConfig);
+
+            // Connect and load browser local database on startup
+            await loadStateFromBrowser();
+        });
+
+        // Parser for local file upload
+        function handleFileSelect() {
+            const input = document.getElementById('csvFileInput');
+            if (input.files.length === 0) return;
+            const file = input.files[0];
+            
+            const originatingProject = file.name.replace(/\.csv$/i, '');
+            showToast(`Loading "${file.name}"...`, 'info');
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processParsedData(results.data, results.meta.fields, originatingProject);
+                },
+                error: function(err) {
+                    showToast(`Failed to parse CSV: ${err.message}`, 'error');
+                }
+            });
+        }
+
+        // Parser for plaintext copy-pastes
+        function parseCsvText(text, projectLabel) {
+            showToast("Parsing pasted CSV plain text...", 'info');
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processParsedData(results.data, results.meta.fields, projectLabel);
+                },
+                error: function(err) {
+                    showToast(`Failed to parse CSV: ${err.message}`, 'error');
+                }
+            });
+        }
+
+        // Core workspace engine
+        function processParsedData(data, detectedHeaders, projectLabel) {
+            if (!data || data.length === 0) {
+                showToast("The parsed data has zero records.", "error");
+                return;
+            }
+
+            // Dynamically detect core identifier mapping keys for this specific file
+            const emailKey = detectedHeaders.find(h => /email|mail/i.test(h)) || detectedHeaders[3] || detectedHeaders[0];
+            const backerNameKey = detectedHeaders.find(h => /backer name|billing name|name/i.test(h)) || detectedHeaders[2] || detectedHeaders[0];
+            const altNameKey = detectedHeaders.find(h => /billing name|shipping name|user id|uid/i.test(h) && h !== backerNameKey) || '';
+            const rewardKey = detectedHeaders.find(h => /reward title|pledge title|tier/i.test(h)) || detectedHeaders[4] || detectedHeaders[0];
+
+            // Preprocess rows to attach isolated prefixes *before* stacking or merging can mix names up
+            const preprocessedData = data.map(row => {
+                const processedRow = {
+                    _projectName: projectLabel
+                };
+
+                // Copy core credentials
+                processedRow[emailKey] = (row[emailKey] || '').toString().trim();
+                processedRow[backerNameKey] = (row[backerNameKey] || '').toString().trim();
+                if (altNameKey) {
+                    processedRow[altNameKey] = (row[altNameKey] || '').toString().trim();
+                }
+
+                // Prefix the reward title value with its specific project label
+                const rawReward = (row[rewardKey] || '').toString().trim();
+                if (rawReward) {
+                    processedRow[rewardKey] = rawReward.includes(" _ ") ? rawReward : `${projectLabel} _ ${rawReward}`;
+                } else {
+                    processedRow[rewardKey] = '';
+                }
+
+                // Copy and prefix all supplementary/add-on columns so they remain completely separated
+                detectedHeaders.forEach(col => {
+                    if ([emailKey, backerNameKey, altNameKey, rewardKey].includes(col)) return;
+                    if (col.startsWith('_')) return;
+
+                    const prefixedCol = `${projectLabel} _ ${col}`;
+                    processedRow[prefixedCol] = (row[col] || '').toString().trim();
+                });
+
+                return processedRow;
+            });
+
+            // Generate clean isolated column headers
+            const preprocessedHeaders = [emailKey, backerNameKey];
+            if (altNameKey) preprocessedHeaders.push(altNameKey);
+            preprocessedHeaders.push(rewardKey);
+
+            detectedHeaders.forEach(col => {
+                if ([emailKey, backerNameKey, altNameKey, rewardKey].includes(col)) return;
+                if (col.startsWith('_')) return;
+                preprocessedHeaders.push(`${projectLabel} _ ${col}`);
+            });
+
+            const stackEnabled = document.getElementById('stackInputsCheckbox').checked;
+
+            if (stackEnabled && window.parsedData.length > 0) {
+                const currentEmailKey = window.mappedFields.email || emailKey;
+                const currentRewardKey = window.mappedFields.rewardTitle || rewardKey;
+                const existingMap = new Map();
+
+                // Map currently cached records
+                window.parsedData.forEach(row => {
+                    const emailVal = (row[currentEmailKey] || '').toString().trim().toLowerCase();
+                    if (emailVal) {
+                        existingMap.set(emailVal, row);
+                    }
+                });
+
+                // Merge headers
+                const combinedHeadersSet = new Set([...window.headers, ...preprocessedHeaders]);
+                window.headers = Array.from(combinedHeadersSet);
+
+                let newCount = 0;
+                let mergedCount = 0;
+
+                preprocessedData.forEach(newRow => {
+                    const emailVal = (newRow[emailKey] || '').toString().trim().toLowerCase();
+                    if (emailVal && existingMap.has(emailVal)) {
+                        const existingRow = existingMap.get(emailVal);
+
+                        // Align values across all known column definitions
+                        window.headers.forEach(col => {
+                            const val1 = existingRow[col];
+                            const val2 = newRow[col];
+
+                            if (col === currentRewardKey) {
+                                if (val1 && val2 && val1 !== val2) {
+                                    existingRow[col] = `${val1} + ${val2}`;
+                                } else {
+                                    existingRow[col] = val1 || val2 || '';
+                                }
+                            } else if (isValidQuantity(val1) || isValidQuantity(val2)) {
+                                const q1 = parseFloat(val1) || 0;
+                                const q2 = parseFloat(val2) || 0;
+                                existingRow[col] = (q1 + q2 > 0) ? (q1 + q2).toString() : (val1 || val2 || '0');
+                            } else {
+                                existingRow[col] = val1 || val2 || '';
+                            }
+                        });
+
+                        if (existingRow._projectName && !existingRow._projectName.includes(projectLabel)) {
+                            existingRow._projectName += `, ${projectLabel}`;
+                        }
+                        mergedCount++;
+                    } else {
+                        window.parsedData.push(newRow);
+                        if (emailVal) {
+                            existingMap.set(emailVal, newRow);
+                        }
+                        newCount++;
+                    }
+                });
+
+                showToast(`Stacked and merged! Added ${newCount} new backers, combined ${mergedCount} duplicates.`, 'success');
+            } else {
+                window.parsedData = preprocessedData;
+                window.headers = preprocessedHeaders;
+                showToast(`Successfully imported ${data.length} records into database!`, 'success');
+            }
+
+            const configPanel = document.getElementById('configPanel');
+            configPanel.classList.remove('opacity-60', 'pointer-events-none');
+
+            populateMappingDropdowns();
+            
+            // Set mapping defaults explicitly
+            document.getElementById('mapEmail').value = emailKey;
+            document.getElementById('mapBackerName').value = backerNameKey;
+            if (altNameKey) {
+                document.getElementById('mapAltName').value = altNameKey;
+            }
+            document.getElementById('mapReward').value = rewardKey;
+            
+            updateMappingConfig();
+            runFulfillmentSegregation();
+
+            document.getElementById('statsSection').classList.remove('hidden');
+            document.getElementById('outputsWrapper').classList.remove('hidden');
+
+            // Save to browser database asynchronously
+            saveStateToBrowser();
+        }
+
+        // Clears the backend catalog and starts fresh
+        function clearDatabase() {
+            window.parsedData = [];
+            window.headers = [];
+            window.pdfRecords = [];
+            window.podRecords = [];
+            window.neitherRecords = [];
+            window.itemEmailMap = {};
+
+            document.getElementById('statsSection').classList.add('hidden');
+            
+            const filesSec = document.getElementById('analyzedFilesSection');
+            if (filesSec) filesSec.classList.add('hidden');
+
+            document.getElementById('outputsWrapper').classList.add('hidden');
+            document.getElementById('configPanel').classList.add('opacity-60', 'pointer-events-none');
+
+            document.getElementById('rawCsvTextArea').value = '';
+            document.getElementById('pasteLabelInput').value = '';
+            document.getElementById('csvFileInput').value = '';
+
+            showToast("Database wiped clean.", "info");
+
+            // Sync database wipe with local IndexedDB
+            saveStateToBrowser();
+        }
+
+        function populateMappingDropdowns() {
+            const mapEmail = document.getElementById('mapEmail');
+            const mapBackerName = document.getElementById('mapBackerName');
+            const mapAltName = document.getElementById('mapAltName');
+            const mapReward = document.getElementById('mapReward');
+
+            mapEmail.innerHTML = '';
+            mapBackerName.innerHTML = '';
+            mapAltName.innerHTML = '<option value="">-- None Selected --</option>';
+            mapReward.innerHTML = '';
+
+            window.headers.forEach(header => {
+                if (header.startsWith('_')) return; // skip internal properties
+
+                const opt1 = document.createElement('option');
+                opt1.value = header; opt1.textContent = header;
+                mapEmail.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = header; opt2.textContent = header;
+                mapBackerName.appendChild(opt2);
+
+                const opt3 = document.createElement('option');
+                opt3.value = header; opt3.textContent = header;
+                mapAltName.appendChild(opt3);
+
+                const opt4 = document.createElement('option');
+                opt4.value = header; opt4.textContent = header;
+                mapReward.appendChild(opt4);
+            });
+        }
+
+        function updateMappingConfig() {
+            window.mappedFields.email = document.getElementById('mapEmail').value;
+            window.mappedFields.backerName = document.getElementById('mapBackerName').value;
+            window.mappedFields.altName = document.getElementById('mapAltName').value;
+            window.mappedFields.rewardTitle = document.getElementById('mapReward').value;
+            
+            // Asynchronously backup current configured mappings on change
+            saveStateToBrowser();
+        }
+
+        function runFulfillmentSegregation() {
+            if (window.parsedData.length === 0) return;
+
+            window.pdfRecords = [];
+            window.podRecords = [];
+            window.neitherRecords = [];
+            window.itemEmailMap = {}; 
+
+            const emailKey = window.mappedFields.email;
+            const nameKey = window.mappedFields.backerName;
+            const altNameKey = window.mappedFields.altName;
+            const rewardKey = window.mappedFields.rewardTitle;
+
+            // Automatically track target addon columns on the fly
+            const autoPdfCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && /pdf/i.test(h);
+            });
+
+            const autoPodCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && (/pod/i.test(h) || /hardcover/i.test(h) || /print/i.test(h) || /paperback/i.test(h));
+            });
+
+            window.parsedData.forEach((row, index) => {
+                const baseRewardVal = (row[rewardKey] || '').toString().trim();
+                const emailVal = (row[emailKey] || '').toString().trim();
+                const nameVal = (row[nameKey] || '').toString().trim();
+                
+                let holdsPdf = false;
+                let holdsPod = false;
+
+                // Match Base Reward Tier
+                if (/pdf/i.test(baseRewardVal)) {
+                    holdsPdf = true;
+                }
+                if (/pod|hardcover|paperback|print/i.test(baseRewardVal)) {
+                    holdsPod = true;
+                }
+
+                // Check addon PDF columns
+                let matchedPdfAddons = [];
+                autoPdfCols.forEach(col => {
+                    if (isValidQuantity(row[col])) {
+                        holdsPdf = true;
+                        matchedPdfAddons.push(col);
+                    }
+                });
+
+                // Check addon POD columns
+                let matchedPodAddons = [];
+                autoPodCols.forEach(col => {
+                    if (isValidQuantity(row[col])) {
+                        holdsPod = true;
+                        matchedPodAddons.push(col);
+                    }
+                });
+
+                const record = {
+                    index: index + 1,
+                    email: emailVal,
+                    name: nameVal,
+                    altName: altNameKey ? (row[altNameKey] || '') : '',
+                    rewardTitle: baseRewardVal,
+                    qualifiers: [],
+                    originalRow: row
+                };
+
+                if (holdsPdf) {
+                    record.qualifiers = matchedPdfAddons.length > 0 
+                        ? matchedPdfAddons.map(col => col.replace(/\[Addon: \d+\]\s*/i, '')) 
+                        : baseRewardVal.split(/\s*\+\s*/).filter(p => /pdf/i.test(p));
+                    window.pdfRecords.push(record);
+                }
+
+                if (holdsPod) {
+                    const podQuals = matchedPodAddons.length > 0 
+                        ? matchedPodAddons.map(col => col.replace(/\[Addon: \d+\]\s*/i, '')) 
+                        : baseRewardVal.split(/\s*\+\s*/).filter(p => /pod|hardcover|paperback|print/i.test(p));
+                    const podRecord = { ...record };
+                    podRecord.qualifiers = podQuals;
+                    window.podRecords.push(podRecord);
+                }
+
+                if (!holdsPdf && !holdsPod) {
+                    window.neitherRecords.push(record);
+                }
+
+                // Compile isolated item rosters
+                if (emailVal) {
+                    const backerMetadata = { name: nameVal, email: emailVal, index: index + 1 };
+                    
+                    if (baseRewardVal) {
+                        const parts = baseRewardVal.split(/\s*\+\s*/);
+                        parts.forEach(p => {
+                            const cleanPart = p.trim();
+                            if (cleanPart) {
+                                if (!window.itemEmailMap[cleanPart]) {
+                                    window.itemEmailMap[cleanPart] = { type: 'Base Reward', backers: [] };
+                                }
+                                if (!window.itemEmailMap[cleanPart].backers.some(b => b.email === emailVal)) {
+                                    window.itemEmailMap[cleanPart].backers.push(backerMetadata);
+                                }
+                            }
+                        });
+                    }
+
+                    matchedPdfAddons.forEach(col => {
+                        const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
+                        if (!window.itemEmailMap[cleanColName]) {
+                            window.itemEmailMap[cleanColName] = { type: 'Add-on Item', backers: [] };
+                        }
+                        if (!window.itemEmailMap[cleanColName].backers.some(b => b.email === emailVal)) {
+                            window.itemEmailMap[cleanColName].backers.push(backerMetadata);
+                        }
+                    });
+
+                    matchedPodAddons.forEach(col => {
+                        const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
+                        if (!window.itemEmailMap[cleanColName]) {
+                            window.itemEmailMap[cleanColName] = { type: 'Add-on Item', backers: [] };
+                        }
+                        if (!window.itemEmailMap[cleanColName].backers.some(b => b.email === emailVal)) {
+                            window.itemEmailMap[cleanColName].backers.push(backerMetadata);
+                        }
+                    });
+                }
+            });
+
+            const labelText = altNameKey || 'None';
+            document.getElementById('pdfAltHeader').textContent = labelText;
+            document.getElementById('podAltHeader').textContent = labelText;
+            document.getElementById('neitherAltHeader').textContent = labelText;
+
+            updateFulfillmentUIPanels();
+        }
+
+        // Helper to validate whether cell values represents real positive quantities
+        function isValidQuantity(val) {
+            if (!val) return false;
+            const parsedNum = parseFloat(val);
+            if (!isNaN(parsedNum) && parsedNum > 0) return true;
+            
+            const lower = val.toLowerCase();
+            return lower === 'yes' || lower === 'true' || lower === 'y';
+        }
+
+        function updateFulfillmentUIPanels() {
+            const totalCount = window.parsedData.length;
+            const pdfCount = window.pdfRecords.length;
+            const podCount = window.podRecords.length;
+            const neitherCount = window.neitherRecords.length;
+            const uniqueItemsCount = Object.keys(window.itemEmailMap).length;
+
+            // Calculate precise unique backer count by targeting unique emails
+            const emailKey = window.mappedFields.email;
+            const uniqueEmailsSet = new Set(window.parsedData.map(r => (r[emailKey] || '').toString().trim().toLowerCase()).filter(Boolean));
+            const uniqueCount = uniqueEmailsSet.size;
+
+            let overlapCount = 0;
+            const pdfEmails = new Set(window.pdfRecords.map(r => r.email));
+            window.podRecords.forEach(r => {
+                if (pdfEmails.has(r.email)) overlapCount++;
+            });
+
+            document.getElementById('statTotal').textContent = totalCount;
+            document.getElementById('statUnique').textContent = uniqueCount;
+            document.getElementById('statPdf').textContent = pdfCount;
+            document.getElementById('statPod').textContent = podCount;
+            document.getElementById('statBoth').textContent = overlapCount;
+            document.getElementById('statNeither').textContent = neitherCount;
+
+            document.getElementById('tabPdfCount').textContent = pdfCount;
+            document.getElementById('tabPodCount').textContent = podCount;
+            document.getElementById('tabNeitherCount').textContent = neitherCount;
+            document.getElementById('tabItemsCount').textContent = uniqueItemsCount;
+
+            renderTable('pdf');
+            renderTable('pod');
+            renderTable('neither');
+            renderItemsBreakdown();
+            
+            updateAnalyzedFilesUI();
+        }
+
+        function renderTable(type, query = '') {
+            const tableBody = document.getElementById(`${type}TableBody`);
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            let dataList = [];
+            if (type === 'pdf') dataList = window.pdfRecords;
+            else if (type === 'pod') dataList = window.podRecords;
+            else dataList = window.neitherRecords;
+
+            if (query) {
+                const normQuery = query.toLowerCase();
+                dataList = dataList.filter(r => 
+                    r.email.toLowerCase().includes(normQuery) || 
+                    r.name.toLowerCase().includes(normQuery) || 
+                    r.altName.toString().toLowerCase().includes(normQuery) ||
+                    r.rewardTitle.toLowerCase().includes(normQuery)
+                );
+            }
+
+            if (dataList.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-slate-400 font-medium">
+                            No records found matching current configuration.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            dataList.forEach(rec => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/70 border-b border-slate-100 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-[11px] text-slate-400">#${rec.index}</td>
+                    <td class="py-3 px-4 font-medium text-slate-950">${rec.email || '<span class="text-slate-300 italic">none</span>'}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-700">${rec.name || '<span class="text-slate-300 italic">none</span>'}</td>
+                    <td class="py-3 px-4 text-slate-500">${rec.altName || '<span class="text-slate-300 italic">-</span>'}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex flex-wrap gap-1 max-w-sm">
+                            ${(rec.qualifiers || [rec.rewardTitle]).map(q => `
+                                <span class="bg-indigo-50 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded border border-indigo-100 truncate max-w-[280px]" title="${q}">
+                                    ${q}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function renderItemsBreakdown(query = '') {
+            const itemsGrid = document.getElementById('itemsGrid');
+            if (!itemsGrid) return;
+            itemsGrid.innerHTML = '';
+
+            const itemNames = Object.keys(window.itemEmailMap);
+
+            if (itemNames.length === 0) {
+                itemsGrid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-400 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        No unique items detected. Please upload/paste a CSV first.
+                    </div>
+                `;
+                return;
+            }
+
+            const filteredNames = query 
+                ? itemNames.filter(name => name.toLowerCase().includes(query.toLowerCase()))
+                : itemNames;
+
+            filteredNames.forEach((itemName) => {
+                const itemData = window.itemEmailMap[itemName];
+                const typeBadgeColor = itemData.type === 'Base Reward' 
+                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200' 
+                    : 'bg-amber-100 text-amber-800 border-amber-200';
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-300 hover:shadow transition-all space-y-4";
+
+                const justEmails = itemData.backers.map(b => b.email);
+                const emailsPreviewStr = justEmails.slice(0, 15).join(', ') + (justEmails.length > 15 ? ', ...' : '');
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${typeBadgeColor}">
+                                ${itemData.type}
+                            </span>
+                            <span class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full border border-slate-200">
+                                ${itemData.backers.length} Backers
+                            </span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 mt-2 line-clamp-2" title="${itemName}">
+                            ${itemName}
+                        </h4>
+                        
+                        <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100 text-[11px] font-mono text-slate-500 break-all select-all max-h-[80px] overflow-y-auto">
+                            ${emailsPreviewStr || '<span class="italic text-slate-400">No emails extracted</span>'}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-100 mt-auto">
+                        <button onclick="copySingleItemEmails('${encodeURIComponent(itemName)}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-lg border border-indigo-100 transition-colors flex items-center justify-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            Copy List
+                        </button>
+                        <button onclick="downloadSingleItemCsv('${encodeURIComponent(itemName)}')" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1" title="Download backer list for this item">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+                itemsGrid.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function updateAnalyzedFilesUI() {
+            const section = document.getElementById('analyzedFilesSection');
+            const listContainer = document.getElementById('analyzedFilesList');
+            const countBadge = document.getElementById('analyzedFilesCount');
+            if (!section || !listContainer) return;
+
+            if (window.parsedData.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            const projects = new Set();
+            window.parsedData.forEach(row => {
+                if (row._projectName) {
+                    row._projectName.split(',').forEach(p => {
+                        const trimmed = p.trim();
+                        if (trimmed) projects.add(trimmed);
+                    });
+                }
+            });
+
+            if (projects.size === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            if (countBadge) {
+                countBadge.textContent = `${projects.size} File${projects.size > 1 ? 's' : ''} Loaded`;
+            }
+            
+            listContainer.innerHTML = '';
+            projects.forEach(proj => {
+                const badge = document.createElement('div');
+                badge.className = "flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-900 hover:border-indigo-300 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 transition-all shadow-sm max-w-full";
+                badge.innerHTML = `
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-indigo-500 shrink-0"></i>
+                    <span class="truncate" title="${proj}">${proj}</span>
+                `;
+                listContainer.appendChild(badge);
+            });
+
+            lucide.createIcons();
+        }
+
+        function getBackerItems(row) {
+            const items = [];
+            const baseReward = (row[window.mappedFields.rewardTitle] || '').toString().trim();
+            
+            if (baseReward) {
+                const parts = baseReward.split(/\s*\+\s*/);
+                parts.forEach(p => {
+                    if (p.trim()) {
+                        items.push(p.trim());
+                    }
+                });
+            }
+
+            const emailKey = window.mappedFields.email;
+            const nameKey = window.mappedFields.backerName;
+            const altNameKey = window.mappedFields.altName;
+            const rewardKey = window.mappedFields.rewardTitle;
+
+            // Gather matching automatic columns dynamically
+            const autoPdfCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && /pdf/i.test(h);
+            });
+
+            const autoPodCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && (/pod/i.test(h) || /hardcover/i.test(h) || /print/i.test(h) || /paperback/i.test(h));
+            });
+
+            const allAddonCols = [...new Set([...autoPdfCols, ...autoPodCols])];
+
+            allAddonCols.forEach(col => {
+                if (isValidQuantity(row[col])) {
+                    const cleanCol = col.replace(/\[Addon: \d+\]\s*/i, '');
+                    items.push(cleanCol);
+                }
+            });
+
+            return [...new Set(items)];
+        }
+
+        window.downloadUserOrientedDatabase = function() {
+            if (window.parsedData.length === 0) {
+                showToast("No database loaded to export.", "error");
+                return;
+            }
+
+            const emailKey = window.mappedFields.email;
+            const nameKey = window.mappedFields.backerName;
+            const altNameKey = window.mappedFields.altName;
+
+            const exportRows = window.parsedData.map((row) => {
+                const email = (row[emailKey] || '').toString().trim();
+                const name = (row[nameKey] || '').toString().trim();
+                const altName = altNameKey ? (row[altNameKey] || '').toString().trim() : '';
+                
+                const items = getBackerItems(row);
+                
+                let holdsPdf = items.some(item => /pdf/i.test(item));
+                let holdsPod = items.some(item => /pod|hardcover|paperback|print/i.test(item));
+                
+                let category = "Neither";
+                if (holdsPdf && holdsPod) category = "Both (PDF + POD)";
+                else if (holdsPdf) category = "PDF Only";
+                else if (holdsPod) category = "POD Only";
+
+                const originatingProjects = row._projectName || "Project";
+
+                return {
+                    "Email": email,
+                    "Backer Name": name,
+                    "Secondary Name": altName,
+                    "Fulfillment Category": category,
+                    "Originating Projects": originatingProjects,
+                    "All Items Owned (Concatenated)": items.join("; "),
+                    "Total Item Count": items.length
+                };
+            });
+
+            // Sort by Email alphabetically
+            exportRows.sort((a, b) => a["Email"].localeCompare(b["Email"]));
+
+            const csvString = Papa.unparse(exportRows);
+            triggerDownload(csvString, "BackerDataAnalysis_UserOriented_Database.csv");
+            showToast("Export A: User-Oriented Database downloaded successfully!", "success");
+        }
+
+        window.downloadItemOrientedMatrix = function() {
+            if (window.parsedData.length === 0) {
+                showToast("No database loaded to export.", "error");
+                return;
+            }
+
+            const emailKey = window.mappedFields.email;
+            const itemToEmails = {};
+
+            window.parsedData.forEach(row => {
+                const email = (row[emailKey] || '').toString().trim();
+                if (!email) return;
+
+                const items = getBackerItems(row);
+                items.forEach(item => {
+                    if (!itemToEmails[item]) {
+                        itemToEmails[item] = new Set();
+                    }
+                    itemToEmails[item].add(email);
+                });
+            });
+
+            const itemNames = Object.keys(itemToEmails).sort((a, b) => a.localeCompare(b));
+            if (itemNames.length === 0) {
+                showToast("No items found to generate matrix.", "error");
+                return;
+            }
+
+            // Convert email sets into arrays
+            const itemArrays = {};
+            let maxRows = 0;
+            itemNames.forEach(item => {
+                itemArrays[item] = Array.from(itemToEmails[item]).sort((a, b) => a.localeCompare(b));
+                if (itemArrays[item].length > maxRows) {
+                    maxRows = itemArrays[item].length;
+                }
+            });
+
+            // Create flat rows for the matrix where columns are the items
+            const rows = [];
+            for (let r = 0; r < maxRows; r++) {
+                const rowObj = {};
+                itemNames.forEach(item => {
+                    rowObj[item] = itemArrays[item][r] || ""; // Leaves space blank if this item has fewer backers
+                });
+                rows.push(rowObj);
+            }
+
+            const csvString = Papa.unparse(rows);
+            triggerDownload(csvString, "BackerDataAnalysis_ItemOriented_Matrix.csv");
+            showToast("Export B: Item-Oriented Matrix downloaded successfully!", "success");
+        }
+
+        function triggerDownload(content, fileName) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.copySingleItemEmails = function(encodedItemName) {
+            const itemName = decodeURIComponent(encodedItemName);
+            const itemData = window.itemEmailMap[itemName];
+            if (!itemData || itemData.backers.length === 0) {
+                showToast("No emails to copy.", "error");
+                return;
+            }
+
+            const emailsStr = itemData.backers.map(b => b.email).join(', ');
+            copyTextToClipboard(emailsStr);
+            showToast(`Copied ${itemData.backers.length} emails for "${itemName.slice(0, 30)}..."`, 'success');
+        }
+
+        window.downloadSingleItemCsv = function(encodedItemName) {
+            const itemName = decodeURIComponent(encodedItemName);
+            const itemData = window.itemEmailMap[itemName];
+            if (!itemData || itemData.backers.length === 0) return;
+
+            const rows = itemData.backers.map(b => ({
+                "Row Index": b.index,
+                "Backer Name (Username)": b.name,
+                "Email": b.email,
+                "Associated Item": itemName
+            }));
+
+            const csvString = Papa.unparse(rows);
+            const sanitizedName = itemName.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 40);
+            triggerDownload(csvString, `Item_${sanitizedName}.csv`);
+        }
+
+        window.copyAllItemsReport = function() {
+            if (Object.keys(window.itemEmailMap).length === 0) return;
+
+            let report = "BACKER DATA ANALYSIS - COMPREHENSIVE FULFILLMENT EMAIL REPORT\n==================================================\n\n";
+            Object.keys(window.itemEmailMap).forEach(itemName => {
+                const itemData = window.itemEmailMap[itemName];
+                const emails = itemData.backers.map(b => b.email).join(', ');
+                report += `ITEM: ${itemName}\nTYPE: ${itemData.type}\nTOTAL RECIPIENTS: ${itemData.backers.length}\nEMAILS:\n${emails}\n\n--------------------------------------------------\n\n`;
+            });
+
+            copyTextToClipboard(report);
+            showToast("Copied full Multi-Item email list report to clipboard!", 'success');
+        }
+
+        function handleTableSearch(e) {
+            const query = e.target.value;
+            renderTable('pdf', query);
+            renderTable('pod', query);
+            renderTable('neither', query);
+            renderItemsBreakdown(query);
+        }
+
+        function switchTab(target) {
+            window.currentTab = target;
+
+            const tabPdfBtn = document.getElementById('tabPdfBtn');
+            const tabPodBtn = document.getElementById('tabPodBtn');
+            const tabNeitherBtn = document.getElementById('tabNeitherBtn');
+            const tabItemsBtn = document.getElementById('tabItemsBtn');
+            const tabExportBtn = document.getElementById('tabExportBtn');
+
+            const activeClasses = ['border-indigo-600', 'text-indigo-600', 'border-b-2'];
+            const inactiveClasses = ['border-transparent', 'text-slate-500', 'hover:text-slate-700', 'hover:border-slate-300', 'border-b-2'];
+
+            [tabPdfBtn, tabPodBtn, tabNeitherBtn, tabItemsBtn, tabExportBtn].forEach(btn => {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            });
+
+            // Hide panels
+            document.getElementById('panelPdf').classList.add('hidden');
+            document.getElementById('panelPod').classList.add('hidden');
+            document.getElementById('panelNeither').classList.add('hidden');
+            document.getElementById('panelItems').classList.add('hidden');
+            document.getElementById('panelExportSuite').classList.add('hidden');
+
+            if (target === 'pdf') {
+                tabPdfBtn.classList.remove(...inactiveClasses);
+                tabPdfBtn.classList.add(...activeClasses);
+                document.getElementById('panelPdf').classList.remove('hidden');
+            } else if (target === 'pod') {
+                tabPodBtn.classList.remove(...inactiveClasses);
+                tabPodBtn.classList.add(...activeClasses);
+                document.getElementById('panelPod').classList.remove('hidden');
+            } else if (target === 'neither') {
+                tabNeitherBtn.classList.remove(...inactiveClasses);
+                tabNeitherBtn.classList.add(...activeClasses);
+                document.getElementById('panelNeither').classList.remove('hidden');
+            } else if (target === 'items') {
+                tabItemsBtn.classList.remove(...inactiveClasses);
+                tabItemsBtn.classList.add(...activeClasses);
+                document.getElementById('panelItems').classList.remove('hidden');
+            } else if (target === 'export') {
+                tabExportBtn.classList.remove(...inactiveClasses);
+                tabExportBtn.classList.add(...activeClasses);
+                document.getElementById('panelExportSuite').classList.remove('hidden');
+            }
+        }
+
+        window.copyEmails = function(type) {
+            const list = type === 'pdf' ? window.pdfRecords : type === 'pod' ? window.podRecords : window.neitherRecords;
+            const emails = list.map(r => r.email).filter(e => e.trim().length > 0);
+
+            if (emails.length === 0) {
+                showToast("No emails to copy!", "error");
+                return;
+            }
+
+            copyTextToClipboard(emails.join(', '));
+            showToast(`Copied ${emails.length} emails directly to clipboard!`, 'success');
+        }
+
+        function copyTextToClipboard(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+        }
+
+        function buildTargetCsvString(type) {
+            const list = type === 'pdf' ? window.pdfRecords : type === 'pod' ? window.podRecords : window.neitherRecords;
+            if (list.length === 0) {
+                showToast("No matching records found to convert.", "error");
+                return null;
+            }
+
+            const headerRow = ["Email", "Backer Name (Username)", "Secondary Name", "Reward / Qualifiers"];
+            const bodyRows = list.map(r => [
+                r.email,
+                r.name,
+                r.altName,
+                r.qualifiers.join("; ")
+            ]);
+
+            return Papa.unparse({
+                fields: headerRow,
+                data: bodyRows
+            });
+        }
+
+        window.downloadAsCsv = function(type) {
+            const csvOutput = buildTargetCsvString(type);
+            if (!csvOutput) return;
+
+            triggerDownload(csvOutput, `BackerDataAnalysis_${type.toUpperCase()}_Rewards.csv`);
+            showToast(`Downloaded ${type.toUpperCase()} CSV successfully.`, 'success');
+        }
+
+        window.dismissToast = function() {
+            document.getElementById('statusToast').classList.add('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('statusToast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.textContent = message;
+            toast.className = "transform transition-all duration-300 p-4 rounded-lg flex items-center justify-between shadow-sm border";
+
+            if (type === 'success') {
+                toast.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
+                toastIcon.setAttribute('data-lucide', 'check-circle');
+                toastIcon.setAttribute('class', "w-5 h-5 text-emerald-500");
+            } else if (type === 'error') {
+                toast.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200');
+                toastIcon.setAttribute('data-lucide', 'alert-circle');
+                toastIcon.setAttribute('class', "w-5 h-5 text-rose-500");
+            } else {
+                toast.classList.add('bg-blue-50', 'text-blue-800', 'border-blue-200');
+                toastIcon.setAttribute('data-lucide', 'info');
+                toastIcon.setAttribute('class', "w-5 h-5 text-blue-500");
+            }
+
+            lucide.createIcons();
+            toast.classList.remove('hidden');
+
+            if (window.toastTimeout) clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(window.dismissToast, 6000);
+        }
+
+        window.loadDemoDataset = function() {
+            const verbatimFilename = "Cat Court_ A Dungeons & Dragons Plane Where Cats Rule - All rewards - 2026-05-23 0934 UTC - Cat Court_ A Dungeons & Dragons Plane Where Cats Rule - All rewards - 2026-05-23 0934 UTC";
+
+            const demoCsv = `Backer Number,Backer UID,Backer Name,Email,Reward Title,Billing Country,[Addon: 11129638] POD of Golden Dungeons Series,[Addon: 11129640] PDF of Golden Dungeons Series,PDFofBrothels,PODHardcoverof
+101,uid_901a,Sir Paws-a-Lot,paws@example.com,Digital Cat Court PDF Pack,United States,0,0,1,0
+102,uid_842b,Lady Meowington,meow@example.com,Royal Hardcover physical POD Tier,United Kingdom,1,0,0,1
+103,uid_312c,Duke Whisker,whisker@example.com,Supreme Collector PDF + POD Combo,Canada,1,1,0,1
+104,uid_004d,Calamity Cat,calamity@example.com,Virtual Friendly Tip Jar,Australia,0,0,0,0
+105,uid_115e,Barnaby Tail,barnaby@example.com,Digital Cat Court PDF Pack,Japan,0,1,1,0
+106,uid_772f,Count Scratchula,scratch@example.com,Royal Hardcover physical POD Tier,United States,0,0,0,2
+107,uid_553g,Tabby Stark,stark@example.com,CustomCatNPC Addon Pack,Germany,0,0,0,0`;
+
+            document.getElementById('rawCsvTextArea').value = demoCsv;
+            processParsedData(Papa.parse(demoCsv, { header: true }).data, [
+                "Backer Number", "Backer UID", "Backer Name", "Email", "Reward Title", "Billing Country",
+                "[Addon: 11129638] POD of Golden Dungeons Series", "[Addon: 11129640] PDF of Golden Dungeons Series",
+                "PDFofBrothels", "PODHardcoverof"
+            ], verbatimFilename);
+        }
+    </script>
+</body>
+</html>

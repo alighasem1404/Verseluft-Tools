@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane NPC Codex & Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Cinzel for fantasy feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        fantasy: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        void: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                            950: '#0b071a', // Deep darkest purple
+                        }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 15px -3px rgba(139, 92, 246, 0.4), 0 0 6px -2px rgba(139, 92, 246, 0.4)',
+                        'glow-lg': '0 0 25px -5px rgba(139, 92, 246, 0.6), 0 0 12px -2px rgba(139, 92, 246, 0.6)',
+                        'glow-emerald': '0 0 15px -3px rgba(16, 185, 129, 0.4), 0 0 6px -2px rgba(16, 185, 129, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar matching dark purple theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b071a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4c1d95;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6d28d9;
+        }
+        
+        /* Subtle pulsing animations */
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        .bg-glow-pulse {
+            animation: pulseGlow 4s infinite ease-in-out;
+        }
+        
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="bg-void-950 text-slate-100 font-sans min-h-screen relative overflow-x-hidden selection:bg-void-600 selection:text-white">
+
+    <!-- Glowing Background Elements -->
+    <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-void-900/20 blur-[120px] pointer-events-none bg-glow-pulse"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-void-800/10 blur-[150px] pointer-events-none bg-glow-pulse" style="animation-delay: 2s;"></div>
+
+    <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 relative z-10">
+        
+        <!-- Header -->
+        <header class="text-center mb-10 border-b border-void-800/50 pb-6">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-void-900/80 border border-void-700/60 mb-4 text-xs font-semibold text-void-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>AI-Infused Spellcasting Active</span>
+            </div>
+            <h1 class="font-fantasy text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-void-300 via-void-400 to-purple-400 drop-shadow-[0_2px_10px_rgba(139,92,246,0.3)]">
+                ARCANE NPC CODEX
+            </h1>
+            <p class="text-void-300/80 mt-2 text-sm sm:text-base max-w-2xl mx-auto">
+                Forge rich, deeply-immersive characters with our dual-engine portal. Channel live Google Gemini AI for bespoke writing or rely on our swift thematic fallback forge.
+            </p>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Side: Controls & Forge -->
+            <section class="lg:col-span-5 space-y-6">
+
+                <!-- Mode Toggle Widget -->
+                <div class="bg-void-900/40 border border-void-700/40 rounded-xl p-4 shadow-glow flex items-center justify-between">
+                    <div>
+                        <h4 class="font-fantasy text-xs text-void-300 uppercase tracking-widest font-semibold">Summoning Engine</h4>
+                        <p class="text-[10px] text-slate-400 mt-1">Enable live Google AI content generation</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="ai-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-void-600"></div>
+                        <span class="ml-2 text-xs font-semibold text-slate-300 peer-checked:text-emerald-400 transition-colors">AI</span>
+                    </label>
+                </div>
+                
+                <!-- Quick Archetype Presets -->
+                <div class="bg-void-900/40 border border-void-800/60 rounded-xl p-4 shadow-glow">
+                    <h3 class="font-fantasy text-void-300 font-semibold mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <svg class="w-4 h-4 text-void-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        </svg>
+                        Quick Archetypes
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <button onclick="applyPreset('ranger')" class="bg-void-950 hover:bg-void-800/80 border border-void-700/50 py-2 px-3 rounded-lg text-left transition duration-200 text-slate-300 hover:text-white flex items-center justify-between">
+                            <span>Shadow Ranger</span>
+                            <span class="text-void-400">🏹</span>
+                        </button>
+                        <button onclick="applyPreset('scholar')" class="bg-void-950 hover:bg-void-800/80 border border-void-700/50 py-2 px-3 rounded-lg text-left transition duration-200 text-slate-300 hover:text-white flex items-center justify-between">
+                            <span>Abyssal Sage</span>
+                            <span class="text-void-400">📖</span>
+                        </button>
+                        <button onclick="applyPreset('assassin')" class="bg-void-950 hover:bg-void-800/80 border border-void-700/50 py-2 px-3 rounded-lg text-left transition duration-200 text-slate-300 hover:text-white flex items-center justify-between">
+                            <span>Void Blade</span>
+                            <span class="text-void-400">🗡️</span>
+                        </button>
+                        <button onclick="applyPreset('cleric')" class="bg-void-950 hover:bg-void-800/80 border border-void-700/50 py-2 px-3 rounded-lg text-left transition duration-200 text-slate-300 hover:text-white flex items-center justify-between">
+                            <span>Star Cleric</span>
+                            <span class="text-void-400">✨</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Codex Filter Form -->
+                <div class="bg-void-900/40 border border-void-800/60 rounded-xl p-5 shadow-glow space-y-4">
+                    <h3 class="font-fantasy text-void-300 font-semibold text-base uppercase tracking-wider pb-2 border-b border-void-800/50">
+                        Forge Parameters
+                    </h3>
+
+                    <!-- Race Selection & Lock -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="filter-race" class="text-xs font-semibold text-void-300 uppercase tracking-wider">Race</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-void-400 select-none">
+                                <input type="checkbox" id="lock-race" class="sr-only peer">
+                                <div class="w-7 h-4 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-void-600 relative"></div>
+                                <span>Lock</span>
+                            </label>
+                        </div>
+                        <select id="filter-race" class="w-full bg-void-950 border border-void-700/60 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-void-500 focus:ring-1 focus:ring-void-500 text-slate-200">
+                            <option value="random">🔮 Randomize</option>
+                            <option value="Human">Human</option>
+                            <option value="Elf">Elf</option>
+                            <option value="Dwarf">Dwarf</option>
+                            <option value="Tiefling">Tiefling</option>
+                            <option value="Dragonborn">Dragonborn</option>
+                            <option value="Halfling">Halfling</option>
+                            <option value="Orc">Orc</option>
+                            <option value="Celestial">Celestial</option>
+                            <option value="Undead">Undead</option>
+                            <option value="Gnome">Gnome</option>
+                        </select>
+                    </div>
+
+                    <!-- Sex (Female/Male) Selection & Lock -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="filter-sex" class="text-xs font-semibold text-void-300 uppercase tracking-wider">Sex (Biological)</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-void-400 select-none">
+                                <input type="checkbox" id="lock-sex" class="sr-only peer">
+                                <div class="w-7 h-4 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-void-600 relative"></div>
+                                <span>Lock</span>
+                            </label>
+                        </div>
+                        <select id="filter-sex" class="w-full bg-void-950 border border-void-700/60 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-void-500 focus:ring-1 focus:ring-void-500 text-slate-200">
+                            <option value="random">🔮 Randomize</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+
+                    <!-- Gender Selection & Lock -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="filter-gender" class="text-xs font-semibold text-void-300 uppercase tracking-wider">Gender Identity</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-void-400 select-none">
+                                <input type="checkbox" id="lock-gender" class="sr-only peer">
+                                <div class="w-7 h-4 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-void-600 relative"></div>
+                                <span>Lock</span>
+                            </label>
+                        </div>
+                        <select id="filter-gender" class="w-full bg-void-950 border border-void-700/60 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-void-500 focus:ring-1 focus:ring-void-500 text-slate-200">
+                            <option value="random">🔮 Randomize (5% Alternative)</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Non-binary">Non-binary</option>
+                            <option value="Androgynous">Androgynous</option>
+                            <option value="Agender">Agender</option>
+                        </select>
+                    </div>
+
+                    <!-- Age Range & Lock -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="filter-age" class="text-xs font-semibold text-void-300 uppercase tracking-wider">Age Bracket</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-void-400 select-none">
+                                <input type="checkbox" id="lock-age" class="sr-only peer">
+                                <div class="w-7 h-4 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-void-600 relative"></div>
+                                <span>Lock</span>
+                            </label>
+                        </div>
+                        <select id="filter-age" class="w-full bg-void-950 border border-void-700/60 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-void-500 focus:ring-1 focus:ring-void-500 text-slate-200">
+                            <option value="random">🔮 Randomize</option>
+                            <option value="Young">Young (16-25)</option>
+                            <option value="Adult">Adult (26-50)</option>
+                            <option value="Middle-aged">Middle-Aged (51-75)</option>
+                            <option value="Elder">Elder (76-200+)</option>
+                        </select>
+                    </div>
+
+                    <!-- Proficiency / Class & Lock -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label for="filter-proficiency" class="text-xs font-semibold text-void-300 uppercase tracking-wider">Proficiency</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs text-void-400 select-none">
+                                <input type="checkbox" id="lock-proficiency" class="sr-only peer">
+                                <div class="w-7 h-4 bg-void-950 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-void-400 after:border-void-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-void-600 relative"></div>
+                                <span>Lock</span>
+                            </label>
+                        </div>
+                        <select id="filter-proficiency" class="w-full bg-void-950 border border-void-700/60 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-void-500 focus:ring-1 focus:ring-void-500 text-slate-200">
+                            <option value="random">🔮 Randomize</option>
+                            <option value="Arcane Magic">Arcane Magic</option>
+                            <option value="Stealth & Thievery">Stealth & Thievery</option>
+                            <option value="Alchemical Brewing">Alchemical Brewing</option>
+                            <option value="Divine Invocations">Divine Invocations</option>
+                            <option value="Runecarving">Runecarving</option>
+                            <option value="Martial Mastery">Martial Mastery</option>
+                            <option value="Necromancy">Necromancy</option>
+                            <option value="Beast Taming">Beast Taming</option>
+                            <option value="Diplomatic Espionage">Diplomatic Espionage</option>
+                            <option value="Blacksmithing">Blacksmithing</option>
+                        </select>
+                    </div>
+
+                    <!-- Big Action Forge Button -->
+                    <button id="forge-btn" onclick="generateNPC()" class="w-full relative group overflow-hidden bg-gradient-to-r from-void-700 via-void-600 to-purple-600 hover:from-void-600 hover:to-purple-500 py-3 px-4 rounded-xl text-white font-fantasy font-bold tracking-widest text-center shadow-glow transition duration-300 transform active:scale-95 flex items-center justify-center gap-2">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+                        <svg class="w-5 h-5 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span id="forge-btn-text">SUMMON NEW NPC</span>
+                    </button>
+                </div>
+
+                <!-- Saved NPCs Library -->
+                <div class="bg-void-900/40 border border-void-800/60 rounded-xl p-5 shadow-glow space-y-4">
+                    <div class="flex justify-between items-center border-b border-void-800/50 pb-2">
+                        <h3 class="font-fantasy text-void-300 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
+                            <svg class="w-4 h-4 text-void-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            Grimoire Library (<span id="lib-count">0</span>)
+                        </h3>
+                        <button onclick="clearLibrary()" class="text-xs text-red-400/80 hover:text-red-400 transition">Purge All</button>
+                    </div>
+                    <div id="library-container" class="max-h-60 overflow-y-auto space-y-2 pr-1 text-xs">
+                        <!-- Populated by JavaScript -->
+                        <div class="text-slate-500 italic text-center py-4">No NPCs bound to this grimoire yet.</div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Right Side: The Generated NPC Sheet -->
+            <main class="lg:col-span-7 space-y-6">
+                
+                <!-- Main Character Display Card -->
+                <div class="bg-gradient-to-b from-void-900/80 to-void-950/90 border border-void-700/80 rounded-2xl p-6 shadow-glow-lg relative overflow-hidden">
+                    
+                    <!-- Decorative Corners -->
+                    <div class="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-void-500 rounded-tl-lg"></div>
+                    <div class="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-void-500 rounded-tr-lg"></div>
+                    <div class="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-void-500 rounded-bl-lg"></div>
+                    <div class="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-void-500 rounded-br-lg"></div>
+
+                    <!-- Inner Card Header with Avatar & Core Stats -->
+                    <div class="flex flex-col md:flex-row gap-6 items-center md:items-start border-b border-void-800/80 pb-6">
+                        
+                        <!-- Dynamic SVG Avatar Container -->
+                        <div class="relative w-36 h-36 bg-void-950 border-2 border-void-700 rounded-2xl p-1 shadow-inner overflow-hidden flex items-center justify-center shrink-0">
+                            <!-- Background Glow in Avatar -->
+                            <div class="absolute inset-0 bg-gradient-to-tr from-void-900/40 to-void-800/30"></div>
+                            <svg id="dynamic-avatar" viewBox="0 0 100 100" class="w-full h-full relative z-10 transition-all duration-300">
+                                <circle cx="50" cy="50" r="45" fill="#2d1d4c" />
+                                <path d="M50 25 L75 75 L25 75 Z" fill="#8b5cf6" />
+                            </svg>
+                        </div>
+
+                        <!-- Core Details -->
+                        <div class="flex-grow text-center md:text-left space-y-3 w-full">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                <h2 id="npc-name" class="font-fantasy text-2xl sm:text-3xl font-bold text-void-100 tracking-wide drop-shadow-md">
+                                    Thorne Starwhisper
+                                </h2>
+                                <div class="flex gap-2 justify-center md:justify-end">
+                                    <button onclick="saveToLibrary()" class="bg-void-800/80 hover:bg-void-700 border border-void-600/50 p-2 rounded-lg text-xs text-void-300 hover:text-white transition duration-200" title="Save to Grimoire">
+                                        ✨ Save
+                                    </button>
+                                    <button onclick="copyToClipboard()" class="bg-void-800/80 hover:bg-void-700 border border-void-600/50 p-2 rounded-lg text-xs text-void-300 hover:text-white transition duration-200" title="Copy Text to Clipboard">
+                                        📋 Copy
+                                    </button>
+                                    <button onclick="exportAsText()" class="bg-void-800/80 hover:bg-void-700 border border-void-600/50 p-2 rounded-lg text-xs text-void-300 hover:text-white transition duration-200" title="Download Text Scroll">
+                                        📜 Scroll
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Badges grid -->
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px]">
+                                <div class="bg-void-950/80 border border-void-800 rounded-lg p-2 text-center">
+                                    <span class="block uppercase text-void-400 font-semibold tracking-wider mb-0.5">Race</span>
+                                    <span id="npc-race" class="font-medium text-slate-200">Elf</span>
+                                </div>
+                                <div class="bg-void-950/80 border border-void-800 rounded-lg p-2 text-center">
+                                    <span class="block uppercase text-void-400 font-semibold tracking-wider mb-0.5">Sex</span>
+                                    <span id="npc-sex" class="font-medium text-slate-200">Male</span>
+                                </div>
+                                <div class="bg-void-950/80 border border-void-800 rounded-lg p-2 text-center">
+                                    <span class="block uppercase text-void-400 font-semibold tracking-wider mb-0.5">Gender</span>
+                                    <span id="npc-gender" class="font-medium text-slate-200">Male</span>
+                                </div>
+                                <div class="bg-void-950/80 border border-void-800 rounded-lg p-2 text-center">
+                                    <span class="block uppercase text-void-400 font-semibold tracking-wider mb-0.5">Age</span>
+                                    <span id="npc-age" class="font-medium text-slate-200">142 cycles</span>
+                                </div>
+                                <div class="bg-void-950/80 border border-void-800 rounded-lg p-2 text-center col-span-2 sm:col-span-1">
+                                    <span class="block uppercase text-void-400 font-semibold tracking-wider mb-0.5">Proficiency</span>
+                                    <span id="npc-proficiency" class="font-medium text-slate-200">Arcane Magic</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layout for Backstory and Behavior -->
+                    <div class="mt-6 space-y-6">
+                        
+                        <!-- Backstory Panel (5 paragraphs total) -->
+                        <div class="space-y-2">
+                            <h3 class="font-fantasy text-lg text-void-300 font-semibold tracking-wide flex items-center gap-2">
+                                <span class="w-1.5 h-4 bg-void-500 rounded"></span>
+                                Narrative Backstory
+                                <span class="text-[10px] text-void-400 font-sans font-normal lowercase italic">(Exactly 5 Chronicles)</span>
+                            </h3>
+                            <div class="bg-void-950/40 border border-void-800/80 p-4 rounded-xl relative">
+                                <div id="npc-backstory" class="text-slate-300 text-sm leading-relaxed text-justify space-y-4">
+                                    <!-- Backstory paragraphs go here -->
+                                    <p>Loading ancestral memories...</p>
+                                </div>
+                                <div class="clear-both"></div>
+                            </div>
+                        </div>
+
+                        <!-- Behavior Panel (Exactly 15 Bullet Points) -->
+                        <div class="space-y-2">
+                            <h3 class="font-fantasy text-lg text-void-300 font-semibold tracking-wide flex items-center gap-2">
+                                <span class="w-1.5 h-4 bg-void-500 rounded"></span>
+                                Behavioral Quirks & Traits
+                                <span class="text-[10px] text-void-400 font-sans font-normal lowercase italic">(Exactly 15 matching elements)</span>
+                            </h3>
+                            <div class="bg-void-950/40 border border-void-800/80 p-4 rounded-xl">
+                                <ul id="npc-behavior" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs text-slate-300 list-none">
+                                    <!-- Populated by JS, exactly 15 bullet points -->
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 ease-out bg-void-900 border border-void-600/80 text-white py-3 px-5 rounded-xl shadow-glow flex items-center gap-2">
+        <span class="text-void-400">⚡</span>
+        <span id="toast-msg">NPC saved to Codex!</span>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        const races = ["Human", "Elf", "Dwarf", "Tiefling", "Dragonborn", "Halfling", "Orc", "Celestial", "Undead", "Gnome"];
+        const sexes = ["Male", "Female"];
+        const genders = ["Male", "Female", "Non-binary", "Androgynous", "Agender"];
+        const proficiencies = [
+            "Arcane Magic", "Stealth & Thievery", "Alchemical Brewing", 
+            "Divine Invocations", "Runecarving", "Martial Mastery", 
+            "Necromancy", "Beast Taming", "Diplomatic Espionage", "Blacksmithing"
+        ];
+
+        const namesPool = {
+            Human: {
+                Male: ["Arthur", "Caelen", "Garrett", "Darian", "Julian", "Roderick", "Vance", "Gideon"],
+                Female: ["Elysia", "Sienna", "Genevieve", "Lyra", "Katelyn", "Clara", "Mireia", "Seraphina"],
+                Neutral: ["Robin", "Rowan", "Alex", "Morgan", "Cassidy", "Jordan", "Peyton", "Avery"]
+            },
+            Elf: {
+                Male: ["Aelion", "Elarion", "Thorne", "Valen", "Sylas", "Hadrian", "Faelar", "Myrddin"],
+                Female: ["Lirael", "Aurelia", "Sylvia", "Galadriel", "Elenwe", "Keyleth", "Valerith", "Sariel"],
+                Neutral: ["Aerin", "Sola", "Kaelen", "Valo", "Ruel", "Lior", "Keth", "Fae"]
+            },
+            Dwarf: {
+                Male: ["Brogur", "Thrain", "Gloin", "Farin", "Dain", "Orik", "Balthor", "Grumli"],
+                Female: ["Helga", "Dagna", "Thora", "Audhild", "Gisela", "Kari", "Sela", "Sigrid"],
+                Neutral: ["Urd", "Bari", "Rune", "Grim", "Tor", "Hild", "Oor", "Krag"]
+            },
+            Tiefling: {
+                Male: ["Malakor", "Zariel", "Kallos", "Balthazar", "Mephisto", "Xarles", "Levistus", "Damakos"],
+                Female: ["Lilith", "Akasha", "Verin", "Makaria", "Morrigan", "Naamah", "Sariel", "Hesperia"],
+                Neutral: ["Ashen", "Void", "Hollow", "Whisper", "Vesper", "Crypt", "Gloom", "Cinder"]
+            },
+            Dragonborn: {
+                Male: ["Arkan", "Donaar", "Ghesh", "Medrash", "Patrin", "Rhogar", "Torinn", "Zraok"],
+                Female: ["Akra", "Biri", "Harann", "Kava", "Korinn", "Mishann", "Uadjit", "Sari"],
+                Neutral: ["Ignis", "Verde", "Zure", "Fulmen", "Ash", "Pyro", "Gale", "Talon"]
+            },
+            Halfling: {
+                Male: ["Alton", "Cade", "Eldon", "Garret", "Lyle", "Milo", "Roscoe", "Wellby"],
+                Female: ["Andry", "Callie", "Daisy", "Kithri", "Nedda", "Paela", "Portia", "Verna"],
+                Neutral: ["Bree", "Lane", "Robin", "Fin", "Pip", "Lucky", "Sunny", "Clover"]
+            },
+            Orc: {
+                Male: ["Garzhog", "Grommash", "Kargath", "Durotan", "Orgrim", "Maim", "Urok", "Thrum"],
+                Female: ["Gara", "Agra", "Mogra", "Raza", "Grisha", "Ushra", "Yarka", "Ketha"],
+                Neutral: ["Zog", "Ruk", "Mog", "Karg", "Thrum", "Gar", "Rok", "Urk"]
+            },
+            Celestial: {
+                Male: ["Michael", "Gabriel", "Uriel", "Raphael", "Azrael", "Cassiel", "Remiel", "Zadkiel"],
+                Female: ["Ariel", "Anahita", "Diana", "Selene", "Lumina", "Estella", "Aurora", "Iris"],
+                Neutral: ["Halo", "Sol", "Nova", "Cosmo", "Astral", "Zenith", "Ether", "Glimmer"]
+            },
+            Undead: {
+                Male: ["Kaelen", "Dread", "Mortis", "Bane", "Voldis", "Grave", "Cinder", "Specter"],
+                Female: ["Lilith", "Banshee", "Vesper", "Gloom", "Morana", "Hecate", "Nyx", "Erebos"],
+                Neutral: ["Shade", "Wisp", "Ash", "Dust", "Bone", "Ghost", "Crypt", "Phantom"]
+            },
+            Gnome: {
+                Male: ["Boddynock", "Dimble", "Fonkin", "Gimble", "Kellen", "Namfoodle", "Orryn", "Wrenn"],
+                Female: ["Bimpnottin", "Breena", "Caramip", "Ellywick", "Lilli", "Loopmarda", "Roywyn", "Zanna"],
+                Neutral: ["Fizzle", "Spark", "Tinker", "Gears", "Pip", "Wren", "Sprocket", "Rusty"]
+            }
+        };
+
+        const lastNames = {
+            Human: ["Stormwind", "Stonebridge", "Blackwood", "Brighton", "Kingsley", "Redgrave", "Harrow", "Vanguard"],
+            Elf: ["Starwhisper", "Moonshadow", "Silverleaf", "Sunstrider", "Autumnwind", "Dewspark", "Spellweaver", "Greenwood"],
+            Dwarf: ["Ironforge", "Stonebreaker", "Goldvein", "Deepdelve", "Copperfist", "Shieldwall", "Hammerfall", "Mountainheart"],
+            Tiefling: ["Dreadheart", "Hellfire", "Shadowbrand", "Voidgaze", "Soulflame", "Darkhorn", "Ashenwing", "Bitterblade"],
+            Dragonborn: ["Firebreath", "Scaleshield", "Goldenclaw", "Wyrmslayer", "Thunderfang", "Ironscales", "Suncrown", "Volcanis"],
+            Halfling: ["Greenbottle", "Hilltopper", "Tealeaf", "Underhill", "Goodbarrel", "Brushgather", "Swiftfoot", "Warmhearth"],
+            Orc: ["Skullcrusher", "Bloodfist", "Ironfang", "Goretusk", "Doomhammer", "Ragetearer", "Bonebreaker", "Steelclaw"],
+            Celestial: ["Solarsong", "Starweaver", "Aetherwing", "Lightshield", "Seraphis", "Dawnbreaker", "Highheaven", "Sunbearer"],
+            Undead: ["Gravewalker", "Deadwood", "Nightshade", "Soulreaper", "Cryptkeeper", "Coldheart", "Plaguewing", "Shadowmend"],
+            Gnome: ["Sprockets", "Fizzlebang", "Geargrinder", "Tinkertoy", "Copperwire", "Goldspark", "Clockwork", "Quickwit"]
+        };
+
+        // Matching structures for local fallback generation
+        const localizedThematicBackstories = {
+            "Mystic": {
+                early: [
+                    "From the earliest moments of their youth, [NAME] was captivated by the faint, shimmering leyline energies that laced their birthplace. As an young [RACE] growing up in magical isolation, they learned to listen to the whispers of ancient planar entities rather than standard childhood companions.",
+                    "Even in their infancy, it was clear that [NAME] possessed an undeniable spark. Destined for a life of profound study, they spent their early years buried under heavy, dusty spellbooks and ancient scrolls, learning the initial configurations of [PROFICIENCY] under extreme tutelage."
+                ],
+                midlife: [
+                    "Upon entering their midlife years, a devastating rift occurred: a rogue experiment shattered their sanctuary. Forced to adapt quickly, [NAME] utilized their exceptional knowledge of [PROFICIENCY] to stabilize the cascading arcane fallout, although the catastrophic event left them forever scarred with cosmic runes.",
+                    "As the midlife cycles rolled forward, they faced an intense trial of willpower when a shadow cabal tried to steal their research. Refusing to bend, they weaponized their mastery of [PROFICIENCY], embarking on a perilous campaign across planar boundaries to preserve their arcane secrets."
+                ],
+                present: [
+                    "Today, at the age of [AGE], they stand as a formidable master of their craft. [NAME] is currently driven to unlock the final, elusive secrets of their cosmic bindings while identifying as a proud [GENDER] who refuses to let historical limitations slow down their magical crusade."
+                ]
+            },
+            "Martial": {
+                early: [
+                    "Born into a clan defined by blood, sweat, and heavy armor, [NAME] was handed a wooden trainer blade before they could even walk. The young [RACE] lived their initial cycles in the rugged mountainous regions, where physical prowess and strict survivalist traditions formed the bedrock of their character.",
+                    "In their earliest years, [NAME] was forced to adapt to the rough life of an undercity street urchin. To protect their comrades, they secretly observed the palace guard, teaching themselves basic footwork and initial styles of [PROFICIENCY] beneath the light of the crimson moon."
+                ],
+                midlife: [
+                    "The onset of their midlife cycles brought the fires of actual war, thrusting them directly onto the frontlines of a massive crusade. [NAME] achieved high honors, utilizing their deadly instincts in [PROFICIENCY] to claim victory after victory, yet carrying deep psychological scars from companions they could not save.",
+                    "During their midlife, they were gravely betrayed by a corrupt commander who sought to sacrifice their legion for political gain. Fighting their way out of a deathly trap, they honed their specific martial discipline, turning their expertise in [PROFICIENCY] into a lethal instrument of raw vengeance."
+                ],
+                present: [
+                    "Now, at [AGE] old, [NAME] roams the realm with seasoned, scarred vigilance. Operating as a fiercely proud [GENDER], they dedicate their lives to protecting the defenseless, using their proficiency to enforce a strict personal code of honor."
+                ]
+            },
+            "Scoundrel": {
+                early: [
+                    "Bred in the dark shadows of a chaotic harbor town, [NAME] grew up believing that laws were merely guidelines written by the wealthy. The clever [RACE] mastered the art of slipping unseen through busy market bazaars, finding their true solace in the silent, comforting embrace of nightfall.",
+                    "From their youth, [NAME] possessed a silver tongue and exceptionally nimble fingers. They were quickly adopted by a legendary guild of spies, spending their formative years refining their agility and studying the complex, invisible machinery behind [PROFICIENCY]."
+                ],
+                midlife: [
+                    "Their midlife years became a high-stakes whirlwind of daring heists and close escapes across the principalities. However, their lucky streak crashed when their closest accomplice betrayed them to the grand inquisitor, forcing [NAME] to execute a legendary, year-long jailbreak using [PROFICIENCY].",
+                    "A massive midlife bounty was placed on their head after they successfully pulled off an elaborate royal blackmail scheme. Surviving on wits alone, they lived deep in disguise, relying entirely on their specialization in [PROFICIENCY] to outmaneuver relentless squads of contract hunters."
+                ],
+                present: [
+                    "Presently, at the age of [AGE], they remain one step ahead of the hangman's noose. Identifying as a clever [GENDER], [NAME] continues to coordinate highly dangerous operations from the shadows, ensuring their name remains whispered in absolute dread and awe."
+                ]
+            }
+        };
+
+        const behaviorPool = [
+            "Taps their fingers rhythmically on their belt when waiting or thinking.",
+            "Always sits facing the exit of any room they enter, scanning for danger.",
+            "Refuses to sleep in a bed, preferring the cold hard floor or a simple blanket.",
+            "Speaks in extremely quiet, hushed whispers even when shouting is necessary.",
+            "Keeps a small notebook and aggressively sketches everyone they meet.",
+            "Has an absolute, paralyzing fear of direct sunlight and avoids noon travel.",
+            "Repeats the last word of any sentence they hear under their breath.",
+            "Constantly adjusts their collar or sleeves, obsessing over symmetry.",
+            "Always carries a small pocketful of salt to toss over their left shoulder.",
+            "Nervously cleans their weapons or focus items when anyone speaks of the past.",
+            "Unconsciously mimics the accent of whoever they are currently speaking to.",
+            "Will never cross a threshold of a doorway without knocking three times.",
+            "Avoids stepping on cracks, stones, or patterns on the floor.",
+            "Maintains intense, unblinking eye contact for uncomfortably long periods.",
+            "Refuses to eat or drink anything unless they see someone else taste it first.",
+            "Frequently talks to their gear, weapons, or clothing as if they are alive.",
+            "Carries an array of colorful pebbles and gifts them to people they trust.",
+            "Has a habit of collecting common keys, keeping them on a loud, clanking ring.",
+            "Refuses to use common names, instead assigning weird nicknames to everyone.",
+            "Keeps their hands covered in leather gloves at all times, even during meals.",
+            "Always smells faintly of freshly ground cinnamon or heavy alchemical sulfur.",
+            "Prone to sudden, dramatic sighs followed by long, mysterious pauses.",
+            "Fascinated by simple clockwork toys and will stop to watch them work.",
+            "Never makes a decision without flipping a custom, double-faced copper coin.",
+            "Wears a heavy iron ring on every finger, each engraved with a different sigil.",
+            "Always speaks about themselves in the third person when feeling threatened.",
+            "Has a massive collection of dried flowers pressed into their personal journals.",
+            "Will not enter a room if there is an odd number of candles lit inside.",
+            "Constantly hums a low, eerie melody that they claim to hear in the wind.",
+            "Avoids touching metal directly, always using a cloth or sleeve as a barrier.",
+            "Has an incredible, near-photographic memory for faces but easily forgets names.",
+            "Licks their thumb to check the wind direction every time they step outside.",
+            "Wears a heavy, opaque blindfold but navigates rooms with uncanny precision.",
+            "Refuses to walk in a straight line, always weaving slightly side to side.",
+            "Carries a jar of glowing soil and stares at it when feeling anxious.",
+            "Has a soft spot for stray animals, often feeding them before feeding themselves.",
+            "Tends to dramatically over-pronounce words that begin with the letter 'S'.",
+            "Polishes their shoes obsessively, even when walking in muddy wetlands.",
+            "Refuses to speak during storms, believing it offends the sky spirits.",
+            "Will only drink liquids out of a specific, dented silver chalice they own.",
+            "Can fall asleep instantly in almost any position, even while standing upright.",
+            "Keeps their face heavily veiled, revealing only their intense, shifting eyes.",
+            "Unconsciously mirrors the physical posture of whoever they are arguing with.",
+            "Carries a collection of dried bones and rolls them like dice to predict fortunes.",
+            "Possesses a nervous habit of pulling on their earlobe when telling a lie."
+        ];
+
+        const raceColors = {
+            Human: { bg: "#2d1d4c", primary: "#8b5cf6" },
+            Elf: { bg: "#1e293b", primary: "#10b981" },
+            Dwarf: { bg: "#3f2b1d", primary: "#f59e0b" },
+            Tiefling: { bg: "#4c1d24", primary: "#ef4444" },
+            Dragonborn: { bg: "#2d3748", primary: "#d97706" },
+            Halfling: { bg: "#1c2d37", primary: "#a78bfa" },
+            Orc: { bg: "#2a3439", primary: "#4ade80" },
+            Celestial: { bg: "#1e1b4b", primary: "#38bdf8" },
+            Undead: { bg: "#111827", primary: "#6b7280" },
+            Gnome: { bg: "#2d1d4c", primary: "#ec4899" }
+        };
+
+        function getAvatarMarkup(race, sex, gender, proficiency) {
+            const colors = raceColors[race] || { bg: "#2d1d4c", primary: "#8b5cf6" };
+            const isFemale = sex === "Female";
+            const isMale = sex === "Male";
+            const glow = colors.primary;
+
+            let extraFeatures = '';
+            
+            if (race === "Elf") {
+                extraFeatures += `
+                    <path d="M15 45 C5 42 1 35 15 32 Z" fill="${colors.bg}" stroke="${colors.primary}" stroke-width="1.5"/>
+                    <path d="M85 45 C95 42 99 35 85 32 Z" fill="${colors.bg}" stroke="${colors.primary}" stroke-width="1.5"/>
+                `;
+            } else if (race === "Tiefling") {
+                extraFeatures += `
+                    <path d="M35 25 C30 10 15 5 18 20 C20 30 35 30 35 25 Z" fill="${colors.primary}" opacity="0.9"/>
+                    <path d="M65 25 C70 10 85 5 82 20 C80 30 65 30 65 25 Z" fill="${colors.primary}" opacity="0.9"/>
+                `;
+            } else if (race === "Dwarf") {
+                if (isMale) {
+                    extraFeatures += `
+                        <path d="M30 60 C30 85 70 85 70 60 C65 55 35 55 30 60 Z" fill="${colors.primary}" />
+                        <path d="M40 55 C45 62 55 62 60 55 Z" fill="#b45309" />
+                    `;
+                } else {
+                    extraFeatures += `
+                        <path d="M25 35 C15 35 15 80 25 80 Z" fill="${colors.primary}" />
+                        <path d="M75 35 C85 35 85 80 75 80 Z" fill="${colors.primary}" />
+                    `;
+                }
+            } else if (race === "Dragonborn") {
+                extraFeatures += `
+                    <path d="M30 25 L50 5 L70 25 L65 45 L35 45 Z" fill="${colors.primary}" opacity="0.8"/>
+                    <circle cx="50" cy="20" r="3" fill="#f59e0b" />
+                `;
+            } else if (race === "Celestial") {
+                extraFeatures += `
+                    <ellipse cx="50" cy="15" rx="25" ry="6" fill="none" stroke="#fef08a" stroke-width="3" filter="drop-shadow(0 0 4px #f59e0b)"/>
+                `;
+            } else if (race === "Undead") {
+                extraFeatures += `
+                    <path d="M40 70 L42 80 M48 70 L46 80 M52 70 L54 80 M60 70 L58 80" stroke="${colors.primary}" stroke-width="2"/>
+                    <circle cx="35" cy="45" r="4" fill="#000" />
+                    <circle cx="65" cy="45" r="4" fill="#000" />
+                    <circle cx="35" cy="45" r="1.5" fill="${colors.primary}" />
+                    <circle cx="65" cy="45" r="1.5" fill="${colors.primary}" />
+                `;
+            } else if (race === "Orc") {
+                extraFeatures += `
+                    <path d="M35 60 L37 50 L41 58 Z" fill="#fff" />
+                    <path d="M65 60 L63 50 L59 58 Z" fill="#fff" />
+                `;
+            }
+
+            let hairMarkup = '';
+            if (isFemale) {
+                hairMarkup = `<path d="M25 35 Q50 15 75 35 Q85 70 70 80 Q50 70 30 80 Q15 70 25 35 Z" fill="${colors.primary}" opacity="0.85"/>`;
+            } else if (isMale) {
+                hairMarkup = `<path d="M25 35 Q50 10 75 35 Q65 25 50 28 Q35 25 25 35 Z" fill="${colors.primary}" opacity="0.9"/>`;
+            } else {
+                hairMarkup = `<path d="M28 35 Q50 5 72 35 L50 20 Z" fill="${colors.primary}" opacity="0.8"/>`;
+            }
+
+            return `
+                <defs>
+                    <radialGradient id="grad-${race}" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="${colors.bg}" />
+                        <stop offset="100%" stop-color="#0b071a" />
+                    </radialGradient>
+                </defs>
+                <circle cx="50" cy="50" r="48" fill="url(#grad-${race})" stroke="${glow}" stroke-width="2" />
+                ${extraFeatures}
+                <circle cx="50" cy="45" r="22" fill="#1e152a" stroke="${glow}" stroke-width="1" />
+                ${hairMarkup}
+                <circle cx="40" cy="45" r="3" fill="${glow}" />
+                <circle cx="60" cy="45" r="3" fill="${glow}" />
+                <path d="M20 90 C25 70 75 70 80 90 Z" fill="#130c22" stroke="${glow}" stroke-width="1.5" />
+            `;
+        }
+
+        // Grimoire Library storage state
+        let npcLibrary = [];
+
+        window.onload = function() {
+            const stored = localStorage.getItem('arcane_npc_codex_library_v2');
+            if (stored) {
+                try {
+                    npcLibrary = JSON.parse(stored);
+                    updateLibraryUI();
+                } catch(e) {
+                    console.error("Failed parsing stored library state: ", e);
+                }
+            }
+            generateNPC();
+        }
+
+        function generateName(race, sex) {
+            let list = namesPool[race] ? namesPool[race].Neutral : ["Valen"];
+            if (sex === "Male" && namesPool[race]?.Male) {
+                list = namesPool[race].Male;
+            } else if (sex === "Female" && namesPool[race]?.Female) {
+                list = namesPool[race].Female;
+            }
+            
+            const first = list[Math.floor(Math.random() * list.length)];
+            const last = lastNames[race] ? lastNames[race][Math.floor(Math.random() * lastNames[race].length)] : "Voidborn";
+            return `${first} ${last}`;
+        }
+
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        let currentNPC = {};
+
+        async function callGeminiAI(params) {
+            const apiKey = ""; // Canvas framework injects the active key automatically at runtime.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `You are a world-class RPG writer. Generate highly creative character details in strict JSON format. 
+            You must output EXACTLY the requested JSON structure. 
+            Do not include any extra text, markdown fences (like \`\`\`json), or explanations outside of the valid JSON object.`;
+
+            const userPrompt = `Generate a fantasy character profile matching these exact specifications:
+            - Name: ${params.name} (Feel free to refine slightly if needed, but keep it close)
+            - Race: ${params.race}
+            - Biological Sex: ${params.sex}
+            - Gender Identity: ${params.gender}
+            - Age: ${params.age}
+            - Proficiency: ${params.proficiency}
+
+            Requirements:
+            1. 'backstory': Must consist of EXACTLY 5 distinct paragraphs.
+               - Paragraph 1 & 2: Early Life (Childhood, ancestry, initial discovery of skills).
+               - Paragraph 3 & 4: Midlife (Turning points, major conflicts, trials, or accomplishments).
+               - Paragraph 5: Present (Current state, ultimate motivation, and how they operate now).
+               - You MUST explicitly mention the character's Name, Race, Age, Gender Identity, and Proficiency seamlessly within the paragraphs of the backstory.
+            2. 'behaviors': Must contain EXACTLY 15 highly detailed behavioral quirks, habits, or psychological traits that perfectly match and align with the character's backstory.
+            3. Output MUST fit this JSON schema perfectly:
+            {
+               "name": "Full Character Name",
+               "race": "Race",
+               "sex": "Male or Female",
+               "gender": "Gender Identity",
+               "age": "Age details",
+               "proficiency": "Proficiency details",
+               "backstory": ["Paragraph 1 text", "Paragraph 2 text", "Paragraph 3 text", "Paragraph 4 text", "Paragraph 5 text"],
+               "behaviors": ["Quirk 1", "Quirk 2", ..., "Quirk 15"]
+            }`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json"
+                },
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API returned status code: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!candidateText) {
+                throw new Error("Empty AI response received.");
+            }
+
+            return JSON.parse(candidateText.trim());
+        }
+
+        async function generateNPC() {
+            const btn = document.getElementById('forge-btn');
+            const btnText = document.getElementById('forge-btn-text');
+            const useAI = document.getElementById('ai-toggle').checked;
+
+            // Set loading state
+            btn.disabled = true;
+            btnText.textContent = useAI ? "CHANNELLING THE VOID (AI)..." : "FORGING LOCAL SPIRIT...";
+            btn.classList.add('opacity-85', 'cursor-not-allowed');
+
+            try {
+                // Determine Race
+                const lockRace = document.getElementById('lock-race').checked;
+                let race = lockRace ? document.getElementById('npc-race').textContent : document.getElementById('filter-race').value;
+                if (!lockRace && race === 'random') {
+                    race = races[Math.floor(Math.random() * races.length)];
+                }
+
+                // Determine Sex
+                const lockSex = document.getElementById('lock-sex').checked;
+                let sex = lockSex ? document.getElementById('npc-sex').textContent : document.getElementById('filter-sex').value;
+                if (!lockSex && sex === 'random') {
+                    sex = sexes[Math.floor(Math.random() * sexes.length)];
+                }
+
+                // Determine Gender (95% same as sex, 5% alternative)
+                const lockGender = document.getElementById('lock-gender').checked;
+                let gender = lockGender ? document.getElementById('npc-gender').textContent : document.getElementById('filter-gender').value;
+                if (!lockGender && gender === 'random') {
+                    const roll = Math.random() * 100;
+                    if (roll > 95) {
+                        const alternatives = ["Non-binary", "Androgynous", "Agender"];
+                        gender = alternatives[Math.floor(Math.random() * alternatives.length)];
+                    } else {
+                        gender = sex; // matches biological sex
+                    }
+                }
+
+                // Determine Age
+                const lockAge = document.getElementById('lock-age').checked;
+                let ageBracket = lockAge ? document.getElementById('npc-age').textContent.split(' ')[0] : document.getElementById('filter-age').value;
+                if (!lockAge && ageBracket === 'random') {
+                    ageBracket = ["Young", "Adult", "Middle-aged", "Elder"][Math.floor(Math.random() * 4)];
+                }
+
+                let ageNum = 25;
+                if (ageBracket === "Young") {
+                    ageNum = Math.floor(Math.random() * 10) + 16;
+                } else if (ageBracket === "Adult") {
+                    ageNum = Math.floor(Math.random() * 25) + 26;
+                } else if (ageBracket === "Middle-aged") {
+                    ageNum = Math.floor(Math.random() * 25) + 51;
+                } else { // Elder
+                    if (race === "Elf" || race === "Celestial") {
+                        ageNum = Math.floor(Math.random() * 500) + 150;
+                    } else if (race === "Dwarf") {
+                        ageNum = Math.floor(Math.random() * 150) + 100;
+                    } else {
+                        ageNum = Math.floor(Math.random() * 30) + 76;
+                    }
+                }
+                const finalAgeText = `${ageNum} cycles (${ageBracket})`;
+
+                // Determine Proficiency
+                const lockProficiency = document.getElementById('lock-proficiency').checked;
+                let proficiency = lockProficiency ? document.getElementById('npc-proficiency').textContent : document.getElementById('filter-proficiency').value;
+                if (!lockProficiency && proficiency === 'random') {
+                    proficiency = proficiencies[Math.floor(Math.random() * proficiencies.length)];
+                }
+
+                const name = generateName(race, sex);
+
+                const params = {
+                    name,
+                    race,
+                    sex,
+                    gender,
+                    age: finalAgeText,
+                    proficiency
+                };
+
+                if (useAI) {
+                    try {
+                        const aiData = await callGeminiAI(params);
+                        renderNPCUI(aiData);
+                        showToast("AI Summoning Complete!");
+                    } catch (aiError) {
+                        console.warn("AI Generation failed, seamlessly switching to fallback: ", aiError);
+                        runLocalFallbackForge(params);
+                        showToast("Void disrupted. local fallback forge initiated.");
+                    }
+                } else {
+                    runLocalFallbackForge(params);
+                }
+
+            } catch (err) {
+                console.error("General Summoning Failure: ", err);
+                showToast("Summoning circle fractured! Please try again.");
+            } finally {
+                // Remove loading state
+                btn.disabled = false;
+                btnText.textContent = "SUMMON NEW NPC";
+                btn.classList.remove('opacity-85', 'cursor-not-allowed');
+            }
+        }
+
+        function runLocalFallbackForge(params) {
+            // Determine theme based on proficiency
+            let theme = "Mystic";
+            if (["Martial Mastery", "Blacksmithing", "Beast Taming"].includes(params.proficiency)) {
+                theme = "Martial";
+            } else if (["Stealth & Thievery", "Diplomatic Espionage"].includes(params.proficiency)) {
+                theme = "Scoundrel";
+            }
+
+            const selection = localizedThematicBackstories[theme];
+            
+            // Draw matching sections logically
+            const eIdx = Math.floor(Math.random() * selection.early.length);
+            const mIdx = Math.floor(Math.random() * selection.midlife.length);
+
+            const p1 = selection.early[eIdx];
+            const p2 = selection.early[(eIdx + 1) % selection.early.length]; // unique match 2nd
+            const p3 = selection.midlife[mIdx];
+            const p4 = selection.midlife[(mIdx + 1) % selection.midlife.length]; // unique match 4th
+            const p5 = selection.present[0];
+
+            const draftBackstory = [p1, p2, p3, p4, p5];
+
+            // Render replacements securely
+            const finalizedParagraphs = draftBackstory.map(para => {
+                return para
+                    .replaceAll("[NAME]", params.name)
+                    .replaceAll("[RACE]", params.race)
+                    .replaceAll("[AGE]", params.age)
+                    .replaceAll("[GENDER]", params.gender)
+                    .replaceAll("[PROFICIENCY]", params.proficiency);
+            });
+
+            const shuffledBehaviors = shuffle([...behaviorPool]).slice(0, 15);
+
+            const fallbackNPC = {
+                name: params.name,
+                race: params.race,
+                sex: params.sex,
+                gender: params.gender,
+                age: params.age,
+                proficiency: params.proficiency,
+                backstory: finalizedParagraphs,
+                behaviors: shuffledBehaviors
+            };
+
+            renderNPCUI(fallbackNPC);
+            showToast("Local Codex Forge complete!");
+        }
+
+        function renderNPCUI(npc) {
+            currentNPC = npc;
+
+            // Set global attributes
+            document.getElementById('npc-name').textContent = npc.name;
+            document.getElementById('npc-race').textContent = npc.race;
+            document.getElementById('npc-sex').textContent = npc.sex;
+            document.getElementById('npc-gender').textContent = npc.gender;
+            document.getElementById('npc-age').textContent = npc.age;
+            document.getElementById('npc-proficiency').textContent = npc.proficiency;
+
+            // Set Backstory (5 separated paragraphs)
+            const backstoryContainer = document.getElementById('npc-backstory');
+            backstoryContainer.innerHTML = '';
+            
+            npc.backstory.forEach((paragraph, idx) => {
+                const p = document.createElement('p');
+                p.className = "text-slate-300 text-sm leading-relaxed text-justify";
+                
+                // Fancy first letter capitalization for paragraph 1
+                if (idx === 0) {
+                    p.className += " first-letter:text-3xl first-letter:font-fantasy first-letter:text-void-400 first-letter:mr-1 first-letter:float-left";
+                }
+                
+                p.textContent = paragraph;
+                backstoryContainer.appendChild(p);
+            });
+
+            // Set Behavior Points (15 bullet items)
+            const behaviorContainer = document.getElementById('npc-behavior');
+            behaviorContainer.innerHTML = '';
+            npc.behaviors.forEach((behavior) => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2 py-0.5 hover:text-white transition duration-150";
+                li.innerHTML = `
+                    <span class="text-void-400 mt-0.5 shrink-0">✦</span>
+                    <span>${behavior}</span>
+                `;
+                behaviorContainer.appendChild(li);
+            });
+
+            // Update Avatar SVG
+            const avatarSvg = document.getElementById('dynamic-avatar');
+            avatarSvg.innerHTML = getAvatarMarkup(npc.race, npc.sex, npc.gender, npc.proficiency);
+        }
+
+        // Apply Preset configurations
+        function applyPreset(presetType) {
+            // Unlock all variables first
+            document.getElementById('lock-race').checked = false;
+            document.getElementById('lock-sex').checked = false;
+            document.getElementById('lock-gender').checked = false;
+            document.getElementById('lock-age').checked = false;
+            document.getElementById('lock-proficiency').checked = false;
+
+            if (presetType === 'ranger') {
+                document.getElementById('filter-race').value = 'Elf';
+                document.getElementById('filter-sex').value = 'Male';
+                document.getElementById('filter-gender').value = 'random';
+                document.getElementById('filter-age').value = 'Adult';
+                document.getElementById('filter-proficiency').value = 'Beast Taming';
+            } else if (presetType === 'scholar') {
+                document.getElementById('filter-race').value = 'Gnome';
+                document.getElementById('filter-sex').value = 'random';
+                document.getElementById('filter-gender').value = 'random';
+                document.getElementById('filter-age').value = 'Elder';
+                document.getElementById('filter-proficiency').value = 'Arcane Magic';
+            } else if (presetType === 'assassin') {
+                document.getElementById('filter-race').value = 'Tiefling';
+                document.getElementById('filter-sex').value = 'Female';
+                document.getElementById('filter-gender').value = 'random';
+                document.getElementById('filter-age').value = 'Young';
+                document.getElementById('filter-proficiency').value = 'Stealth & Thievery';
+            } else if (presetType === 'cleric') {
+                document.getElementById('filter-race').value = 'Celestial';
+                document.getElementById('filter-sex').value = 'Female';
+                document.getElementById('filter-gender').value = 'Female';
+                document.getElementById('filter-age').value = 'Adult';
+                document.getElementById('filter-proficiency').value = 'Divine Invocations';
+            }
+
+            generateNPC();
+            showToast(`Applied ${presetType.toUpperCase()} settings!`);
+        }
+
+        function saveToLibrary() {
+            const exists = npcLibrary.some(n => n.name === currentNPC.name && n.age === currentNPC.age);
+            if (exists) {
+                showToast("This character is already bound inside the Grimoire!");
+                return;
+            }
+
+            npcLibrary.unshift({...currentNPC});
+            localStorage.setItem('arcane_npc_codex_library_v2', JSON.stringify(npcLibrary));
+            updateLibraryUI();
+            showToast(`${currentNPC.name} locked inside Grimoire!`);
+        }
+
+        function deleteFromLibrary(idx) {
+            npcLibrary.splice(idx, 1);
+            localStorage.setItem('arcane_npc_codex_library_v2', JSON.stringify(npcLibrary));
+            updateLibraryUI();
+            showToast("NPC expelled from Library.");
+        }
+
+        function loadFromLibrary(idx) {
+            const npc = npcLibrary[idx];
+            renderNPCUI(npc);
+            showToast(`Loaded ${npc.name} from Grimoire.`);
+        }
+
+        function clearLibrary() {
+            if (confirm("Are you sure you want to clear your saved grimoire? This cannot be undone.")) {
+                npcLibrary = [];
+                localStorage.removeItem('arcane_npc_codex_library_v2');
+                updateLibraryUI();
+                showToast("Grimoire completely purged.");
+            }
+        }
+
+        function updateLibraryUI() {
+            const container = document.getElementById('library-container');
+            const countLabel = document.getElementById('lib-count');
+            countLabel.textContent = npcLibrary.length;
+
+            if (npcLibrary.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 italic text-center py-4">No NPCs bound to this grimoire yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            npcLibrary.forEach((npc, index) => {
+                const div = document.createElement('div');
+                div.className = "bg-void-950/80 border border-void-800/80 p-2.5 rounded-lg flex items-center justify-between gap-2 hover:border-void-600/80 transition group";
+                div.innerHTML = `
+                    <div class="cursor-pointer flex-grow" onclick="loadFromLibrary(${index})">
+                        <div class="font-fantasy font-semibold text-void-300 group-hover:text-void-200 transition">${npc.name}</div>
+                        <div class="text-[10px] text-slate-400 flex gap-2 mt-0.5">
+                            <span>${npc.race}</span>
+                            <span>•</span>
+                            <span>${npc.gender}</span>
+                            <span>•</span>
+                            <span>${npc.proficiency}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteFromLibrary(${index})" class="text-red-400 hover:text-red-300 transition shrink-0 p-1 opacity-60 hover:opacity-100" title="Delete NPC">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Copy plain text content to Clipboard
+        function copyToClipboard() {
+            let copyText = `Name: ${currentNPC.name}\n`;
+            copyText += `Race: ${currentNPC.race}\n`;
+            copyText += `Sex: ${currentNPC.sex}\n`;
+            copyText += `Gender Identity: ${currentNPC.gender}\n`;
+            copyText += `Age: ${currentNPC.age}\n`;
+            copyText += `Proficiency: ${currentNPC.proficiency}\n\n`;
+            copyText += `--- NARRATIVE BACKSTORY ---\n`;
+            currentNPC.backstory.forEach((para, idx) => {
+                copyText += `[Para ${idx + 1}] ${para}\n\n`;
+            });
+            copyText += `--- BEHAVIORS & QUIRKS ---\n`;
+            currentNPC.behaviors.forEach((b, idx) => {
+                copyText += `${idx + 1}. ${b}\n`;
+            });
+
+            const tempTextarea = document.createElement("textarea");
+            tempTextarea.value = copyText;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempTextarea);
+
+            showToast("Codex Copied to Clipboard!");
+        }
+
+        // Export scroll plain text download file
+        function exportAsText() {
+            let content = `====================================================\n`;
+            content += `              ARCANE NPC CODEX SHEET                \n`;
+            content += `====================================================\n\n`;
+            content += `NAME: ${currentNPC.name.toUpperCase()}\n`;
+            content += `RACE: ${currentNPC.race}\n`;
+            content += `SEX: ${currentNPC.sex}\n`;
+            content += `GENDER IDENTITY: ${currentNPC.gender}\n`;
+            content += `AGE: ${currentNPC.age}\n`;
+            content += `PROFICIENCY: ${currentNPC.proficiency}\n\n`;
+            content += `====================================================\n`;
+            content += `                   NARRATIVE BACKSTORY              \n`;
+            content += `====================================================\n`;
+            currentNPC.backstory.forEach((para, idx) => {
+                content += `Paragraph ${idx + 1}:\n${para}\n\n`;
+            });
+            content += `====================================================\n`;
+            content += `               BEHAVIORS & HABITS                   \n`;
+            content += `====================================================\n`;
+            currentNPC.behaviors.forEach((b, idx) => {
+                content += `[${idx + 1}] ${b}\n`;
+            });
+            content += `\n====================================================\n`;
+            content += `Generated on the tides of the void.\n`;
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentNPC.name.replace(/\s+/g, '_')}_scroll.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast("Scroll downloaded successfully.");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toastMsg.textContent = msg;
+
+            toast.classList.remove('opacity-0', 'translate-y-20');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-20');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
