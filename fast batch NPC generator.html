@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Fast Batch NPC Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background:
+                radial-gradient(circle at top, rgba(109, 40, 217, 0.18), transparent 34%),
+                linear-gradient(180deg, #0a0712 0%, #05040a 100%);
+        }
+
+        body::before {
+            opacity: 0.08;
+            animation-duration: 30s;
+        }
+
+        .npc-page {
+            position: relative;
+            z-index: 1;
+            width: min(var(--max), calc(100% - 32px));
+            margin: 0 auto;
+            padding: 24px 0 48px;
+        }
+
+        .npc-shell {
+            border-radius: 30px;
+        }
+
+        .npc-header {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: 1.25fr 0.75fr;
+            align-items: end;
+            padding: 24px;
+        }
+
+        .npc-header .lede {
+            max-width: 58ch;
+        }
+
+        .mini-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .mini-card {
+            padding: 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .mini-card .label {
+            color: var(--muted-2);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+        }
+
+        .mini-card .value {
+            margin-top: 6px;
+            font-weight: 800;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .npc-main {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 380px minmax(0, 1fr);
+            gap: 16px;
+        }
+
+        .npc-panel {
+            padding: 20px;
+            border-radius: 28px;
+        }
+
+        .panel-stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .range-value {
+            min-width: 54px;
+            text-align: right;
+            color: #d8c6ff;
+            font-weight: 800;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .results-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .results-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .npc-card {
+            padding: 16px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(168, 139, 255, 0.12);
+        }
+
+        .npc-card .line {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #f6f2ff;
+            word-break: break-word;
+        }
+
+        .npc-card .meta {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .tag {
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(168, 139, 255, 0.12);
+            color: #dccfff;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+        }
+
+        .output-box {
+            min-height: 220px;
+            width: 100%;
+            resize: vertical;
+            border-radius: 20px;
+        }
+
+        .muted-line {
+            color: var(--muted-2);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .template-btn {
+            justify-content: flex-start;
+            text-align: left;
+            width: 100%;
+        }
+
+        .template-btn.is-active {
+            border-color: rgba(216, 198, 255, 0.35);
+            background: rgba(139, 92, 246, 0.18);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(168, 139, 255, 0.18);
+        }
+
+        @media (max-width: 960px) {
+            .npc-header,
+            .npc-main {
+                grid-template-columns: 1fr;
+            }
+
+            .mini-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="npc-page">
+        <header class="shell npc-shell npc-header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Fast batch generator</div>
+                <h1 class="title">Fast Batch <span>NPC Generator</span></h1>
+                <p class="lede">
+                    Generate compact NPC lists in a strict, easy-to-copy format: name and surname, sex, race, age, and work derived from social class.
+                </p>
+
+                <div class="actions">
+                    <button id="generateBtn" class="btn btn-primary soft-focus" type="button">
+                        <span aria-hidden="true">+</span>
+                        Generate Batch
+                    </button>
+                    <div class="copy-controls" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <button id="copyBtn" class="btn btn-ghost soft-focus" type="button">
+                            Copy Sheet
+                        </button>
+                        <label class="btn btn-ghost soft-focus" style="gap: 8px; user-select: none;">
+                            <input id="autoCopyToggle" type="checkbox" checked>
+                            <span>Auto copy</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="panel npc-panel">
+                <div class="panel-title">
+                    <h3>Batch summary</h3>
+                    <span class="badge">Local only</span>
+                </div>
+                <div class="mini-grid">
+                    <div class="mini-card">
+                        <div class="label">NPCs</div>
+                        <div id="countSummary" class="value">12</div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="label">Mode</div>
+                        <div id="classSummary" class="value">Random class</div>
+                    </div>
+                    <div class="mini-card">
+                        <div class="label">Format</div>
+                        <div class="value">CSV-like</div>
+                    </div>
+                </div>
+            </aside>
+        </header>
+
+        <main class="npc-main">
+            <section class="panel npc-panel">
+                <div class="panel-title">
+                    <h3>Generator controls</h3>
+                    <span class="badge">Minimal</span>
+                </div>
+
+                <div class="panel-stack">
+                    <div class="field">
+                        <label for="modeSelect">Mode</label>
+                        <select id="modeSelect">
+                            <option value="random">Random mode</option>
+                            <option value="template">Template mode</option>
+                        </select>
+                    </div>
+
+                    <div class="field" id="templateField" style="display: none;">
+                        <label>Template</label>
+                        <div class="template-buttons" style="display: grid; gap: 10px;">
+                            <button type="button" class="btn btn-ghost soft-focus template-btn is-active" data-template="a">A - 1 upper, 3 middle, 6 lower</button>
+                            <button type="button" class="btn btn-ghost soft-focus template-btn" data-template="b">B - 5 NPC mixed</button>
+                            <button type="button" class="btn btn-ghost soft-focus template-btn" data-template="c">C - 2 lower</button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="field-row">
+                            <label for="batchSize">Batch size</label>
+                            <span id="batchSizeValue" class="range-value">12</span>
+                        </div>
+                        <input id="batchSize" type="range" min="1" max="50" value="12">
+                    </div>
+
+                    <div class="field">
+                        <label for="socialClass">Social class</label>
+                        <select id="socialClass">
+                            <option value="random">Random class</option>
+                            <option value="lower">Lower class</option>
+                            <option value="middle">Middle class</option>
+                            <option value="upper">Upper class</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="raceMode">Race</label>
+                        <select id="raceMode">
+                            <option value="random">Random race</option>
+                            <option value="Human">Human</option>
+                            <option value="Elf">Elf</option>
+                            <option value="Dwarf">Dwarf</option>
+                            <option value="Halfling">Halfling</option>
+                            <option value="Orc">Orc</option>
+                            <option value="Gnome">Gnome</option>
+                            <option value="Tiefling">Tiefling</option>
+                            <option value="Dragonborn">Dragonborn</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="sexMode">Sex</label>
+                        <select id="sexMode">
+                            <option value="random">Random sex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+
+                    <p class="muted-line">
+                        Random mode uses your batch size and class filters. Template mode ignores batch size and builds the chosen class mix.
+                    </p>
+                </div>
+            </section>
+
+            <section class="panel npc-panel">
+                <div class="results-head">
+                    <div>
+                        <h3>Generated NPCs</h3>
+                        <p class="muted" style="margin-top: 6px;">Each line keeps the exact structure you requested.</p>
+                    </div>
+                    <div id="resultsMeta" class="muted"></div>
+                </div>
+
+                <div id="resultsList" class="results-list"></div>
+
+                <div style="margin-top: 16px;">
+                    <div class="panel-title">
+                        <h3>Plain text output</h3>
+                        <span class="badge">Copy ready</span>
+                    </div>
+                    <textarea id="outputText" class="output-box" readonly spellcheck="false"></textarea>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const firstNames = {
+            Male: ['Alden', 'Brom', 'Cedric', 'Darrin', 'Eldric', 'Garmund', 'Hadrian', 'Ivor', 'Joric', 'Kael', 'Luthor', 'Marek', 'Nerin', 'Orrin', 'Perrin', 'Quill', 'Rudgar', 'Soren', 'Tarin', 'Varric'],
+            Female: ['Ada', 'Brina', 'Cerys', 'Delma', 'Elira', 'Fara', 'Gwyn', 'Hela', 'Isolde', 'Jessa', 'Klara', 'Lysa', 'Mira', 'Nora', 'Orla', 'Petra', 'Raina', 'Sera', 'Tilda', 'Vessa']
+        };
+
+        const surnames = {
+            Human: ['Ashford', 'Blackwell', 'Caldwell', 'Fairchild', 'Hawthorne', 'Kingsley', 'Merrick', 'Rivers', 'Stone', 'Vale'],
+            Elf: ['Moonwhisper', 'Silverleaf', 'Starfall', 'Dawnbloom', 'Windgrove', 'Thornweave', 'Nightbough', 'Oakglade'],
+            Dwarf: ['Darkstone', 'Ironbrow', 'Bronzebeard', 'Deepforge', 'Granitehand', 'Stonehammer', 'Redridge', 'Coalvein'],
+            Halfling: ['Goodbarrel', 'Tealeaf', 'Underbough', 'Softstep', 'Puddlefoot', 'Brightseed', 'Fallowbrook'],
+            Orc: ['Skullsplitter', 'Grimjaw', 'Bonecrusher', 'Ashhide', 'Stormaxe', 'Mireborn', 'Ragefist'],
+            Gnome: ['Copperwick', 'Fizzlebang', 'Tinkerpin', 'Geargrin', 'Nimbletune', 'Quickbolt'],
+            Tiefling: ['Nightvein', 'Ashthorn', 'Redveil', 'Duskwing', 'Morrow', 'Blackflame'],
+            Dragonborn: ['Emberclaw', 'Goldscale', 'Ironspine', 'Stormhorn', 'Brightbreath', 'Cindertooth']
+        };
+
+        const racePool = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Gnome', 'Tiefling', 'Dragonborn'];
+
+        const socialClasses = {
+            lower: {
+                label: 'Lower class',
+                works: ['Farmer / Fieldhand', 'Shepherd / Goatherd', 'Fisher', 'Woodcutter', 'Miner', 'Stablehand', 'Tavern Server', 'Soldier', 'Gravedigger', 'Sailor', 'Laborer', 'Assistant', 'Servant', 'Washer', 'Kitchen Hand', 'Carrier', 'Gardener', 'Apprentice', 'Watchman', 'Performer'],
+                age: [14, 55]
+            },
+            middle: {
+                label: 'Middle class',
+                works: ['Blacksmith', 'Carpenter', 'Tailor', 'Apothecary', 'Shopkeeper', 'Innkeeper', 'Scribe', 'Baker', 'Shipwright', 'Guild Artisan', 'Manager', 'Clerk', 'Officer', 'Trader', 'Cook', 'Artisan', 'Tutor', 'Brewer', 'Mason', 'Professional Performer'],
+                age: [18, 70]
+            },
+            upper: {
+                label: 'Upper class',
+                works: ['Noble Lord / Lady', 'Knight', 'Court Wizard', 'High Priest / Priestess', 'Royal Advisor', 'Spymaster', 'Chancellor', 'Baron / Regional Governor', 'Court Bard', 'Archmage', 'Merchant', 'Captain'],
+                age: [20, 90]
+            }
+        };
+
+        const nameDataPath = 'Data/nameData.json';
+        const classKeys = Object.keys(socialClasses);
+        const templateRecipes = {
+            a: ['upper', 'middle', 'middle', 'middle', 'lower', 'lower', 'lower', 'lower', 'lower', 'lower'],
+            b: [
+                ['middle', 'lower', 'lower', 'lower', 'lower'],
+                ['middle', 'middle', 'lower', 'lower', 'lower']
+            ],
+            c: ['lower', 'lower']
+        };
+        const batchSizeInput = document.getElementById('batchSize');
+        const batchSizeValue = document.getElementById('batchSizeValue');
+        const modeSelect = document.getElementById('modeSelect');
+        const templateField = document.getElementById('templateField');
+        const templateButtons = [...document.querySelectorAll('.template-btn')];
+        const socialClassSelect = document.getElementById('socialClass');
+        const raceModeSelect = document.getElementById('raceMode');
+        const sexModeSelect = document.getElementById('sexMode');
+        const autoCopyToggle = document.getElementById('autoCopyToggle');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const resultsList = document.getElementById('resultsList');
+        const outputText = document.getElementById('outputText');
+        const resultsMeta = document.getElementById('resultsMeta');
+        const countSummary = document.getElementById('countSummary');
+        const classSummary = document.getElementById('classSummary');
+        let nameDataMap = null;
+        let selectedTemplate = 'a';
+
+        function pick(list) {
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function pickRange(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function resolveClass() {
+            const key = socialClassSelect.value;
+            if (key === 'random') {
+                return pick(classKeys);
+            }
+            return key;
+        }
+
+        function buildNameDataMap(rawData) {
+            const map = {};
+            if (!Array.isArray(rawData)) return map;
+
+            rawData.forEach((entry) => {
+                if (!entry || typeof entry !== 'object') return;
+                Object.entries(entry).forEach(([key, value]) => {
+                    if (Array.isArray(value) && value.length) {
+                        map[key] = value;
+                    }
+                });
+            });
+
+            return map;
+        }
+
+        async function loadNameData() {
+            try {
+                const response = await fetch(nameDataPath, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${nameDataPath}: ${response.status}`);
+                }
+
+                const rawData = await response.json();
+                nameDataMap = buildNameDataMap(rawData);
+            } catch (error) {
+                console.warn('Using fallback in-file name lists because nameData.json could not be loaded.', error);
+                nameDataMap = null;
+            }
+        }
+
+        function getFirstNamePool(race, sex) {
+            const key = race === 'Dragonborn'
+                ? `${sex} Dragonborn Name`
+                : `${sex} ${race}`;
+
+            if (nameDataMap?.[key]?.length) {
+                return nameDataMap[key];
+            }
+
+            return firstNames[sex] || firstNames.Male;
+        }
+
+        function getSurnamePool(race) {
+            const key = `Surnames ${race}`;
+            if (nameDataMap?.[key]?.length) {
+                return nameDataMap[key];
+            }
+
+            return surnames[race] || surnames.Human;
+        }
+
+        function resolveRace() {
+            const value = raceModeSelect.value;
+            return value === 'random' ? pick(racePool) : value;
+        }
+
+        function resolveSex() {
+            const value = sexModeSelect.value;
+            return value === 'random' ? (Math.random() < 0.5 ? 'Male' : 'Female') : value;
+        }
+
+        function resolveAge(race, classKey) {
+            const fallback = [18, 70];
+            const classRange = socialClasses[classKey]?.age || fallback;
+            let [minAge, maxAge] = classRange;
+
+            if (race === 'Elf') maxAge = Math.max(maxAge, 180);
+            if (race === 'Dwarf') maxAge = Math.max(maxAge, 160);
+            if (race === 'Gnome') maxAge = Math.max(maxAge, 150);
+            if (race === 'Halfling') maxAge = Math.max(maxAge, 110);
+            if (race === 'Orc') maxAge = Math.min(Math.max(maxAge, 70), 90);
+            if (race === 'Dragonborn') maxAge = Math.max(maxAge, 95);
+            if (race === 'Tiefling') maxAge = Math.max(maxAge, 110);
+
+            return pickRange(minAge, maxAge);
+        }
+
+        function makeName(race, sex) {
+            const firstPool = getFirstNamePool(race, sex);
+            const surnamePool = getSurnamePool(race);
+            return `${pick(firstPool)} ${pick(surnamePool)}`;
+        }
+
+        function getSurname(fullName) {
+            const parts = String(fullName || '').trim().split(/\s+/);
+            return parts.length > 1 ? parts[parts.length - 1] : String(fullName || '').trim();
+        }
+
+        function generateNpc() {
+            const race = resolveRace();
+            const sex = resolveSex();
+            const classKey = resolveClass();
+            const classInfo = socialClasses[classKey];
+            const age = resolveAge(race, classKey);
+            const work = pick(classInfo.works);
+
+            return {
+                name: makeName(race, sex),
+                sex,
+                race,
+                age,
+                work,
+                socialClass: classInfo.label
+            };
+        }
+
+        function generateTemplateBatch() {
+            const rawRecipe = templateRecipes[selectedTemplate] || templateRecipes.a;
+            const recipe = Array.isArray(rawRecipe[0]) ? pick(rawRecipe) : rawRecipe;
+            return recipe.map((classKey) => {
+                const race = resolveRace();
+                const sex = resolveSex();
+                const classInfo = socialClasses[classKey];
+                const age = resolveAge(race, classKey);
+                const work = pick(classInfo.works);
+
+                return {
+                    name: makeName(race, sex),
+                    sex,
+                    race,
+                    age,
+                    work,
+                    socialClass: classInfo.label
+                };
+            });
+        }
+
+        function renderBatch() {
+            const isTemplateMode = modeSelect.value === 'template';
+            const generated = isTemplateMode
+                ? generateTemplateBatch()
+                : Array.from({ length: Number(batchSizeInput.value) || 1 }, generateNpc);
+            const lines = generated.map((npc) => `${npc.name}, ${npc.sex}, ${npc.race}, ${npc.age}, ${npc.work}`);
+
+            resultsList.innerHTML = '';
+            generated.forEach((npc, index) => {
+                const card = document.createElement('article');
+                card.className = 'npc-card fade-in soft-focus';
+                card.style.animationDelay = `${Math.min(index * 30, 240)}ms`;
+                card.innerHTML = `
+                    <div class="line">${escapeHtml(lines[index])}</div>
+                    <div class="meta">
+                        <span class="tag">${escapeHtml(npc.socialClass)}</span>
+                        <span>${escapeHtml(npc.sex)}</span>
+                        <span>${escapeHtml(npc.race)}</span>
+                        <span>${npc.age} years</span>
+                    </div>
+                `;
+                resultsList.appendChild(card);
+            });
+
+            const classLabel = isTemplateMode
+                ? `Template ${selectedTemplate.toUpperCase()}`
+                : (socialClassSelect.value === 'random'
+                    ? 'Random class'
+                    : socialClasses[socialClassSelect.value].label);
+
+            outputText.value = lines.join('\n');
+            outputText.dataset.sheetText = isTemplateMode
+                ? [getSurname(generated[0]?.name)].concat(
+                    generated.map((npc) => `${npc.name}, ${npc.sex}, ${npc.race}, ${npc.age}, ${npc.work}`)
+                ).join('\t')
+                : generated
+                    .map((npc) => `${npc.name}, ${npc.sex}, ${npc.race}, ${npc.age}, ${npc.work}`)
+                    .join('\t');
+            resultsMeta.textContent = `${generated.length} generated`;
+            countSummary.textContent = String(generated.length);
+            classSummary.textContent = classLabel;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function updateTemplateButtons() {
+            templateButtons.forEach((button) => {
+                const isActive = button.dataset.template === selectedTemplate;
+                button.classList.toggle('is-active', isActive);
+            });
+        }
+
+        async function copyOutput() {
+            const text = outputText.dataset.sheetText || '';
+            if (!text) return;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => (copyBtn.textContent = 'Copy Sheet'), 1200);
+            } catch {
+                const tempTextarea = document.createElement('textarea');
+                tempTextarea.value = text;
+                tempTextarea.setAttribute('readonly', '');
+                tempTextarea.style.position = 'fixed';
+                tempTextarea.style.opacity = '0';
+                document.body.appendChild(tempTextarea);
+                tempTextarea.focus();
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => (copyBtn.textContent = 'Copy Sheet'), 1200);
+            }
+        }
+
+        function maybeAutoCopy() {
+            if (!autoCopyToggle.checked) return;
+            void copyOutput();
+        }
+
+        function generateAndMaybeCopy() {
+            renderBatch();
+            maybeAutoCopy();
+        }
+
+        batchSizeInput.addEventListener('input', () => {
+            batchSizeValue.textContent = batchSizeInput.value;
+        });
+
+        modeSelect.addEventListener('change', () => {
+            const isTemplateMode = modeSelect.value === 'template';
+            templateField.style.display = isTemplateMode ? 'grid' : 'none';
+            batchSizeInput.disabled = isTemplateMode;
+            generateAndMaybeCopy();
+        });
+
+        batchSizeInput.addEventListener('change', generateAndMaybeCopy);
+        socialClassSelect.addEventListener('change', generateAndMaybeCopy);
+        raceModeSelect.addEventListener('change', generateAndMaybeCopy);
+        sexModeSelect.addEventListener('change', generateAndMaybeCopy);
+        generateBtn.addEventListener('click', generateAndMaybeCopy);
+        copyBtn.addEventListener('click', copyOutput);
+        templateButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                selectedTemplate = button.dataset.template || 'a';
+                updateTemplateButtons();
+                generateAndMaybeCopy();
+            });
+        });
+
+        async function initialize() {
+            await loadNameData();
+            updateTemplateButtons();
+            batchSizeValue.textContent = batchSizeInput.value;
+            batchSizeInput.disabled = false;
+            renderBatch();
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
