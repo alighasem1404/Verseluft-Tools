@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070b14">
+    <title>CSV Editor</title>
+    <link rel="stylesheet" href="CSV Editor.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <div>
+                <div class="eyebrow">Local CSV Editor</div>
+                <h1>Search, delete, and merge columns by title.</h1>
+                <p class="lede">
+                    Load a CSV, search through column titles, then delete matching columns or merge selected columns into a single kept title.
+                </p>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <span id="totalCount" class="stat-value">0</span>
+                    <span class="stat-label">Columns loaded</span>
+                </div>
+                <div class="stat-card">
+                    <span id="visibleCount" class="stat-value">0</span>
+                    <span class="stat-label">Visible columns</span>
+                </div>
+                <div class="stat-card">
+                    <span id="selectedCount" class="stat-value">0</span>
+                    <span class="stat-label">Selected columns</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="layout">
+            <section class="panel upload-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Load CSV</h2>
+                        <p>Drag and drop a file or browse locally.</p>
+                    </div>
+                    <button id="clearBtn" class="ghost-btn" type="button">Clear</button>
+                </div>
+
+                <label id="dropZone" class="drop-zone" for="fileInput">
+                    <input id="fileInput" type="file" accept=".csv,text/csv">
+                    <div class="drop-icon">CSV</div>
+                    <strong>Drop a CSV file here</strong>
+                    <span>or click to choose one from your device</span>
+                </label>
+
+                <div class="control-grid">
+                    <div class="field">
+                        <label for="searchInput">Search column titles</label>
+                        <input id="searchInput" type="search" placeholder="Type a column name..." disabled>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button id="deleteBtn" class="danger-btn" type="button" disabled>Delete columns</button>
+                    <button id="mergeBtn" class="primary-btn" type="button" disabled>Merge columns</button>
+                    <button id="exportBtn" class="secondary-btn" type="button" disabled>Export CSV</button>
+                </div>
+            </section>
+
+            <section class="panel workspace-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Columns</h2>
+                        <p id="subtitle">Load a CSV to start editing.</p>
+                    </div>
+                    <label class="select-all">
+                        <input id="selectAllVisible" type="checkbox" disabled>
+                        <span>Select visible</span>
+                    </label>
+                </div>
+
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-mark">+</div>
+                    <h3>No CSV loaded yet</h3>
+                    <p>Your columns will appear here after import. Then you can search by title, select columns, delete them, or merge them.</p>
+                </div>
+
+                <div class="table-shell hidden" id="tableShell">
+                    <div class="table-meta">
+                        <span id="fileNameLabel">No file loaded</span>
+                        <span id="messageLabel" class="message"></span>
+                    </div>
+                    <div id="columnList" class="column-list"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            headers: [],
+            rows: [],
+            filteredHeaders: [],
+            selectedHeaders: new Set(),
+            searchQuery: '',
+            fileName: 'edited.csv'
+        };
+
+        const els = {
+            fileInput: document.getElementById('fileInput'),
+            dropZone: document.getElementById('dropZone'),
+            searchInput: document.getElementById('searchInput'),
+            clearBtn: document.getElementById('clearBtn'),
+            deleteBtn: document.getElementById('deleteBtn'),
+            mergeBtn: document.getElementById('mergeBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            selectAllVisible: document.getElementById('selectAllVisible'),
+            columnList: document.getElementById('columnList'),
+            tableShell: document.getElementById('tableShell'),
+            emptyState: document.getElementById('emptyState'),
+            subtitle: document.getElementById('subtitle'),
+            fileNameLabel: document.getElementById('fileNameLabel'),
+            messageLabel: document.getElementById('messageLabel'),
+            totalCount: document.getElementById('totalCount'),
+            visibleCount: document.getElementById('visibleCount'),
+            selectedCount: document.getElementById('selectedCount')
+        };
+
+        function normalize(value) {
+            return String(value || '').toLowerCase().trim();
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function detectDelimiter(text) {
+            const firstLine = String(text || '').split(/\r?\n/).find(Boolean) || '';
+            const candidates = [',', ';', '\t', '|'];
+            let best = ',';
+            let bestCount = -1;
+            candidates.forEach((delimiter) => {
+                const count = countOccurrencesOutsideQuotes(firstLine, delimiter);
+                if (count > bestCount) {
+                    bestCount = count;
+                    best = delimiter;
+                }
+            });
+            return best;
+        }
+
+        function countOccurrencesOutsideQuotes(text, char) {
+            let inQuotes = false;
+            let count = 0;
+            for (let i = 0; i < text.length; i += 1) {
+                const current = text[i];
+                if (current === '"') {
+                    if (inQuotes && text[i + 1] === '"') {
+                        i += 1;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+                if (!inQuotes && current === char) {
+                    count += 1;
+                }
+            }
+            return count;
+        }
+
+        function parseCsv(text) {
+            const delimiter = detectDelimiter(text);
+            const input = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const rows = [];
+            let row = [];
+            let cell = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < input.length; i += 1) {
+                const char = input[i];
+                const next = input[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && next === '"') {
+                        cell += '"';
+                        i += 1;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                    continue;
+                }
+
+                if (!inQuotes && char === delimiter) {
+                    row.push(cell);
+                    cell = '';
+                    continue;
+                }
+
+                if (!inQuotes && char === '\n') {
+                    row.push(cell);
+                    rows.push(row);
+                    row = [];
+                    cell = '';
+                    continue;
+                }
+
+                cell += char;
+            }
+
+            row.push(cell);
+            rows.push(row);
+
+            const cleaned = rows
+                .map((items) => items.map((value) => String(value).trim()))
+                .filter((items) => items.some((value) => value !== ''));
+
+            if (!cleaned.length) {
+                return { headers: [], rows: [] };
+            }
+
+            const headers = cleaned[0].map((header, index) => header || `Column ${index + 1}`);
+            const dataRows = cleaned.slice(1).map((items) => {
+                const record = {};
+                headers.forEach((header, index) => {
+                    record[header] = items[index] ?? '';
+                });
+                return record;
+            });
+
+            return { headers, rows: dataRows };
+        }
+
+        function serializeCsv(headers, rows) {
+            const escapeCell = (value) => {
+                const text = String(value ?? '');
+                if (/[",\n\r;]/.test(text)) {
+                    return `"${text.replaceAll('"', '""')}"`;
+                }
+                return text;
+            };
+
+            const lines = [headers.map(escapeCell).join(',')];
+            rows.forEach((row) => {
+                lines.push(headers.map((header) => escapeCell(row[header])).join(','));
+            });
+            return lines.join('\r\n');
+        }
+
+        function setMessage(text, tone = 'info') {
+            els.messageLabel.textContent = text || '';
+            els.messageLabel.dataset.tone = tone;
+        }
+
+        function updateStats() {
+            els.totalCount.textContent = String(state.headers.length);
+            els.visibleCount.textContent = String(state.filteredHeaders.length);
+            els.selectedCount.textContent = String(state.selectedHeaders.size);
+
+            const hasData = state.headers.length > 0;
+            els.searchInput.disabled = !hasData;
+            els.deleteBtn.disabled = !hasData || state.selectedHeaders.size === 0;
+            els.mergeBtn.disabled = !hasData || state.selectedHeaders.size === 0;
+            els.exportBtn.disabled = !hasData;
+            els.selectAllVisible.disabled = !state.filteredHeaders.length;
+        }
+
+        function applyFilter() {
+            state.searchQuery = normalize(els.searchInput.value);
+            state.filteredHeaders = state.headers.filter((header) => {
+                if (!state.searchQuery) return true;
+                return normalize(header).includes(state.searchQuery);
+            });
+
+            renderColumnList();
+            updateStats();
+        }
+
+        function renderColumnList() {
+            if (!state.headers.length) {
+                els.tableShell.classList.add('hidden');
+                els.emptyState.classList.remove('hidden');
+                return;
+            }
+
+            els.emptyState.classList.add('hidden');
+            els.tableShell.classList.remove('hidden');
+            els.fileNameLabel.textContent = state.fileName;
+            els.columnList.innerHTML = '';
+            if (!state.filteredHeaders.length) {
+                els.columnList.innerHTML = '<div class="table-empty">No columns match the current search.</div>';
+                els.selectAllVisible.checked = false;
+                syncSelectAllState();
+                return;
+            }
+
+            state.filteredHeaders.forEach((header) => {
+                const isSelected = state.selectedHeaders.has(header);
+                const item = document.createElement('label');
+                item.className = `column-item${isSelected ? ' selected' : ''}`;
+                const checkWrap = document.createElement('span');
+                checkWrap.className = 'column-check';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'column-check-input';
+                checkbox.dataset.columnName = header;
+                checkbox.checked = isSelected;
+
+                const name = document.createElement('span');
+                name.className = 'column-name';
+                name.textContent = header;
+
+                const chip = document.createElement('span');
+                chip.className = 'column-chip';
+                chip.textContent = 'column';
+
+                checkWrap.appendChild(checkbox);
+                item.appendChild(checkWrap);
+                item.appendChild(name);
+                item.appendChild(chip);
+                els.columnList.appendChild(item);
+            });
+
+            syncSelectAllState();
+        }
+
+        function syncSelectAllState() {
+            if (!state.filteredHeaders.length) {
+                els.selectAllVisible.checked = false;
+                return;
+            }
+            const allSelected = state.filteredHeaders.every((header) => state.selectedHeaders.has(header));
+            const someSelected = state.filteredHeaders.some((header) => state.selectedHeaders.has(header));
+            els.selectAllVisible.checked = allSelected;
+            els.selectAllVisible.indeterminate = !allSelected && someSelected;
+        }
+
+        function toggleVisibleSelection(checked) {
+            state.filteredHeaders.forEach((header) => {
+                if (checked) {
+                    state.selectedHeaders.add(header);
+                } else {
+                    state.selectedHeaders.delete(header);
+                }
+            });
+            renderColumnList();
+            updateStats();
+        }
+
+        function collectSelectedHeaders() {
+            return state.headers.filter((header) => state.selectedHeaders.has(header));
+        }
+
+        function mergeValue(existing, incoming) {
+            const a = String(existing ?? '').trim();
+            const b = String(incoming ?? '').trim();
+            if (!a) return b;
+            if (!b) return a;
+            if (normalize(a) === normalize(b)) return a;
+            const pieces = [];
+            [a, b].forEach((value) => {
+                if (!pieces.some((entry) => normalize(entry) === normalize(value))) {
+                    pieces.push(value);
+                }
+            });
+            return pieces.join(' | ');
+        }
+
+        function mergeColumns(columnsToMerge) {
+            if (columnsToMerge.length < 2) return;
+
+            const targetHeader = columnsToMerge[0];
+            const sourceHeaders = columnsToMerge.slice(1);
+
+            state.rows.forEach((row) => {
+                let mergedValue = row[targetHeader] ?? '';
+                sourceHeaders.forEach((header) => {
+                    mergedValue = mergeValue(mergedValue, row[header]);
+                });
+                row[targetHeader] = mergedValue;
+                sourceHeaders.forEach((header) => {
+                    delete row[header];
+                });
+            });
+
+            state.headers = state.headers.filter((header) => !sourceHeaders.includes(header));
+            state.selectedHeaders = new Set([targetHeader]);
+            applyFilter();
+            setMessage(`Merged ${columnsToMerge.length} columns into "${targetHeader}".`, 'success');
+        }
+
+        function deleteSelectedColumns() {
+            const selected = state.selectedHeaders.size;
+            if (!selected) return;
+            const selectedHeaders = new Set(state.selectedHeaders);
+            state.headers = state.headers.filter((header) => !selectedHeaders.has(header));
+            state.rows.forEach((row) => {
+                selectedHeaders.forEach((header) => {
+                    delete row[header];
+                });
+            });
+            state.selectedHeaders.clear();
+            applyFilter();
+            setMessage(`Deleted ${selected} column${selected === 1 ? '' : 's'}.`, 'success');
+        }
+
+        function mergeSelectedColumns() {
+            const selectedHeaders = collectSelectedHeaders();
+            if (selectedHeaders.length < 2) {
+                setMessage('Select at least 2 columns to merge.', 'error');
+                return;
+            }
+            mergeColumns(selectedHeaders);
+        }
+
+        function exportCsv() {
+            if (!state.rows.length) return;
+            const csv = serializeCsv(state.headers, state.rows.map((row) => {
+                const clean = {};
+                state.headers.forEach((header) => {
+                    clean[header] = row[header] ?? '';
+                });
+                return clean;
+            }));
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = state.fileName.replace(/\.csv$/i, '') + '-edited.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            setMessage('Export started.', 'success');
+        }
+
+        function resetEditor() {
+            state.headers = [];
+            state.rows = [];
+            state.filteredHeaders = [];
+            state.selectedHeaders.clear();
+            state.searchQuery = '';
+            state.fileName = 'edited.csv';
+
+            els.fileInput.value = '';
+            els.searchInput.value = '';
+            els.columnList.innerHTML = '';
+            els.tableShell.classList.add('hidden');
+            els.emptyState.classList.remove('hidden');
+            els.subtitle.textContent = 'Load a CSV to start editing.';
+            setMessage('', 'info');
+            updateStats();
+        }
+
+        function loadCsvFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(reader.error || new Error('Unable to read file.'));
+                reader.readAsText(file);
+            });
+        }
+
+        async function openFile(file) {
+            try {
+                const text = await loadCsvFile(file);
+                const parsed = parseCsv(text);
+                if (!parsed.headers.length) {
+                    setMessage('The CSV appears to be empty or invalid.', 'error');
+                    return;
+                }
+
+                state.headers = parsed.headers;
+                state.rows = parsed.rows.map((row) => {
+                    const normalized = {};
+                    state.headers.forEach((header) => {
+                        normalized[header] = row[header] ?? '';
+                    });
+                    return normalized;
+                });
+                state.filteredHeaders = [...state.headers];
+                state.selectedHeaders.clear();
+                state.fileName = file.name || 'edited.csv';
+
+                els.searchInput.value = '';
+                els.subtitle.textContent = `Loaded ${state.headers.length} column${state.headers.length === 1 ? '' : 's'}. Search by title, then delete or merge.`;
+                setMessage(`Loaded ${file.name}.`, 'success');
+                applyFilter();
+                syncSelectAllState();
+            } catch (error) {
+                setMessage(`Could not read CSV: ${error.message}`, 'error');
+            }
+        }
+
+        els.fileInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (file) {
+                openFile(file);
+            }
+        });
+
+        els.dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            els.dropZone.classList.add('dragging');
+        });
+
+        els.dropZone.addEventListener('dragleave', () => {
+            els.dropZone.classList.remove('dragging');
+        });
+
+        els.dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            els.dropZone.classList.remove('dragging');
+            const file = event.dataTransfer.files && event.dataTransfer.files[0];
+            if (file) {
+                openFile(file);
+            }
+        });
+
+        els.searchInput.addEventListener('input', applyFilter);
+
+        els.selectAllVisible.addEventListener('change', () => {
+            toggleVisibleSelection(els.selectAllVisible.checked);
+        });
+
+        els.columnList.addEventListener('change', (event) => {
+            const checkbox = event.target.closest('.column-check-input');
+            if (!checkbox) return;
+            const columnName = checkbox.dataset.columnName;
+            if (!columnName) return;
+            if (checkbox.checked) {
+                state.selectedHeaders.add(columnName);
+            } else {
+                state.selectedHeaders.delete(columnName);
+            }
+            renderColumnList();
+        });
+
+        els.deleteBtn.addEventListener('click', deleteSelectedColumns);
+        els.mergeBtn.addEventListener('click', mergeSelectedColumns);
+        els.exportBtn.addEventListener('click', exportCsv);
+        els.clearBtn.addEventListener('click', resetEditor);
+
+        updateStats();
+    </script>
+</body>
+</html>

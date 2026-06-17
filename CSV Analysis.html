@@ -66,13 +66,84 @@
             <div class="space-y-1">
                 <h2 class="text-lg font-semibold text-slate-900">Separate Your Digital (PDF) & Print (POD) Backers</h2>
                 <p class="text-sm text-slate-500">
-                    Upload your raw CSV records. Stacking automatically appends sheets and prefixes items with their originating file name to keep multiple projects separate.
+                    Upload one or more raw CSV records. Stacking automatically keeps each item linked to its source file so you can search the same item name across every file.
                 </p>
             </div>
             <button id="loadDemoBtn" class="flex items-center gap-2 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-4 py-2.5 rounded-lg border border-indigo-200 transition-colors shrink-0">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
                 Load Demo CSV Data
             </button>
+        </div>
+
+        <!-- New JSON Workflow -->
+        <div id="jsonWorkflowCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                <div class="space-y-1">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                        <i data-lucide="file-json" class="w-4 h-4 text-indigo-500"></i>
+                        JSON Workflow
+                    </h3>
+                    <p class="text-sm text-slate-500">
+                        Load one CSV file at a time, map the columns manually, rename them if you want, then build JSON records with project name, item name, and backers data.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input id="projectNameInput" type="text" placeholder="Project name" class="w-full sm:w-72 text-sm p-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                    <input id="singleCsvInput" type="file" accept=".csv" class="w-full sm:w-72 text-sm p-2.5 border border-slate-200 rounded-lg bg-slate-50">
+                </div>
+            </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Item Naming</h4>
+                    <p class="text-sm text-slate-600">
+                    Pick the header that represents the item or reward. The header name becomes the item name in JSON, and the cell values decide which backers belong under it.
+                    </p>
+                    <div class="text-xs text-slate-500">
+                        Backer fields like <span class="font-semibold text-slate-700">Backer Number</span>, <span class="font-semibold text-slate-700">Backer Name</span>, and <span class="font-semibold text-slate-700">Email Address</span> will auto-fill when their standard headers are present.
+                    </div>
+                </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Header Mapping</h4>
+                        <span id="jsonHeaderStatus" class="text-xs text-slate-400">No file loaded</span>
+                    </div>
+                    <div id="jsonHeaderMapper" class="space-y-2 max-h-[420px] overflow-auto pr-1"></div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">JSON Preview</h4>
+                        <button id="downloadAllJsonBtn" class="text-xs bg-slate-900 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg">Download All JSON</button>
+                    </div>
+                    <textarea id="jsonPreview" class="w-full h-[420px] p-4 text-xs font-mono border border-slate-200 rounded-lg bg-slate-50 resize-none" readonly placeholder="Your generated JSON will appear here..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-3">
+                <button id="loadCsvBtn" class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    Load CSV
+                </button>
+                <button id="processJsonBtn" class="px-5 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    Process / Reprocess
+                </button>
+                <button id="clearJsonBtn" class="px-5 py-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    Clear
+                </button>
+            </div>
+
+            <div class="space-y-3 pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Processed JSON Library</h4>
+                    <span id="jsonLibraryCount" class="text-xs text-slate-400">0 projects</span>
+                </div>
+                <input id="jsonSearchInput" type="text" placeholder="Search projects, items, names, or emails..." class="w-full text-sm p-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                <div id="jsonResults" class="grid grid-cols-1 gap-4"></div>
+            </div>
         </div>
 
         <!-- Notification Banner -->
@@ -87,7 +158,7 @@
         </div>
 
         <!-- Step 1: Upload Workspace -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="legacyWorkflow" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Upload & Manual Paste -->
             <div class="lg:col-span-1 flex flex-col gap-6">
@@ -99,12 +170,12 @@
                     
                     <!-- Drag and Drop Zone -->
                     <div id="dropZone" class="border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50 hover:bg-indigo-50/20 group relative">
-                        <input type="file" id="csvFileInput" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <input type="file" id="csvFileInput" accept=".csv" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         <div class="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-transform mb-3">
                             <i data-lucide="file-spreadsheet" class="w-8 h-8"></i>
                         </div>
-                        <p class="text-sm font-medium text-slate-700">Drag & drop your CSV file here</p>
-                        <p class="text-xs text-slate-400 mt-1">or click to browse your computer</p>
+                        <p class="text-sm font-medium text-slate-700">Drag & drop your CSV file(s) here</p>
+                        <p class="text-xs text-slate-400 mt-1">or click to browse one or more files</p>
                     </div>
 
                     <!-- Stack & Merge Controls -->
@@ -281,7 +352,7 @@
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="relative">
                         <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-                        <input id="tableSearchInput" type="text" placeholder="Search preview entries..." class="pl-9 pr-4 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white w-48 md:w-64">
+                        <input id="tableSearchInput" type="text" placeholder="Search files or items..." class="pl-9 pr-4 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white w-48 md:w-64">
                     </div>
                 </div>
             </div>
@@ -305,9 +376,9 @@
                                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                                 Copy Emails List
                             </button>
-                            <button onclick="downloadAsCsv('pdf')" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                            <button onclick="downloadAsJson('pdf')" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                Download PDF.csv
+                                Download PDF.json
                             </button>
                         </div>
                     </div>
@@ -344,9 +415,9 @@
                                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                                 Copy Emails List
                             </button>
-                            <button onclick="downloadAsCsv('pod')" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                            <button onclick="downloadAsJson('pod')" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                Download POD.csv
+                                Download POD.json
                             </button>
                         </div>
                     </div>
@@ -383,9 +454,9 @@
                                 <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                                 Copy Emails List
                             </button>
-                            <button onclick="downloadAsCsv('neither')" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+                            <button onclick="downloadAsJson('neither')" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                Download Neither.csv
+                                Download Neither.json
                             </button>
                         </div>
                     </div>
@@ -412,13 +483,13 @@
                         <div>
                             <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                Fulfillment Emails Grouped by Item
+                                Fulfillment Emails Grouped by File + Item
                             </h3>
-                            <p class="text-xs text-slate-400">View and copy target email lists sorted separately by unique tier rewards or auto-detected add-on items.</p>
+                            <p class="text-xs text-slate-400">View and copy target email lists while keeping each item tied to the file it came from.</p>
                         </div>
                         <button onclick="copyAllItemsReport()" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-medium px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm flex items-center gap-1">
                             <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                            Copy Entire Item-Email Report
+                            Copy Item JSON
                         </button>
                     </div>
                     
@@ -445,26 +516,26 @@
                             <div class="pt-4 border-t border-slate-100 flex gap-2">
                                 <button onclick="downloadUserOrientedDatabase()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors">
                                     <i data-lucide="download" class="w-4 h-4"></i>
-                                    Download User-Oriented CSV (Export A)
+                                    Download User-Oriented JSON (Export A)
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Card 2: Item-Oriented Matrix (Export B) -->
+                        <!-- Card 2: Item-Oriented JSON (Export B) -->
                         <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                             <div class="space-y-2">
                                 <div class="bg-emerald-50 p-2.5 rounded-lg text-emerald-700 w-fit">
                                     <i data-lucide="grid" class="w-6 h-6"></i>
                                 </div>
-                                <h3 class="text-base font-bold text-slate-900">Export B: Item-Oriented Matrix</h3>
+                                <h3 class="text-base font-bold text-slate-900">Export B: Item-Oriented JSON</h3>
                                 <p class="text-xs text-slate-500 leading-relaxed">
-                                    Generates an aligned column-per-item roster. Each column header is a unique prefixed reward item, containing strictly backer emails underneath. Perfect for copy-pasting email rows straight into digital fulfillment managers.
+                                    Generates a JSON array where each record keeps `fileName`, `itemName`, and `emails` separate for easy searching across files.
                                 </p>
                             </div>
                             <div class="pt-4 border-t border-slate-100 flex gap-2">
                                 <button onclick="downloadItemOrientedMatrix()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm">
                                     <i data-lucide="download" class="w-4 h-4"></i>
-                                    Download Item-Oriented Matrix (Export B)
+                                    Download Item-Oriented JSON (Export B)
                                 </button>
                             </div>
                         </div>
@@ -494,7 +565,7 @@
         window.pdfRecords = [];
         window.podRecords = [];
         window.neitherRecords = [];
-        window.itemEmailMap = {}; // Maps item name -> { type: 'Base'|'Addon', backers: [ {name, email, index} ] }
+        window.itemEntries = []; // Array of { fileName, itemName, type, emails, backers }
         window.currentTab = 'pdf'; // 'pdf', 'pod', 'neither', 'items', 'export'
 
         // Map configs
@@ -537,9 +608,10 @@
             try {
                 const db = await getDB();
                 const state = {
-                    serializedData: JSON.stringify(window.parsedData),
+                    parsedData: window.parsedData,
                     headers: window.headers,
                     mappedFields: window.mappedFields,
+                    itemEntries: window.itemEntries,
                     updatedAt: new Date().toISOString()
                 };
 
@@ -577,9 +649,30 @@
                 });
 
                 if (state) {
-                    window.parsedData = JSON.parse(state.serializedData || "[]");
+                    window.parsedData = state.parsedData || [];
                     window.headers = state.headers || [];
                     window.mappedFields = state.mappedFields || { email: '', backerName: '', altName: '', rewardTitle: '' };
+                    if (Array.isArray(state.itemEntries)) {
+                        window.itemEntries = state.itemEntries.map(entry => ({
+                            id: entry.id || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+                            fileName: entry.fileName || 'Project',
+                            itemName: normalizeItemName(entry.itemName || '', [entry.fileName || 'Project']),
+                            type: entry.type || 'Add-on Item',
+                            backers: entry.backers || [],
+                            emails: Array.isArray(entry.emails) ? entry.emails : (entry.backers || []).map(b => b.email).filter(Boolean)
+                        }));
+                    } else if (state.itemEmailMap && typeof state.itemEmailMap === 'object') {
+                        window.itemEntries = Object.values(state.itemEmailMap).map(entry => ({
+                            id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+                            fileName: entry.fileName || 'Project',
+                            itemName: normalizeItemName(entry.itemName || '', [entry.fileName || 'Project']),
+                            type: entry.type || 'Add-on Item',
+                            backers: entry.backers || [],
+                            emails: Array.isArray(entry.emails) ? entry.emails : (entry.backers || []).map(b => b.email).filter(Boolean)
+                        }));
+                    } else {
+                        window.itemEntries = [];
+                    }
 
                     if (window.parsedData.length > 0) {
                         const configPanel = document.getElementById('configPanel');
@@ -676,25 +769,54 @@
             await loadStateFromBrowser();
         });
 
-        // Parser for local file upload
-        function handleFileSelect() {
-            const input = document.getElementById('csvFileInput');
-            if (input.files.length === 0) return;
-            const file = input.files[0];
-            
-            const originatingProject = file.name.replace(/\.csv$/i, '');
-            showToast(`Loading "${file.name}"...`, 'info');
-
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    processParsedData(results.data, results.meta.fields, originatingProject);
-                },
-                error: function(err) {
-                    showToast(`Failed to parse CSV: ${err.message}`, 'error');
-                }
+        function parseCsvFile(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results),
+                    error: (err) => reject(err)
+                });
             });
+        }
+
+        // Parser for local file upload
+        async function handleFileSelect() {
+            const input = document.getElementById('csvFileInput');
+            const files = Array.from(input.files || []);
+            if (files.length === 0) return;
+
+            const batchMode = files.length > 1;
+            if (batchMode) {
+                showToast(`Loading ${files.length} CSV files...`, 'info');
+            }
+
+            try {
+                for (let i = 0; i < files.length; i += 1) {
+                    const file = files[i];
+                    const originatingProject = file.name.replace(/\.csv$/i, '');
+                    if (!batchMode) {
+                        showToast(`Loading "${file.name}"...`, 'info');
+                    }
+
+                    const results = await parseCsvFile(file);
+                    processParsedData(results.data, results.meta.fields, originatingProject, {
+                        forceStack: batchMode || undefined,
+                        skipSave: batchMode && i < files.length - 1,
+                        skipUiRefresh: batchMode && i < files.length - 1,
+                        silent: batchMode,
+                        preserveMapping: batchMode && i > 0
+                    });
+                }
+
+                if (batchMode) {
+                    showToast(`Loaded and processed ${files.length} CSV files together.`, 'success');
+                }
+            } catch (err) {
+                showToast(`Failed to parse CSV: ${err.message}`, 'error');
+            } finally {
+                input.value = '';
+            }
         }
 
         // Parser for plaintext copy-pastes
@@ -713,9 +835,11 @@
         }
 
         // Core workspace engine
-        function processParsedData(data, detectedHeaders, projectLabel) {
+        function processParsedData(data, detectedHeaders, projectLabel, options = {}) {
             if (!data || data.length === 0) {
-                showToast("The parsed data has zero records.", "error");
+                if (!options.silent) {
+                    showToast("The parsed data has zero records.", "error");
+                }
                 return;
             }
 
@@ -730,6 +854,7 @@
                 const processedRow = {
                     _projectName: projectLabel
                 };
+                processedRow._sourceFiles = [projectLabel];
 
                 // Copy core credentials
                 processedRow[emailKey] = (row[emailKey] || '').toString().trim();
@@ -738,13 +863,9 @@
                     processedRow[altNameKey] = (row[altNameKey] || '').toString().trim();
                 }
 
-                // Prefix the reward title value with its specific project label
+                // Keep the raw reward text intact so itemName stays searchable across files
                 const rawReward = (row[rewardKey] || '').toString().trim();
-                if (rawReward) {
-                    processedRow[rewardKey] = rawReward.includes(" _ ") ? rawReward : `${projectLabel} _ ${rawReward}`;
-                } else {
-                    processedRow[rewardKey] = '';
-                }
+                processedRow[rewardKey] = rawReward;
 
                 // Copy and prefix all supplementary/add-on columns so they remain completely separated
                 detectedHeaders.forEach(col => {
@@ -769,7 +890,7 @@
                 preprocessedHeaders.push(`${projectLabel} _ ${col}`);
             });
 
-            const stackEnabled = document.getElementById('stackInputsCheckbox').checked;
+            const stackEnabled = options.forceStack ?? document.getElementById('stackInputsCheckbox').checked;
 
             if (stackEnabled && window.parsedData.length > 0) {
                 const currentEmailKey = window.mappedFields.email || emailKey;
@@ -819,6 +940,11 @@
                         if (existingRow._projectName && !existingRow._projectName.includes(projectLabel)) {
                             existingRow._projectName += `, ${projectLabel}`;
                         }
+                        const mergedSources = new Set([
+                            ...((existingRow._sourceFiles || [])),
+                            ...((newRow._sourceFiles || [projectLabel]))
+                        ]);
+                        existingRow._sourceFiles = Array.from(mergedSources);
                         mergedCount++;
                     } else {
                         window.parsedData.push(newRow);
@@ -829,11 +955,15 @@
                     }
                 });
 
-                showToast(`Stacked and merged! Added ${newCount} new backers, combined ${mergedCount} duplicates.`, 'success');
+                if (!options.silent) {
+                    showToast(`Stacked and merged! Added ${newCount} new backers, combined ${mergedCount} duplicates.`, 'success');
+                }
             } else {
                 window.parsedData = preprocessedData;
                 window.headers = preprocessedHeaders;
-                showToast(`Successfully imported ${data.length} records into database!`, 'success');
+                if (!options.silent) {
+                    showToast(`Successfully imported ${data.length} records into database!`, 'success');
+                }
             }
 
             const configPanel = document.getElementById('configPanel');
@@ -841,22 +971,34 @@
 
             populateMappingDropdowns();
             
-            // Set mapping defaults explicitly
-            document.getElementById('mapEmail').value = emailKey;
-            document.getElementById('mapBackerName').value = backerNameKey;
-            if (altNameKey) {
-                document.getElementById('mapAltName').value = altNameKey;
+            // Set mapping defaults explicitly unless a batch import is preserving the first file's schema
+            if (options.preserveMapping && window.mappedFields.email) {
+                document.getElementById('mapEmail').value = window.mappedFields.email;
+                document.getElementById('mapBackerName').value = window.mappedFields.backerName;
+                document.getElementById('mapAltName').value = window.mappedFields.altName;
+                document.getElementById('mapReward').value = window.mappedFields.rewardTitle;
+                updateMappingConfig(false);
+            } else {
+                document.getElementById('mapEmail').value = emailKey;
+                document.getElementById('mapBackerName').value = backerNameKey;
+                if (altNameKey) {
+                    document.getElementById('mapAltName').value = altNameKey;
+                }
+                document.getElementById('mapReward').value = rewardKey;
+                
+                updateMappingConfig(false);
             }
-            document.getElementById('mapReward').value = rewardKey;
-            
-            updateMappingConfig();
-            runFulfillmentSegregation();
+            if (!options.skipUiRefresh) {
+                runFulfillmentSegregation();
 
-            document.getElementById('statsSection').classList.remove('hidden');
-            document.getElementById('outputsWrapper').classList.remove('hidden');
+                document.getElementById('statsSection').classList.remove('hidden');
+                document.getElementById('outputsWrapper').classList.remove('hidden');
+            }
 
             // Save to browser database asynchronously
-            saveStateToBrowser();
+            if (!options.skipSave) {
+                saveStateToBrowser();
+            }
         }
 
         // Clears the backend catalog and starts fresh
@@ -866,7 +1008,7 @@
             window.pdfRecords = [];
             window.podRecords = [];
             window.neitherRecords = [];
-            window.itemEmailMap = {};
+            window.itemEntries = [];
 
             document.getElementById('statsSection').classList.add('hidden');
             
@@ -918,14 +1060,166 @@
             });
         }
 
-        function updateMappingConfig() {
+        function updateMappingConfig(save = true) {
             window.mappedFields.email = document.getElementById('mapEmail').value;
             window.mappedFields.backerName = document.getElementById('mapBackerName').value;
             window.mappedFields.altName = document.getElementById('mapAltName').value;
             window.mappedFields.rewardTitle = document.getElementById('mapReward').value;
             
             // Asynchronously backup current configured mappings on change
-            saveStateToBrowser();
+            if (save) {
+                saveStateToBrowser();
+            }
+        }
+
+        function escapeRegExp(text) {
+            return (text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function normalizeItemName(rawName, sourceFiles = []) {
+            let name = (rawName || '').toString().trim();
+            if (!name) return '';
+
+            const stripProjectPrefix = (value, prefix) => {
+                const escapedPrefix = escapeRegExp(prefix).replace(/\s+/g, '\\s+');
+                const patterns = [
+                    new RegExp(`^${escapedPrefix}\\s*_\\s*`, 'i'),
+                    new RegExp(`^${escapedPrefix}_\\s*`, 'i'),
+                    new RegExp(`^${escapedPrefix}\\s+`, 'i')
+                ];
+
+                for (const pattern of patterns) {
+                    if (pattern.test(value)) {
+                        return value.replace(pattern, '').trim();
+                    }
+                }
+                return value;
+            };
+
+            for (const fileName of sourceFiles) {
+                const cleaned = stripProjectPrefix(name, fileName);
+                if (cleaned !== name) {
+                    name = cleaned;
+                    break;
+                }
+            }
+
+            return name;
+        }
+
+        function registerItemEntry(fileName, itemName, type, backerMetadata) {
+            const normalizedItemName = normalizeItemName(itemName, [fileName]);
+            let entry = window.itemEntries.find(e => e.fileName === fileName && e.itemName === normalizedItemName && e.type === type);
+            if (!entry) {
+                entry = {
+                    id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+                    fileName,
+                    itemName: normalizedItemName,
+                    type,
+                    backers: [],
+                    emails: []
+                };
+                window.itemEntries.push(entry);
+            }
+
+            entry.backers = Array.isArray(entry.backers) ? entry.backers : [];
+            entry.emails = Array.isArray(entry.emails) ? entry.emails : entry.backers.map(b => b.email).filter(Boolean);
+
+            if (!entry.backers.some(b => b.email === backerMetadata.email)) {
+                entry.backers.push(backerMetadata);
+                entry.emails.push(backerMetadata.email);
+            }
+        }
+
+        function rebuildItemEntriesFromCurrentData() {
+            window.itemEntries = [];
+
+            const emailKey = window.mappedFields.email;
+            const nameKey = window.mappedFields.backerName;
+            const altNameKey = window.mappedFields.altName;
+            const rewardKey = window.mappedFields.rewardTitle;
+
+            const autoPdfCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && /pdf/i.test(h);
+            });
+
+            const autoPodCols = window.headers.filter(h => {
+                const isCore = [emailKey, nameKey, altNameKey, rewardKey].includes(h);
+                return !isCore && !h.startsWith('_') && (/pod/i.test(h) || /hardcover/i.test(h) || /print/i.test(h) || /paperback/i.test(h));
+            });
+
+            window.parsedData.forEach((row, index) => {
+                const baseRewardVal = (row[rewardKey] || '').toString().trim();
+                const emailVal = (row[emailKey] || '').toString().trim();
+                const nameVal = (row[nameKey] || '').toString().trim();
+
+                let holdsPdf = false;
+                let holdsPod = false;
+
+                if (/pdf/i.test(baseRewardVal)) {
+                    holdsPdf = true;
+                }
+                if (/pod|hardcover|paperback|print/i.test(baseRewardVal)) {
+                    holdsPod = true;
+                }
+
+                let matchedPdfAddons = [];
+                autoPdfCols.forEach(col => {
+                    if (isValidQuantity(row[col])) {
+                        holdsPdf = true;
+                        matchedPdfAddons.push(col);
+                    }
+                });
+
+                let matchedPodAddons = [];
+                autoPodCols.forEach(col => {
+                    if (isValidQuantity(row[col])) {
+                        holdsPod = true;
+                        matchedPodAddons.push(col);
+                    }
+                });
+
+                if (!emailVal) {
+                    return;
+                }
+
+                const backerMetadata = { name: nameVal, email: emailVal, index: index + 1 };
+                const sourceFiles = Array.isArray(row._sourceFiles) && row._sourceFiles.length > 0
+                    ? row._sourceFiles
+                    : ((row._projectName || 'Project')
+                        .split(',')
+                        .map(p => p.trim())
+                        .filter(Boolean));
+
+                if (baseRewardVal) {
+                    const parts = baseRewardVal.split(/\s*\+\s*/);
+                    parts.forEach(p => {
+                        const cleanPart = p.trim();
+                        if (cleanPart) {
+                            sourceFiles.forEach(fileName => {
+                                registerItemEntry(fileName, cleanPart, 'Base Reward', backerMetadata);
+                            });
+                        }
+                    });
+                }
+
+                matchedPdfAddons.forEach(col => {
+                    const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
+                    sourceFiles.forEach(fileName => {
+                        registerItemEntry(fileName, cleanColName, 'Add-on Item', backerMetadata);
+                    });
+                });
+
+                matchedPodAddons.forEach(col => {
+                    const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
+                    sourceFiles.forEach(fileName => {
+                        registerItemEntry(fileName, cleanColName, 'Add-on Item', backerMetadata);
+                    });
+                });
+            });
+
+            return window.itemEntries;
         }
 
         function runFulfillmentSegregation() {
@@ -934,7 +1228,7 @@
             window.pdfRecords = [];
             window.podRecords = [];
             window.neitherRecords = [];
-            window.itemEmailMap = {}; 
+            window.itemEntries = []; 
 
             const emailKey = window.mappedFields.email;
             const nameKey = window.mappedFields.backerName;
@@ -1016,46 +1310,9 @@
                     window.neitherRecords.push(record);
                 }
 
-                // Compile isolated item rosters
-                if (emailVal) {
-                    const backerMetadata = { name: nameVal, email: emailVal, index: index + 1 };
-                    
-                    if (baseRewardVal) {
-                        const parts = baseRewardVal.split(/\s*\+\s*/);
-                        parts.forEach(p => {
-                            const cleanPart = p.trim();
-                            if (cleanPart) {
-                                if (!window.itemEmailMap[cleanPart]) {
-                                    window.itemEmailMap[cleanPart] = { type: 'Base Reward', backers: [] };
-                                }
-                                if (!window.itemEmailMap[cleanPart].backers.some(b => b.email === emailVal)) {
-                                    window.itemEmailMap[cleanPart].backers.push(backerMetadata);
-                                }
-                            }
-                        });
-                    }
-
-                    matchedPdfAddons.forEach(col => {
-                        const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
-                        if (!window.itemEmailMap[cleanColName]) {
-                            window.itemEmailMap[cleanColName] = { type: 'Add-on Item', backers: [] };
-                        }
-                        if (!window.itemEmailMap[cleanColName].backers.some(b => b.email === emailVal)) {
-                            window.itemEmailMap[cleanColName].backers.push(backerMetadata);
-                        }
-                    });
-
-                    matchedPodAddons.forEach(col => {
-                        const cleanColName = col.replace(/\[Addon: \d+\]\s*/i, '');
-                        if (!window.itemEmailMap[cleanColName]) {
-                            window.itemEmailMap[cleanColName] = { type: 'Add-on Item', backers: [] };
-                        }
-                        if (!window.itemEmailMap[cleanColName].backers.some(b => b.email === emailVal)) {
-                            window.itemEmailMap[cleanColName].backers.push(backerMetadata);
-                        }
-                    });
-                }
             });
+
+            rebuildItemEntriesFromCurrentData();
 
             const labelText = altNameKey || 'None';
             document.getElementById('pdfAltHeader').textContent = labelText;
@@ -1080,7 +1337,7 @@
             const pdfCount = window.pdfRecords.length;
             const podCount = window.podRecords.length;
             const neitherCount = window.neitherRecords.length;
-            const uniqueItemsCount = Object.keys(window.itemEmailMap).length;
+            const uniqueItemsCount = window.itemEntries.length;
 
             // Calculate precise unique backer count by targeting unique emails
             const emailKey = window.mappedFields.email;
@@ -1171,31 +1428,39 @@
             if (!itemsGrid) return;
             itemsGrid.innerHTML = '';
 
-            const itemNames = Object.keys(window.itemEmailMap);
+            const itemEntries = window.itemEntries;
 
-            if (itemNames.length === 0) {
+            if (itemEntries.length === 0) {
                 itemsGrid.innerHTML = `
                     <div class="col-span-full py-12 text-center text-slate-400 font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                        No unique items detected. Please upload/paste a CSV first.
+                        No item/file matches detected. Please upload/paste a CSV first.
                     </div>
                 `;
                 return;
             }
 
-            const filteredNames = query 
-                ? itemNames.filter(name => name.toLowerCase().includes(query.toLowerCase()))
-                : itemNames;
+            const filteredEntries = query 
+                ? itemEntries.filter(entry => `${entry.fileName} ${entry.itemName} ${entry.type} ${entry.emails.join(' ')}`.toLowerCase().includes(query.toLowerCase()))
+                : itemEntries.slice();
 
-            filteredNames.forEach((itemName) => {
-                const itemData = window.itemEmailMap[itemName];
+            filteredEntries
+                .sort((a, b) => {
+                    const fileCompare = a.fileName.localeCompare(b.fileName);
+                    if (fileCompare !== 0) return fileCompare;
+                    const itemCompare = a.itemName.localeCompare(b.itemName);
+                    if (itemCompare !== 0) return itemCompare;
+                    return a.type.localeCompare(b.type);
+                })
+                .forEach((itemData, index) => {
                 const typeBadgeColor = itemData.type === 'Base Reward' 
                     ? 'bg-indigo-100 text-indigo-800 border-indigo-200' 
                     : 'bg-amber-100 text-amber-800 border-amber-200';
+                const entryId = itemData.id;
 
                 const card = document.createElement('div');
                 card.className = "bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-300 hover:shadow transition-all space-y-4";
 
-                const justEmails = itemData.backers.map(b => b.email);
+                const justEmails = itemData.emails || [];
                 const emailsPreviewStr = justEmails.slice(0, 15).join(', ') + (justEmails.length > 15 ? ', ...' : '');
 
                 card.innerHTML = `
@@ -1205,12 +1470,15 @@
                                 ${itemData.type}
                             </span>
                             <span class="bg-slate-100 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-full border border-slate-200">
-                                ${itemData.backers.length} Backers
+                                ${(itemData.emails || []).length} Emails
                             </span>
                         </div>
-                        <h4 class="text-sm font-bold text-slate-900 mt-2 line-clamp-2" title="${itemName}">
-                            ${itemName}
+                        <h4 class="text-sm font-bold text-slate-900 mt-2 line-clamp-2" title="${itemData.itemName}">
+                            ${itemData.itemName}
                         </h4>
+                        <p class="text-[11px] text-slate-400 mt-1 truncate" title="${itemData.fileName}">
+                            File: ${itemData.fileName}
+                        </p>
                         
                         <div class="mt-3 bg-slate-50 rounded-lg p-2.5 border border-slate-100 text-[11px] font-mono text-slate-500 break-all select-all max-h-[80px] overflow-y-auto">
                             ${emailsPreviewStr || '<span class="italic text-slate-400">No emails extracted</span>'}
@@ -1218,11 +1486,11 @@
                     </div>
 
                     <div class="flex items-center gap-2 pt-2 border-t border-slate-100 mt-auto">
-                        <button onclick="copySingleItemEmails('${encodeURIComponent(itemName)}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-lg border border-indigo-100 transition-colors flex items-center justify-center gap-1">
+                        <button onclick="copySingleItemEmails('${entryId}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-lg border border-indigo-100 transition-colors flex items-center justify-center gap-1">
                             <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                             Copy List
                         </button>
-                        <button onclick="downloadSingleItemCsv('${encodeURIComponent(itemName)}')" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1" title="Download backer list for this item">
+                        <button onclick="downloadSingleItemJson('${entryId}')" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-medium py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1" title="Download this item as JSON">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
                         </button>
                     </div>
@@ -1319,6 +1587,20 @@
             return [...new Set(items)];
         }
 
+        function downloadJson(content, fileName) {
+            const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         window.downloadUserOrientedDatabase = function() {
             if (window.parsedData.length === 0) {
                 showToast("No database loaded to export.", "error");
@@ -1360,9 +1642,9 @@
             // Sort by Email alphabetically
             exportRows.sort((a, b) => a["Email"].localeCompare(b["Email"]));
 
-            const csvString = Papa.unparse(exportRows);
-            triggerDownload(csvString, "BackerDataAnalysis_UserOriented_Database.csv");
-            showToast("Export A: User-Oriented Database downloaded successfully!", "success");
+            const jsonString = JSON.stringify(exportRows, null, 2);
+            downloadJson(jsonString, "BackerDataAnalysis_UserOriented_Database.json");
+            showToast("Export A: User-Oriented database downloaded successfully!", "success");
         }
 
         window.downloadItemOrientedMatrix = function() {
@@ -1371,109 +1653,69 @@
                 return;
             }
 
-            const emailKey = window.mappedFields.email;
-            const itemToEmails = {};
-
-            window.parsedData.forEach(row => {
-                const email = (row[emailKey] || '').toString().trim();
-                if (!email) return;
-
-                const items = getBackerItems(row);
-                items.forEach(item => {
-                    if (!itemToEmails[item]) {
-                        itemToEmails[item] = new Set();
-                    }
-                    itemToEmails[item].add(email);
-                });
-            });
-
-            const itemNames = Object.keys(itemToEmails).sort((a, b) => a.localeCompare(b));
-            if (itemNames.length === 0) {
-                showToast("No items found to generate matrix.", "error");
+            const freshEntries = rebuildItemEntriesFromCurrentData();
+            if (freshEntries.length === 0) {
+                showToast("No item records found to export.", "error");
                 return;
             }
 
-            // Convert email sets into arrays
-            const itemArrays = {};
-            let maxRows = 0;
-            itemNames.forEach(item => {
-                itemArrays[item] = Array.from(itemToEmails[item]).sort((a, b) => a.localeCompare(b));
-                if (itemArrays[item].length > maxRows) {
-                    maxRows = itemArrays[item].length;
-                }
-            });
+            const jsonOutput = freshEntries
+                .slice()
+                .sort((a, b) => {
+                    const fileCompare = a.fileName.localeCompare(b.fileName);
+                    if (fileCompare !== 0) return fileCompare;
+                    const itemCompare = a.itemName.localeCompare(b.itemName);
+                    if (itemCompare !== 0) return itemCompare;
+                    return a.type.localeCompare(b.type);
+                })
+                .map(item => ({
+                    fileName: item.fileName,
+                    itemName: item.itemName,
+                    emails: item.emails
+                }));
 
-            // Create flat rows for the matrix where columns are the items
-            const rows = [];
-            for (let r = 0; r < maxRows; r++) {
-                const rowObj = {};
-                itemNames.forEach(item => {
-                    rowObj[item] = itemArrays[item][r] || ""; // Leaves space blank if this item has fewer backers
-                });
-                rows.push(rowObj);
-            }
-
-            const csvString = Papa.unparse(rows);
-            triggerDownload(csvString, "BackerDataAnalysis_ItemOriented_Matrix.csv");
-            showToast("Export B: Item-Oriented Matrix downloaded successfully!", "success");
+            downloadJson(JSON.stringify(jsonOutput, null, 2), "BackerDataAnalysis_ItemOriented_Matrix.json");
+            showToast("Export B: Item JSON downloaded successfully!", "success");
         }
 
-        function triggerDownload(content, fileName) {
-            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.copySingleItemEmails = function(encodedItemName) {
-            const itemName = decodeURIComponent(encodedItemName);
-            const itemData = window.itemEmailMap[itemName];
-            if (!itemData || itemData.backers.length === 0) {
+        window.copySingleItemEmails = function(entryId) {
+            const itemData = window.itemEntries.find(entry => entry.id === entryId);
+            const emails = itemData ? (Array.isArray(itemData.emails) ? itemData.emails : (itemData.backers || []).map(b => b.email).filter(Boolean)) : [];
+            if (!itemData || emails.length === 0) {
                 showToast("No emails to copy.", "error");
                 return;
             }
 
-            const emailsStr = itemData.backers.map(b => b.email).join(', ');
-            copyTextToClipboard(emailsStr);
-            showToast(`Copied ${itemData.backers.length} emails for "${itemName.slice(0, 30)}..."`, 'success');
+            copyTextToClipboard(emails.join(', '));
+            showToast(`Copied ${emails.length} emails for "${itemData.itemName.slice(0, 30)}..."`, 'success');
         }
 
-        window.downloadSingleItemCsv = function(encodedItemName) {
-            const itemName = decodeURIComponent(encodedItemName);
-            const itemData = window.itemEmailMap[itemName];
-            if (!itemData || itemData.backers.length === 0) return;
+        window.downloadSingleItemJson = function(entryId) {
+            const itemData = window.itemEntries.find(entry => entry.id === entryId);
+            const emails = itemData ? (Array.isArray(itemData.emails) ? itemData.emails : (itemData.backers || []).map(b => b.email).filter(Boolean)) : [];
+            if (!itemData || emails.length === 0) return;
 
-            const rows = itemData.backers.map(b => ({
-                "Row Index": b.index,
-                "Backer Name (Username)": b.name,
-                "Email": b.email,
-                "Associated Item": itemName
-            }));
+            const payload = {
+                fileName: itemData.fileName,
+                itemName: itemData.itemName,
+                emails
+            };
 
-            const csvString = Papa.unparse(rows);
-            const sanitizedName = itemName.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 40);
-            triggerDownload(csvString, `Item_${sanitizedName}.csv`);
+            const sanitizedName = `${itemData.fileName}_${itemData.itemName}`.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 60);
+            downloadJson(JSON.stringify(payload, null, 2), `Item_${sanitizedName}.json`);
         }
 
         window.copyAllItemsReport = function() {
-            if (Object.keys(window.itemEmailMap).length === 0) return;
+            if (window.itemEntries.length === 0) return;
 
-            let report = "BACKER DATA ANALYSIS - COMPREHENSIVE FULFILLMENT EMAIL REPORT\n==================================================\n\n";
-            Object.keys(window.itemEmailMap).forEach(itemName => {
-                const itemData = window.itemEmailMap[itemName];
-                const emails = itemData.backers.map(b => b.email).join(', ');
-                report += `ITEM: ${itemName}\nTYPE: ${itemData.type}\nTOTAL RECIPIENTS: ${itemData.backers.length}\nEMAILS:\n${emails}\n\n--------------------------------------------------\n\n`;
-            });
+            const report = window.itemEntries.map(itemData => ({
+                fileName: itemData.fileName,
+                itemName: itemData.itemName,
+                emails: itemData.emails
+            }));
 
-            copyTextToClipboard(report);
-            showToast("Copied full Multi-Item email list report to clipboard!", 'success');
+            copyTextToClipboard(JSON.stringify(report, null, 2));
+            showToast("Copied item JSON to clipboard!", 'success');
         }
 
         function handleTableSearch(e) {
@@ -1553,33 +1795,27 @@
             document.body.removeChild(tempInput);
         }
 
-        function buildTargetCsvString(type) {
+        function buildTargetJsonString(type) {
             const list = type === 'pdf' ? window.pdfRecords : type === 'pod' ? window.podRecords : window.neitherRecords;
             if (list.length === 0) {
                 showToast("No matching records found to convert.", "error");
                 return null;
             }
 
-            const headerRow = ["Email", "Backer Name (Username)", "Secondary Name", "Reward / Qualifiers"];
-            const bodyRows = list.map(r => [
-                r.email,
-                r.name,
-                r.altName,
-                r.qualifiers.join("; ")
-            ]);
-
-            return Papa.unparse({
-                fields: headerRow,
-                data: bodyRows
-            });
+            return JSON.stringify(list.map(r => ({
+                email: r.email,
+                backerName: r.name,
+                secondaryName: r.altName,
+                rewardOrQualifiers: r.qualifiers
+            })), null, 2);
         }
 
-        window.downloadAsCsv = function(type) {
-            const csvOutput = buildTargetCsvString(type);
-            if (!csvOutput) return;
+        window.downloadAsJson = function(type) {
+            const jsonOutput = buildTargetJsonString(type);
+            if (!jsonOutput) return;
 
-            triggerDownload(csvOutput, `BackerDataAnalysis_${type.toUpperCase()}_Rewards.csv`);
-            showToast(`Downloaded ${type.toUpperCase()} CSV successfully.`, 'success');
+            downloadJson(jsonOutput, `BackerDataAnalysis_${type.toUpperCase()}_Rewards.json`);
+            showToast(`Downloaded ${type.toUpperCase()} JSON successfully.`, 'success');
         }
 
         window.dismissToast = function() {
@@ -1634,6 +1870,387 @@
                 "PDFofBrothels", "PODHardcoverof"
             ], verbatimFilename);
         }
+    </script>
+
+    <script>
+        const JSON_WORKFLOW_VERSION = '2';
+        window.jsonProjects = [];
+        window.currentJsonFile = null;
+        window.currentJsonRows = [];
+        window.currentJsonHeaders = [];
+
+        function wipeOldWorkflowData() {
+            const storedVersion = localStorage.getItem('csvJsonWorkflowVersion');
+            if (storedVersion === JSON_WORKFLOW_VERSION) return;
+
+            localStorage.removeItem('csvJsonWorkflowState');
+            localStorage.setItem('csvJsonWorkflowVersion', JSON_WORKFLOW_VERSION);
+            window.jsonProjects = [];
+            window.currentJsonFile = null;
+            window.currentJsonRows = [];
+            window.currentJsonHeaders = [];
+
+            try {
+                indexedDB.deleteDatabase('BackerDataAnalysisDB');
+            } catch (err) {
+                console.warn('Could not clear legacy IndexedDB store:', err);
+            }
+        }
+
+        function downloadJsonFile(data, fileName) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function saveJsonWorkflowState() {
+            localStorage.setItem('csvJsonWorkflowState', JSON.stringify({
+                jsonProjects: window.jsonProjects,
+                currentJsonFile: window.currentJsonFile,
+                currentJsonRows: window.currentJsonRows,
+                currentJsonHeaders: window.currentJsonHeaders
+            }));
+        }
+
+        function loadJsonWorkflowState() {
+            try {
+                const raw = localStorage.getItem('csvJsonWorkflowState');
+                if (!raw) return;
+                const state = JSON.parse(raw);
+                window.jsonProjects = Array.isArray(state.jsonProjects) ? state.jsonProjects : [];
+                window.currentJsonFile = state.currentJsonFile || null;
+                window.currentJsonRows = Array.isArray(state.currentJsonRows) ? state.currentJsonRows : [];
+                window.currentJsonHeaders = Array.isArray(state.currentJsonHeaders) ? state.currentJsonHeaders : [];
+            } catch (err) {
+                console.error('Unable to restore JSON workflow:', err);
+            }
+        }
+
+        function renderHeaderMapper() {
+            const wrap = document.getElementById('jsonHeaderMapper');
+            const status = document.getElementById('jsonHeaderStatus');
+            if (!wrap || !status) return;
+
+            wrap.innerHTML = '';
+            if (!window.currentJsonHeaders.length) {
+                status.textContent = 'No file loaded';
+                wrap.innerHTML = '<div class="p-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Load a CSV to configure its headers.</div>';
+                return;
+            }
+
+            status.textContent = `${window.currentJsonHeaders.length} headers loaded`;
+            window.currentJsonHeaders.forEach((header) => {
+                const row = document.createElement('div');
+                row.dataset.jsonHeaderRow = '1';
+                row.className = 'grid grid-cols-12 gap-2 items-center p-3 rounded-lg border border-slate-200 bg-slate-50';
+                row.innerHTML = `
+                    <label class="col-span-12 sm:col-span-1 flex items-center justify-center">
+                        <input type="checkbox" data-json-enabled checked class="w-4 h-4 rounded border-slate-300 text-indigo-600">
+                    </label>
+                    <div class="col-span-12 sm:col-span-4 text-xs font-mono text-slate-700 break-all" data-json-source>${header}</div>
+                    <input type="text" data-json-rename value="${header.replace(/"/g, '&quot;')}" class="col-span-12 sm:col-span-4 text-sm p-2 border border-slate-200 rounded-lg bg-white">
+                    <select data-json-role class="col-span-12 sm:col-span-3 text-sm p-2 border border-slate-200 rounded-lg bg-white">
+                        <option value="ignore">Ignore</option>
+                        <option value="item_name">Item Name</option>
+                        <option value="backer_name">Backer Name</option>
+                        <option value="backer_number">Backer Number</option>
+                        <option value="email_address">Email Address</option>
+                    </select>
+                `;
+                wrap.appendChild(row);
+            });
+
+            applyAutoHeaderMappings();
+        }
+
+        function applyAutoHeaderMappings() {
+            document.querySelectorAll('[data-json-header-row]').forEach(row => {
+                const sourceHeader = row.querySelector('[data-json-source]').textContent.trim();
+                const roleSelect = row.querySelector('[data-json-role]');
+                const renameInput = row.querySelector('[data-json-rename]');
+                const normalized = sourceHeader.toLowerCase().replace(/\s+/g, ' ').trim();
+
+                if (normalized === 'backer number' || normalized === 'backer #') {
+                    roleSelect.value = 'backer_number';
+                    renameInput.value = 'Backer Number';
+                } else if (normalized === 'backer name' || normalized === 'backer username') {
+                    roleSelect.value = 'backer_name';
+                    renameInput.value = 'Backer Name';
+                } else if (normalized === 'email' || normalized === 'email address') {
+                    roleSelect.value = 'email_address';
+                    renameInput.value = 'Email Address';
+                }
+            });
+        }
+
+        function getHeaderMappings() {
+            return Array.from(document.querySelectorAll('[data-json-header-row]')).map(row => ({
+                sourceHeader: row.querySelector('[data-json-source]').textContent.trim(),
+                enabled: row.querySelector('[data-json-enabled]').checked,
+                rename: row.querySelector('[data-json-rename]').value.trim(),
+                role: row.querySelector('[data-json-role]').value
+            }));
+        }
+
+        function isItemIncluded(cellValue) {
+            const value = (cellValue ?? '').toString().trim();
+            if (!value) return false;
+            const normalized = value.toLowerCase();
+            if (['0', 'no', 'n', 'false', 'off', 'null', 'none', '-'].includes(normalized)) return false;
+            if (['1', 'yes', 'y', 'true', 'on', 'x'].includes(normalized)) return true;
+            const numeric = Number(normalized);
+            if (!Number.isNaN(numeric)) return numeric > 0;
+            return true;
+        }
+
+        function buildProjectJson() {
+            const projectName = document.getElementById('projectNameInput').value.trim();
+            if (!projectName) {
+                showToast('Please enter a project name.', 'error');
+                return null;
+            }
+
+            if (!window.currentJsonRows.length || !window.currentJsonHeaders.length) {
+                showToast('Load a CSV file first.', 'error');
+                return null;
+            }
+
+            const mappings = getHeaderMappings().filter(m => m.enabled);
+            const itemHeaders = mappings.filter(m => m.role === 'item_name');
+            const nameHeader = mappings.find(m => m.role === 'backer_name')?.sourceHeader || '';
+            const numberHeader = mappings.find(m => m.role === 'backer_number')?.sourceHeader || '';
+            const emailHeader = mappings.find(m => m.role === 'email_address')?.sourceHeader || '';
+
+            if (!itemHeaders.length) {
+                showToast('Pick at least one Item Name header.', 'error');
+                return null;
+            }
+            if (!nameHeader || !emailHeader) {
+                showToast('Map Backer Name and Email Address.', 'error');
+                return null;
+            }
+
+            const items = [];
+            itemHeaders.forEach(itemHeader => {
+                const itemName = itemHeader.rename || itemHeader.sourceHeader;
+                const backersData = [];
+                window.currentJsonRows.forEach((row) => {
+                    if (!isItemIncluded(row[itemHeader.sourceHeader])) return;
+                    backersData.push({
+                        name: (row[nameHeader] || '').toString().trim(),
+                        backers_number: numberHeader ? (row[numberHeader] || '').toString().trim() : '',
+                        email_address: (row[emailHeader] || '').toString().trim()
+                    });
+                });
+
+                if (!backersData.length) return;
+
+                items.push({
+                    item_name: itemName,
+                    source_header: itemHeader.sourceHeader,
+                    backers_data: backersData
+                });
+            });
+
+            return {
+                project_name: projectName,
+                source_file: window.currentJsonFile ? window.currentJsonFile.name : '',
+                items
+            };
+        }
+
+        function reprocessCurrentProject() {
+            const project = buildProjectJson();
+            if (!project) return null;
+
+            const sourceFile = project.source_file || '';
+            const projectName = project.project_name || '';
+            const existingIndex = window.jsonProjects.findIndex(p => p.project_name === projectName && p.source_file === sourceFile);
+
+            if (existingIndex >= 0) {
+                window.jsonProjects[existingIndex] = project;
+            } else {
+                window.jsonProjects.push(project);
+            }
+
+            saveJsonWorkflowState();
+            renderJsonLibrary(document.getElementById('jsonSearchInput').value);
+            return project;
+        }
+
+        function renderJsonLibrary(query = '') {
+            const results = document.getElementById('jsonResults');
+            const preview = document.getElementById('jsonPreview');
+            const count = document.getElementById('jsonLibraryCount');
+            if (!results || !preview || !count) return;
+
+            count.textContent = `${window.jsonProjects.length} projects`;
+            preview.value = JSON.stringify(window.jsonProjects, null, 2);
+
+            const q = query.trim().toLowerCase();
+            const filtered = q
+                ? window.jsonProjects.filter(project => {
+                    const haystack = [
+                        project.project_name,
+                        project.source_file,
+                        ...(project.items || []).map(item => [
+                            item.item_name,
+                            ...(item.backers_data || []).flatMap(b => [b.name, b.backers_number, b.email_address])
+                        ].join(' '))
+                    ].join(' ').toLowerCase();
+                    return haystack.includes(q);
+                })
+                : window.jsonProjects;
+
+            results.innerHTML = '';
+            if (filtered.length === 0) {
+                results.innerHTML = '<div class="p-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">No matching projects found.</div>';
+                return;
+            }
+
+            filtered.forEach((project, idx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3';
+                const itemCount = (project.items || []).length;
+                const rowCount = (project.items || []).reduce((sum, item) => sum + ((item.backers_data || []).length), 0);
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h5 class="font-bold text-slate-900 text-sm">${project.project_name}</h5>
+                            <p class="text-xs text-slate-500 break-all">${project.source_file || 'Manual import'}</p>
+                        </div>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700">${itemCount} items</span>
+                    </div>
+                    <div class="text-xs text-slate-500">${rowCount} backer rows</div>
+                    <div class="space-y-2">
+                        ${(project.items || []).map(item => `
+                            <div class="bg-white border border-slate-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900">${item.item_name}</div>
+                                        <div class="text-[11px] text-slate-500">${item.source_header || 'Item'}</div>
+                                    </div>
+                                    <span class="text-[11px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">${(item.backers_data || []).length} rows</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button data-copy-json="${idx}" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">Copy JSON</button>
+                        <button data-download-json="${idx}" class="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold">Download JSON</button>
+                    </div>
+                `;
+                results.appendChild(card);
+            });
+
+            results.querySelectorAll('[data-copy-json]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.getAttribute('data-copy-json'));
+                    copyTextToClipboard(JSON.stringify(filtered[idx], null, 2));
+                    showToast('Copied JSON to clipboard.', 'success');
+                });
+            });
+
+            results.querySelectorAll('[data-download-json]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = Number(btn.getAttribute('data-download-json'));
+                    const project = filtered[idx];
+                    const safeName = (project.project_name || 'project').replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 50);
+                    downloadJsonFile(project, `${safeName}.json`);
+                    showToast('Downloaded project JSON.', 'success');
+                });
+            });
+        }
+
+        function loadCsvForJsonWorkflow(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results),
+                    error: (err) => reject(err)
+                });
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            wipeOldWorkflowData();
+            const legacyWorkflow = document.getElementById('legacyWorkflow');
+            const statsSection = document.getElementById('statsSection');
+            const outputsWrapper = document.getElementById('outputsWrapper');
+            const analyzedFilesSection = document.getElementById('analyzedFilesSection');
+            if (legacyWorkflow) legacyWorkflow.classList.add('hidden');
+            if (statsSection) statsSection.classList.add('hidden');
+            if (outputsWrapper) outputsWrapper.classList.add('hidden');
+            if (analyzedFilesSection) analyzedFilesSection.classList.add('hidden');
+
+            loadJsonWorkflowState();
+            renderHeaderMapper();
+            renderJsonLibrary();
+
+            const fileInput = document.getElementById('singleCsvInput');
+            const loadBtn = document.getElementById('loadCsvBtn');
+            const processBtn = document.getElementById('processJsonBtn');
+            const clearBtn = document.getElementById('clearJsonBtn');
+            const searchInput = document.getElementById('jsonSearchInput');
+            const downloadAllBtn = document.getElementById('downloadAllJsonBtn');
+            const processLabel = processBtn ? processBtn.textContent : '';
+
+            async function loadFile() {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) {
+                    showToast('Choose a CSV file first.', 'error');
+                    return;
+                }
+
+                const results = await loadCsvForJsonWorkflow(file);
+                window.currentJsonFile = { name: file.name };
+                window.currentJsonRows = Array.isArray(results.data) ? results.data : [];
+                window.currentJsonHeaders = Array.isArray(results.meta && results.meta.fields) ? results.meta.fields : [];
+                renderHeaderMapper();
+                document.getElementById('jsonHeaderStatus').textContent = `${file.name} loaded with ${window.currentJsonHeaders.length} headers`;
+                saveJsonWorkflowState();
+                showToast(`Loaded ${file.name}.`, 'success');
+            }
+
+            fileInput.addEventListener('change', loadFile);
+            loadBtn.addEventListener('click', () => fileInput.click());
+            processBtn.addEventListener('click', () => {
+                const project = reprocessCurrentProject();
+                if (!project) return;
+                showToast(`Processed ${project.project_name}.`, 'success');
+            });
+            if (processBtn) processBtn.textContent = 'Process / Reprocess';
+
+            clearBtn.addEventListener('click', () => {
+                window.jsonProjects = [];
+                window.currentJsonFile = null;
+                window.currentJsonRows = [];
+                window.currentJsonHeaders = [];
+                fileInput.value = '';
+                document.getElementById('projectNameInput').value = '';
+                renderHeaderMapper();
+                renderJsonLibrary('');
+                saveJsonWorkflowState();
+                showToast('JSON workflow cleared.', 'info');
+            });
+
+            searchInput.addEventListener('input', (e) => renderJsonLibrary(e.target.value));
+            downloadAllBtn.addEventListener('click', () => {
+                if (!window.jsonProjects.length) {
+                    showToast('No processed JSON to download.', 'error');
+                    return;
+                }
+                downloadJsonFile(window.jsonProjects, 'all_projects.json');
+                showToast('Downloaded all projects as JSON.', 'success');
+            });
+        });
     </script>
 </body>
 </html>
