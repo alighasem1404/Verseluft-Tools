@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Homebrewery Formula Builder</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .builder { position: relative; z-index: 1; width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 52px; }
+        .builder-header { padding: clamp(22px, 4vw, 42px); border-radius: 30px; background: linear-gradient(120deg, rgba(27, 17, 48, .92), rgba(12, 11, 23, .9)); border: 1px solid rgba(168, 139, 255, .2); box-shadow: var(--shadow); }
+        .builder-header h1 { margin-top: 14px; font-size: clamp(2rem, 5vw, 3.7rem); letter-spacing: -.05em; }
+        .builder-header p { max-width: 68ch; margin-top: 14px; color: var(--muted); line-height: 1.7; }
+        .workflow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+        .step { display: flex; gap: 10px; align-items: center; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.035); color: var(--muted); font-size: .91rem; }
+        .step b { display: grid; place-items: center; flex: 0 0 25px; width: 25px; height: 25px; border-radius: 50%; background: var(--purple); color: #fff; font-size: .78rem; }
+        .builder-layout { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(340px, .82fr); gap: 18px; margin-top: 18px; align-items: start; }
+        .builder-panel { padding: 20px; border-radius: 26px; background: rgba(15, 11, 24, .78); border: 1px solid rgba(168, 139, 255, .14); box-shadow: 0 18px 46px rgba(0,0,0,.23); }
+        .builder-panel h2 { font-size: 1.12rem; letter-spacing: -.02em; }
+        .builder-panel .intro { margin-top: 7px; color: var(--muted-2); font-size: .92rem; line-height: 1.55; }
+        .builder textarea { width: 100%; resize: vertical; min-height: 460px; margin-top: 15px; padding: 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,.11); background: rgba(5,4,10,.74); color: #e9e5f5; font: 13px/1.58 Consolas, "Courier New", monospace; outline: none; }
+        .builder textarea:focus { border-color: rgba(168,139,255,.62); box-shadow: 0 0 0 4px rgba(139,92,246,.12); }
+        #mappingInput { min-height: 205px; }
+        .mapping-help { margin-top: 14px; padding: 13px 14px; border-radius: 15px; background: rgba(77,212,255,.055); border: 1px solid rgba(77,212,255,.13); color: #bfcae1; font-size: .88rem; line-height: 1.55; }
+        .mapping-help code { color: #f5d0fe; font-size: .86rem; }
+        .builder-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+        .builder .btn { border-radius: 14px; }
+        .btn-subtle { background: rgba(255,255,255,.04); color: #e8e1fa; }
+        .status { display: none; margin-top: 15px; padding: 12px 13px; border-radius: 14px; font-size: .9rem; line-height: 1.45; }
+        .status.show { display: block; }
+        .status.success { background: rgba(76, 222, 128, .09); border: 1px solid rgba(76, 222, 128, .2); color: #d0fae2; }
+        .status.warning { background: rgba(251, 191, 36, .09); border: 1px solid rgba(251, 191, 36, .22); color: #fff0bc; }
+        .output-panel { grid-column: 1 / -1; }
+        .output-head { display: flex; justify-content: space-between; gap: 16px; align-items: end; flex-wrap: wrap; }
+        .output-list { display: grid; gap: 14px; margin-top: 17px; }
+        .formula-card { overflow: hidden; border: 1px solid rgba(168,139,255,.16); border-radius: 19px; background: rgba(5,4,10,.55); }
+        .formula-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.07); }
+        .formula-card-head strong { font-size: .95rem; }
+        .formula-card-head span { color: var(--muted-2); font-size: .82rem; }
+        .copy-button { border-radius: 10px; padding: 7px 11px; background: rgba(139,92,246,.17); color: #e7ddff; font-size: .81rem; }
+        .formula { width: 100%; min-height: 135px; margin: 0; padding: 14px; resize: vertical; border: 0; border-radius: 0; background: transparent; color: #e8f7ff; font: 12.5px/1.55 Consolas, "Courier New", monospace; }
+        .empty-output { padding: 32px 16px; text-align: center; color: var(--muted-2); border: 1px dashed rgba(255,255,255,.14); border-radius: 18px; }
+        .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        @media (max-width: 900px) { .builder-layout { grid-template-columns: 1fr; } .output-panel { grid-column: auto; } }
+        @media (max-width: 620px) { .builder { width: min(100% - 20px, 1320px); padding-top: 10px; } .builder-header, .builder-panel { border-radius: 22px; } .workflow { grid-template-columns: 1fr; } .builder textarea { min-height: 330px; } }
+    </style>
+</head>
+<body>
+    <main class="builder">
+        <header class="builder-header">
+            <div class="eyebrow"><span class="dot"></span>Offline Homebrewery helper</div>
+            <h1>Formula <span class="text-gradient">Builder</span></h1>
+            <p>Paste your finished Homebrewery demo, map its editable text to spreadsheet cells, and receive a separate ready-to-paste formula for every page.</p>
+            <div class="workflow" aria-label="How it works">
+                <div class="step"><b>1</b><span>Paste the demo Markdown</span></div>
+                <div class="step"><b>2</b><span>Paste text-to-cell mappings</span></div>
+                <div class="step"><b>3</b><span>Copy the page formulas</span></div>
+            </div>
+        </header>
+
+        <section class="builder-layout" aria-label="Formula builder">
+            <section class="builder-panel">
+                <h2>1. Homebrewery demo</h2>
+                <p class="intro">Keep the text exactly as it appears in your working demo. A line containing <code>\page</code> starts the next formula.</p>
+                <label class="visually-hidden" for="templateInput">Homebrewery demo Markdown</label>
+                <textarea id="templateInput" spellcheck="false" placeholder="{{nameTitle&#10;## Black Bell Company&#10;}}&#10;&#10;\page&#10;..." aria-describedby="templateHint"></textarea>
+                <span id="templateHint" class="visually-hidden">Paste your Homebrewery Markdown here.</span>
+            </section>
+
+            <section class="builder-panel">
+                <h2>2. Text and spreadsheet cells</h2>
+                <p class="intro">Wrap each exact demo value in <code>$</code>, then add <code>$$$</code> and its cell address. One content block can include multiple paragraphs.</p>
+                <label class="visually-hidden" for="mappingInput">Text-to-cell mappings</label>
+                <textarea id="mappingInput" spellcheck="false" placeholder="$Black Bell Company$$$D2$&#10;$Lawful Evil$$$E2$&#10;$A paragraph can contain&#10;multiple lines and blank paragraphs.$$$F2$"></textarea>
+                <div class="mapping-help">
+                    Example: <code>$Black Bell Company$$$D2$</code><br>
+                    Line breaks inside the content are preserved exactly. Sheet-qualified addresses such as <code>'Character Data'!D2</code> and absolute addresses such as <code>$D$2</code> are supported. Markdown marks such as <code>##</code>, <code>**</code>, and <code>{{...}}</code> do not stop an exact match.
+                </div>
+                <div class="builder-actions">
+                    <button id="buildButton" class="btn btn-primary" type="button">Build formulas</button>
+                    <button id="copyAllButton" class="btn btn-subtle" type="button">Copy all formulas</button>
+                    <button id="exampleButton" class="btn btn-subtle" type="button">Load small example</button>
+                    <button id="clearButton" class="btn btn-subtle" type="button">Clear</button>
+                </div>
+                <div id="status" class="status" role="status" aria-live="polite"></div>
+            </section>
+
+            <section class="builder-panel output-panel">
+                <div class="output-head">
+                    <div>
+                        <h2>3. Page formulas</h2>
+                        <p class="intro">Put each formula in its own spreadsheet cell. Later pages retain their <code>\page</code> marker.</p>
+                    </div>
+                    <span id="outputSummary" class="badge">Waiting for a demo</span>
+                </div>
+                <div id="outputList" class="output-list">
+                    <div class="empty-output">Your page-by-page formulas will appear here.</div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (() => {
+            const templateInput = document.getElementById('templateInput');
+            const mappingInput = document.getElementById('mappingInput');
+            const outputList = document.getElementById('outputList');
+            const outputSummary = document.getElementById('outputSummary');
+            const status = document.getElementById('status');
+            let latestFormulas = [];
+
+            function parseMappings(source) {
+                const invalid = [];
+                const duplicates = [];
+                const map = new Map();
+                const record = /\$([\s\S]*?)\$\$\$([\s\S]*?)\$(?=\s*(?:\$|$))/g;
+                let match;
+                let previousEnd = 0;
+                while ((match = record.exec(source)) !== null) {
+                    if (source.slice(previousEnd, match.index).trim()) invalid.push('between records');
+                    const text = match[1].replace(/\r\n/g, '\n');
+                    const address = match[2].trim().replace(/^=/, '');
+                    if (!text || !address) {
+                        invalid.push('an empty record');
+                        previousEnd = record.lastIndex;
+                        continue;
+                    }
+                    if (map.has(text)) duplicates.push(text);
+                    map.set(text, address);
+                    previousEnd = record.lastIndex;
+                }
+                if (source.slice(previousEnd).trim()) invalid.push('an incomplete record');
+                if (source.trim() && !map.size && !invalid.length) invalid.push('no complete records');
+                return { entries: [...map.entries()].map(([text, address]) => ({ text, address })), invalid, duplicates };
+            }
+
+            function splitPages(template) {
+                const separator = /\r?\n\\page(?:\r?\n)?/g;
+                const pages = [];
+                let start = 0;
+                let nextPrefix = '';
+                let match;
+                while ((match = separator.exec(template)) !== null) {
+                    const leadingNewline = match[0].match(/^\r?\n/)[0];
+                    pages.push(nextPrefix + template.slice(start, match.index) + leadingNewline);
+                    nextPrefix = match[0].slice(leadingNewline.length);
+                    start = separator.lastIndex;
+                }
+                pages.push(nextPrefix + template.slice(start));
+                return pages;
+            }
+
+            function escapeForRegex(value) {
+                return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            function lineHasOtherWords(text) {
+                const withoutHomebreweryTags = text
+                    .replace(/{{[A-Za-z_][A-Za-z0-9_-]*/g, '')
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/\]\([^)]*\)/g, '');
+                return /[\p{L}\p{N}]/u.test(withoutHomebreweryTags);
+            }
+
+            function isStandaloneDemoText(page, start, end) {
+                const lineStart = page.lastIndexOf('\n', start - 1) + 1;
+                const nextNewline = page.indexOf('\n', end);
+                const lineEnd = nextNewline === -1 ? page.length : nextNewline;
+                return !lineHasOtherWords(page.slice(lineStart, start)) &&
+                    !lineHasOtherWords(page.slice(end, lineEnd));
+            }
+
+            function createFormula(page, entries) {
+                if (!entries.length) return { formula: '="' + page.replaceAll('"', '""') + '"', replacements: 0, usedTexts: new Set() };
+                const byText = new Map(entries.map((entry) => [entry.text, entry.address]));
+                const matcher = new RegExp(entries.slice().sort((a, b) => b.text.length - a.text.length).map((entry) => escapeForRegex(entry.text)).join('|'), 'g');
+                const pieces = [];
+                let cursor = 0;
+                let replacements = 0;
+                const usedTexts = new Set();
+                page.replace(matcher, (match, offset) => {
+                    if (!isStandaloneDemoText(page, offset, offset + match.length)) return match;
+                    if (offset > cursor) pieces.push({ type: 'text', value: page.slice(cursor, offset) });
+                    pieces.push({ type: 'cell', value: byText.get(match) });
+                    cursor = offset + match.length;
+                    replacements += 1;
+                    usedTexts.add(match);
+                    return match;
+                });
+                if (cursor < page.length) pieces.push({ type: 'text', value: page.slice(cursor) });
+                const formulaPieces = pieces.filter((piece) => piece.type === 'cell' || piece.value).map((piece) => {
+                    return piece.type === 'cell' ? piece.value : '"' + piece.value.replaceAll('"', '""') + '"';
+                });
+                return { formula: '=' + (formulaPieces.join('&') || '""'), replacements, usedTexts };
+            }
+
+            function showStatus(message, type) {
+                status.textContent = message;
+                status.className = 'status show ' + type;
+            }
+
+            function copyText(value, button) {
+                navigator.clipboard.writeText(value).then(() => {
+                    const oldText = button.textContent;
+                    button.textContent = 'Copied';
+                    setTimeout(() => { button.textContent = oldText; }, 1300);
+                }).catch(() => {
+                    window.prompt('Copy this formula:', value);
+                });
+            }
+
+            function renderFormulas(formulas) {
+                outputList.innerHTML = '';
+                formulas.forEach((item, index) => {
+                    const card = document.createElement('article');
+                    card.className = 'formula-card';
+                    const head = document.createElement('div');
+                    head.className = 'formula-card-head';
+                    const title = document.createElement('div');
+                    title.innerHTML = '<strong>Page ' + (index + 1) + '</strong> <span>' + item.replacements + ' linked value' + (item.replacements === 1 ? '' : 's') + '</span>';
+                    const button = document.createElement('button');
+                    button.className = 'copy-button';
+                    button.type = 'button';
+                    button.textContent = 'Copy formula';
+                    button.addEventListener('click', () => copyText(item.formula, button));
+                    const field = document.createElement('textarea');
+                    field.className = 'formula';
+                    field.readOnly = true;
+                    field.spellcheck = false;
+                    field.value = item.formula;
+                    head.append(title, button);
+                    card.append(head, field);
+                    outputList.appendChild(card);
+                });
+            }
+
+            function build() {
+                const template = templateInput.value.replace(/\r\n/g, '\n');
+                const parsed = parseMappings(mappingInput.value);
+                if (!template.trim()) {
+                    latestFormulas = [];
+                    outputList.innerHTML = '<div class="empty-output">Paste your Homebrewery demo first.</div>';
+                    outputSummary.textContent = 'Waiting for a demo';
+                    showStatus('Paste a demo before building formulas.', 'warning');
+                    return;
+                }
+                const pages = splitPages(template);
+                latestFormulas = pages.map((page) => createFormula(page, parsed.entries));
+                renderFormulas(latestFormulas);
+                const used = new Set();
+                latestFormulas.forEach((item) => item.usedTexts.forEach((text) => used.add(text)));
+                outputSummary.textContent = pages.length + ' page' + (pages.length === 1 ? '' : 's') + ' · ' + used.size + '/' + parsed.entries.length + ' mappings used';
+                const notes = [];
+                if (parsed.invalid.length) notes.push('Could not read mapping section' + (parsed.invalid.length === 1 ? '' : 's') + ': ' + parsed.invalid.join(', ') + '.');
+                if (parsed.duplicates.length) notes.push('Duplicate text mapping found; the last cell address was used.');
+                if (parsed.entries.length && used.size < parsed.entries.length) notes.push((parsed.entries.length - used.size) + ' mapping' + (parsed.entries.length - used.size === 1 ? ' was' : 's were') + ' not found in the demo.');
+                showStatus(notes.length ? notes.join(' ') : 'Built ' + pages.length + ' page formula' + (pages.length === 1 ? '.' : 's.') , notes.length ? 'warning' : 'success');
+            }
+
+            document.getElementById('buildButton').addEventListener('click', build);
+            document.getElementById('copyAllButton').addEventListener('click', (event) => {
+                if (!latestFormulas.length) { showStatus('Build the formulas first.', 'warning'); return; }
+                copyText(latestFormulas.map((item) => item.formula).join('\n\n'), event.currentTarget);
+            });
+            document.getElementById('clearButton').addEventListener('click', () => {
+                templateInput.value = '';
+                mappingInput.value = '';
+                latestFormulas = [];
+                outputList.innerHTML = '<div class="empty-output">Your page-by-page formulas will appear here.</div>';
+                outputSummary.textContent = 'Waiting for a demo';
+                status.className = 'status';
+            });
+            document.getElementById('exampleButton').addEventListener('click', () => {
+                templateInput.value = '{{nameTitle\n## Black Bell Company\n::::\nLawful Evil\n}}\n\n\\page\n\n### Goal\nThe Black Bell Company enforces sentences.';
+                mappingInput.value = '$Black Bell Company$$$D2$\n$Lawful Evil$$$E2$\n$The Black Bell Company enforces sentences.$$$F2$';
+                build();
+            });
+        })();
+    </script>
+</body>
+</html>
