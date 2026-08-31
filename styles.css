@@ -779,6 +779,10 @@ select:focus {
     align-items: end;
 }
 
+.converter-source-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .converter-list {
     display: grid;
     gap: 12px;
@@ -900,6 +904,11 @@ select:focus {
     }
 
     .converter-item {
+        grid-template-columns: 1fr;
+    }
+
+    .converter-inline,
+    .converter-source-row {
         grid-template-columns: 1fr;
     }
 
