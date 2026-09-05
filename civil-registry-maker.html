@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080611">
+    <title>Civil Registry Maker</title>
+    <link rel="stylesheet" href="civil-registry-maker.css">
+</head>
+<body>
+    <main class="cr-page">
+        <nav class="cr-topbar" aria-label="Tool navigation">
+            <a class="cr-back" href="index.html">← Verseluft Tools</a>
+            <span class="cr-brand">Civil Registry Maker</span>
+        </nav>
+
+        <section class="cr-hero">
+            <div>
+                <div class="cr-eyebrow">Local town-scale generator · family-maker rules</div>
+                <h1>Build a registry for an entire <span>town.</span></h1>
+                <p class="cr-lede">Assign each anchor NPC to one household, fill the remaining families from your social-class distribution, and export the complete registry in a predictable family-by-family format.</p>
+            </div>
+            <div class="cr-stat-grid" aria-label="Registry summary">
+                <div class="cr-stat"><span id="statFamilies" class="cr-stat-value">0</span><span class="cr-stat-label">Families</span></div>
+                <div class="cr-stat"><span id="statAnchors" class="cr-stat-value">0</span><span class="cr-stat-label">Anchors</span></div>
+                <div class="cr-stat"><span id="statMembers" class="cr-stat-value">0</span><span class="cr-stat-label">Members</span></div>
+            </div>
+        </section>
+
+        <div class="cr-stepper" aria-label="Wizard progress">
+            <div class="cr-step is-active" data-step-indicator="1">1 · Anchors</div>
+            <div class="cr-step" data-step-indicator="2">2 · Distribution</div>
+            <div class="cr-step" data-step-indicator="3">3 · Registry</div>
+        </div>
+
+        <section class="cr-layout">
+            <aside class="cr-panel">
+                <h2>Registry wizard</h2>
+
+                <div class="cr-step-panel" data-step-panel="1">
+                    <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text" value="town-01"></div>
+                    <div class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
+                    <div class="cr-field"><label for="anchorText">Anchor NPC list</label><textarea id="anchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Gregory Marrow, Male, Human, 58, Head of the Hearth Council"></textarea></div>
+                    <p class="cr-help">One anchor becomes the core member of one family. Leave the list shorter than the family count; the remaining households will be generated randomly.</p>
+                </div>
+
+                <div class="cr-step-panel" data-step-panel="2" hidden>
+                    <div class="cr-section-label">Social-class percentages</div>
+                    <div class="cr-class-grid">
+                        <div class="cr-field"><label for="lowerPercent">Lower</label><input id="lowerPercent" class="cr-input" type="number" min="0" max="100" value="40"></div>
+                        <div class="cr-field"><label for="mediumPercent">Medium</label><input id="mediumPercent" class="cr-input" type="number" min="0" max="100" value="40"></div>
+                        <div class="cr-field"><label for="upperPercent">Upper</label><input id="upperPercent" class="cr-input" type="number" min="0" max="100" value="20"></div>
+                    </div>
+                    <p id="percentageTotal" class="cr-help">Total: 100%</p>
+                    <div class="cr-field"><label for="familyType">Family type</label><select id="familyType" class="cr-select"><option value="random">Use workbook weights</option><option>Normal</option><option>Gay</option><option>Sibling</option><option>Roommate</option><option>Single</option></select></div>
+                    <div class="cr-field"><label for="outputFormat">Output format</label><select id="outputFormat" class="cr-select"><option value="homebrewery">Homebrewery paging · 3 columns</option><option value="numbered">Numbered Markdown</option><option value="plain">Plain family blocks</option></select></div>
+                    <label class="cr-check"><input id="allowSecondWifeChance" type="checkbox"> Allow random second-wife chance (Normal families only · 40%)</label>
+                    <label class="cr-check"><input id="includeElders" type="checkbox" checked> Include elders when eligible</label>
+                    <p class="cr-help">The registry does not apply the Family Maker’s maximum-member warning or limit.</p>
+                </div>
+
+                <div class="cr-step-panel" data-step-panel="3" hidden>
+                    <p class="cr-help">Review the generated registry on the right. You can generate again with the same seed for the same result, or change the inputs and return to an earlier step.</p>
+                    <div class="cr-actions"><button id="generateBtn" class="cr-btn cr-btn-primary" type="button">Generate registry</button><button id="newSeedBtn" class="cr-btn" type="button">New seed</button></div>
+                </div>
+
+                <div class="cr-step-actions">
+                    <button id="backBtn" class="cr-btn" type="button" hidden>Back</button>
+                    <button id="nextBtn" class="cr-btn cr-btn-primary" type="button">Next</button>
+                </div>
+                <div id="validationBox" class="cr-validation" hidden></div>
+            </aside>
+
+            <section class="cr-panel cr-panel-wide" aria-label="Generated civil registry">
+                <div class="cr-output-head"><h2>Registry output</h2><div class="cr-actions"><button id="copyBtn" class="cr-btn" type="button">Copy Markdown</button><button id="downloadBtn" class="cr-btn" type="button">Download Markdown</button></div></div>
+                <textarea id="outputText" class="cr-output" readonly placeholder="Complete the wizard and generate the registry."></textarea>
+            </section>
+
+            <section class="cr-panel cr-panel-wide" aria-label="Saved civil registries">
+                <div class="cr-output-head"><div><h2>Saved registries</h2><p class="cr-help">Each completed registry is saved in this browser. Open or delete them individually.</p></div></div>
+                <div id="historyList" class="cr-history-list"></div>
+            </section>
+        </section>
+    </main>
+
+    <script src="Data/npc-family-maker-data.js"></script>
+    <script src="npc-family-maker-engine.js"></script>
+    <script src="civil-registry-maker-engine.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            const engine = window.CivilRegistryMakerEngine;
+            const $ = (id) => document.getElementById(id);
+            const HISTORY_KEY = 'civilRegistryMakerHistory';
+            let step = 1;
+            let registry = null;
+            let history = loadHistory();
+
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+            }
+
+            function loadHistory() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                    return Array.isArray(saved) ? saved : [];
+                } catch {
+                    return [];
+                }
+            }
+
+            function saveHistory() {
+                try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* Browser storage may be full. */ }
+            }
+
+            function showStep(nextStep) {
+                step = Math.max(1, Math.min(3, nextStep));
+                document.querySelectorAll('[data-step-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.stepPanel) !== step; });
+                document.querySelectorAll('[data-step-indicator]').forEach((indicator) => indicator.classList.toggle('is-active', Number(indicator.dataset.stepIndicator) === step));
+                $('backBtn').hidden = step === 1;
+                $('nextBtn').hidden = step === 3;
+                if (step === 2) updatePercentageTotal();
+            }
+
+            function updatePercentageTotal() {
+                const total = ['lowerPercent', 'mediumPercent', 'upperPercent'].reduce((sum, id) => sum + (Number($(id).value) || 0), 0);
+                $('percentageTotal').textContent = `Total: ${total}%${total === 100 ? '' : ' (must equal 100%)'}`;
+            }
+
+            function optionsFromForm() {
+                return {
+                    seed: $('seedInput').value.trim() || 'town-01',
+                    familyCount: Number($('familyCount').value),
+                    anchorText: $('anchorText').value,
+                    classPercentages: { Lower: Number($('lowerPercent').value), Medium: Number($('mediumPercent').value), Upper: Number($('upperPercent').value) },
+                    familyType: $('familyType').value,
+                    outputFormat: $('outputFormat').value,
+                    allowSecondWifeChance: $('allowSecondWifeChance').checked,
+                    includeElders: $('includeElders').checked
+                };
+            }
+
+            function formatOutput(value) {
+                if (value === 'plain') return engine.toMarkdown(registry);
+                if (value === 'numbered') return engine.toNumberedMarkdown(registry);
+                return engine.toHomebreweryMarkdown(registry);
+            }
+
+            function renderRegistry() {
+                if (!registry) return;
+                $('outputText').value = formatOutput($('outputFormat').value);
+                $('statFamilies').textContent = registry.families.length;
+                $('statAnchors').textContent = registry.anchorCount;
+                $('statMembers').textContent = registry.families.reduce((sum, family) => sum + family.members.length, 0);
+            }
+
+            function renderHistory() {
+                const list = $('historyList');
+                if (!history.length) {
+                    list.innerHTML = '<div class="cr-history-empty">No saved registries yet.</div>';
+                    return;
+                }
+                list.innerHTML = history.map((entry) => `<div class="cr-history-item"><div class="cr-history-meta"><strong>${escapeHtml(entry.seed)}</strong> · ${escapeHtml(entry.familyCount)} families · ${escapeHtml(new Date(entry.createdAt).toLocaleString())}</div><div class="cr-history-actions"><button class="cr-btn" type="button" data-open-history="${escapeHtml(entry.id)}">Open</button><button class="cr-btn" type="button" data-delete-history="${escapeHtml(entry.id)}">Delete</button></div></div>`).join('');
+                list.querySelectorAll('[data-open-history]').forEach((button) => button.addEventListener('click', () => {
+                    const entry = history.find((candidate) => candidate.id === button.dataset.openHistory);
+                    if (!entry) return;
+                    registry = entry.registry;
+                    $('outputFormat').value = entry.format || 'homebrewery';
+                    renderRegistry();
+                    showStep(3);
+                }));
+                list.querySelectorAll('[data-delete-history]').forEach((button) => button.addEventListener('click', () => {
+                    history = history.filter((entry) => entry.id !== button.dataset.deleteHistory);
+                    saveHistory();
+                    renderHistory();
+                }));
+            }
+
+            function generate() {
+                try {
+                    registry = engine.buildRegistry(optionsFromForm());
+                    renderRegistry();
+                    const options = optionsFromForm();
+                    history.unshift({ id: `${Date.now()}-${registry.seed}`, createdAt: new Date().toISOString(), seed: registry.seed, familyCount: registry.familyCount, format: options.outputFormat, options, registry });
+                    saveHistory();
+                    renderHistory();
+                    $('validationBox').hidden = true;
+                    showStep(3);
+                } catch (error) {
+                    $('validationBox').textContent = error.message;
+                    $('validationBox').hidden = false;
+                }
+            }
+
+            $('nextBtn').addEventListener('click', () => { if (step === 2) updatePercentageTotal(); showStep(step + 1); });
+            $('backBtn').addEventListener('click', () => showStep(step - 1));
+            ['lowerPercent', 'mediumPercent', 'upperPercent'].forEach((id) => $(id).addEventListener('input', updatePercentageTotal));
+            $('generateBtn').addEventListener('click', generate);
+            $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = `town-${Date.now().toString(36)}`; generate(); });
+            $('outputFormat').addEventListener('change', () => { if (registry) renderRegistry(); });
+            $('copyBtn').addEventListener('click', async () => { if (!registry) return; try { await navigator.clipboard.writeText($('outputText').value); } catch { $('outputText').select(); document.execCommand('copy'); } });
+            $('downloadBtn').addEventListener('click', () => { if (!registry) return; const blob = new Blob([$('outputText').value], { type: 'text/markdown' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${registry.seed}-civil-registry.md`; link.click(); URL.revokeObjectURL(link.href); });
+            updatePercentageTotal();
+            renderHistory();
+            showStep(1);
+        }());
+    </script>
+</body>
+</html>

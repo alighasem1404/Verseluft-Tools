@@ -85,6 +85,18 @@
 
             <div id="toolGrid" class="grid"></div>
         </section>
+
+        <section style="margin-top: 42px;" aria-labelledby="retiredToolsTitle">
+            <div class="section-head">
+                <div>
+                    <h3 id="retiredToolsTitle">Retired tools</h3>
+                    <p class="muted" style="margin-top: 6px;">Older utilities kept here for reference, outside your active tools list.</p>
+                </div>
+                <div id="retiredResultsMeta" class="muted"></div>
+            </div>
+
+            <div id="retiredToolGrid" class="grid"></div>
+        </section>
     </div>
 
     <div id="addToolModal" class="modal" aria-hidden="true">
@@ -186,10 +198,16 @@
                 link: 'fast batch NPC generator.html'
             },
             {
-                name: 'Homebrewery Formula Builder',
-                icon: 'HB',
-                description: 'Turn a Homebrewery demo into page-by-page spreadsheet formulas.',
-                link: 'homebrewery-formula-builder.html'
+                name: 'NPC Family Maker',
+                icon: 'FM',
+                description: 'Generate related households with relatives, elders, servants, and roommates.',
+                link: 'npc-family-maker.html'
+            },
+            {
+                name: 'Civil Registry Maker',
+                icon: 'CR',
+                description: 'Generate a village or town registry from anchors and social-class percentages.',
+                link: 'civil-registry-maker.html'
             },
             {
                 name: 'Architect Tool',
@@ -205,9 +223,20 @@
             }
         ];
 
+        const retiredTools = [
+            {
+                name: 'Homebrewery Formula Builder',
+                icon: 'HB',
+                description: 'Archived: turns a Homebrewery demo into page-by-page spreadsheet formulas.',
+                link: 'homebrewery-formula-builder.html'
+            }
+        ];
+
+        const retiredLinks = new Set(retiredTools.map((tool) => tool.link));
         let tools = loadTools();
 
         const toolGrid = document.getElementById('toolGrid');
+        const retiredToolGrid = document.getElementById('retiredToolGrid');
         const modal = document.getElementById('addToolModal');
         const openModalBtn = document.getElementById('openModalBtn');
         const closeModalBtn = document.getElementById('closeModalBtn');
@@ -216,6 +245,7 @@
         const searchInput = document.getElementById('searchInput');
         const toolCount = document.getElementById('toolCount');
         const resultsMeta = document.getElementById('resultsMeta');
+        const retiredResultsMeta = document.getElementById('retiredResultsMeta');
 
         function loadTools() {
             try {
@@ -232,6 +262,7 @@
                 const merged = [...defaultTools, ...parsed];
                 const seen = new Set();
                 return merged.filter((tool) => {
+                    if (retiredLinks.has(tool.link)) return false;
                     const key = `${normalize(tool.name)}|${normalize(tool.link)}`;
                     if (seen.has(key)) return false;
                     seen.add(key);
@@ -316,6 +347,12 @@
 
             filtered.forEach((tool, index) => {
                 toolGrid.appendChild(makeCard(tool, index));
+            });
+
+            retiredToolGrid.innerHTML = '';
+            retiredResultsMeta.textContent = String(retiredTools.length) + ' archived';
+            retiredTools.forEach((tool, index) => {
+                retiredToolGrid.appendChild(makeCard(tool, index));
             });
         }
 

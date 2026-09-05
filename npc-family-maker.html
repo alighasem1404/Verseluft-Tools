@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080611">
+    <title>NPC Family Maker</title>
+    <link rel="stylesheet" href="npc-family-maker.css">
+</head>
+<body>
+    <main class="fm-page">
+        <nav class="fm-topbar" aria-label="Tool navigation">
+            <a class="fm-back" href="index.html">← Verseluft Tools</a>
+            <span class="fm-brand">NPC Family Maker</span>
+        </nav>
+
+        <section class="fm-hero">
+            <div>
+                <div class="fm-eyebrow">Local family generator · workbook-v1</div>
+                <h1>Build a household with <span>history.</span></h1>
+                <p class="fm-lede">Generate relatives, partners, children, elders, servants, and roommates around a shared household identity. Every result is reproducible from its seed and remains editable in your browser.</p>
+            </div>
+            <div class="fm-stat-grid" aria-label="Family summary">
+                <div class="fm-stat"><span id="statMembers" class="fm-stat-value">0</span><span class="fm-stat-label">Members</span></div>
+                <div class="fm-stat"><span id="statType" class="fm-stat-value">—</span><span class="fm-stat-label">Family type</span></div>
+                <div class="fm-stat"><span id="statSeed" class="fm-stat-value">—</span><span class="fm-stat-label">Seed</span></div>
+            </div>
+        </section>
+
+        <section class="fm-layout">
+            <aside class="fm-panel" aria-label="Generation controls">
+                <h2>Generation controls</h2>
+                <div class="fm-field"><label for="seedInput">Seed</label><input id="seedInput" class="fm-input" type="text" value="leafgrove-01"></div>
+                <div class="fm-field"><label for="familyType">Family type</label><select id="familyType" class="fm-select"><option value="random">Use workbook weights</option><option>Normal</option><option>Gay</option><option>Sibling</option><option>Roommate</option><option>Single</option></select></div>
+                <div class="fm-field"><label for="householdClass">Household class</label><select id="householdClass" class="fm-select"><option>Lower</option><option selected>Medium</option><option>Upper</option></select></div>
+                <div class="fm-section-label">Household makeup</div>
+                <div class="fm-control-grid">
+                    <div class="fm-field"><label for="childCount">Children</label><input id="childCount" class="fm-input" type="number" min="0" max="10" placeholder="Random"></div>
+                    <div class="fm-field"><label for="siblingCount">Siblings</label><input id="siblingCount" class="fm-input" type="number" min="0" max="5" placeholder="Random"></div>
+                    <div class="fm-field"><label for="roommateCount">Roommates</label><input id="roommateCount" class="fm-input" type="number" min="1" max="5" placeholder="Random"></div>
+                    <div class="fm-field"><label for="servantCount">Servants</label><input id="servantCount" class="fm-input" type="number" min="0" max="7" placeholder="Random"></div>
+                </div>
+                <label class="fm-check"><input id="allowSecondWifeChance" type="checkbox"> Allow a random second wife/partner chance (Normal families only · 40%)</label>
+                <label class="fm-check"><input id="includeElders" type="checkbox" checked> Include elders when eligible</label>
+                <label class="fm-check"><input id="anchorEnabled" type="checkbox"> Design an anchor NPC</label>
+                <div id="anchorFields" hidden>
+                    <div class="fm-section-label">Anchor details</div>
+                    <div class="fm-field"><label for="anchorName">Name</label><input id="anchorName" class="fm-input" placeholder="e.g. Elrohir"></div>
+                    <div class="fm-field"><label for="anchorRace">Race</label><select id="anchorRace" class="fm-select"></select></div>
+                    <div class="fm-field"><label for="anchorAge">Age</label><input id="anchorAge" class="fm-input" type="number" min="0" placeholder="Optional"></div>
+                    <div class="fm-field"><label for="anchorGender">Gender</label><select id="anchorGender" class="fm-select"><option>Male</option><option>Female</option><option>Non-binary</option></select></div>
+                    <div class="fm-field"><label for="anchorProfession">Profession</label><input id="anchorProfession" class="fm-input" placeholder="e.g. Retired blacksmith"></div>
+                </div>
+                <div class="fm-actions">
+                    <button id="generateBtn" class="fm-btn fm-btn-primary" type="button">Generate family</button>
+                    <button id="newSeedBtn" class="fm-btn" type="button">New seed</button>
+                </div>
+                <p class="fm-help" style="margin:14px 0 0;">The first slice uses the workbook's family types, race weights, aging data, class-based professions, and household member categories.</p>
+            </aside>
+
+            <section class="fm-panel fm-tree-panel" aria-label="Generated family">
+                <div class="fm-tree-toolbar"><h2 id="familyTitle">Your household</h2><span id="familyFlags" class="fm-help">No family generated</span></div>
+                <div id="familyTree" class="fm-tree"><div class="fm-empty">Generate a family to see the relationship tree.</div></div>
+            </section>
+
+            <aside class="fm-panel fm-inspector" aria-label="NPC inspector">
+                <h2>Selected NPC</h2>
+                <div id="inspectorEmpty" class="fm-empty">Select a member card to edit or reroll them.</div>
+                <form id="inspectorForm" hidden>
+                    <div class="fm-field"><label for="editName">Name</label><input id="editName" class="fm-input" type="text"><div class="fm-lock-row"><span>Lock name</span><input id="lockName" type="checkbox"></div></div>
+                    <div class="fm-field"><label for="editRace">Race</label><select id="editRace" class="fm-select"></select><div class="fm-lock-row"><span>Lock race</span><input id="lockRace" type="checkbox"></div></div>
+                    <div class="fm-field"><label for="editAge">Age</label><input id="editAge" class="fm-input" type="number" min="0"><div class="fm-lock-row"><span>Lock age</span><input id="lockAge" type="checkbox"></div></div>
+                    <div class="fm-field"><label for="editGender">Gender</label><select id="editGender" class="fm-select"><option>Male</option><option>Female</option><option>Non-binary</option></select><div class="fm-lock-row"><span>Lock gender</span><input id="lockGender" type="checkbox"></div></div>
+                    <div class="fm-field"><label for="editProfession">Profession</label><input id="editProfession" class="fm-input" type="text"><div class="fm-lock-row"><span>Lock profession</span><input id="lockProfession" type="checkbox"></div></div>
+                    <div class="fm-field"><label for="editRole">Relationship role</label><input id="editRole" class="fm-input" type="text"><div class="fm-lock-row"><span>Lock role</span><input id="lockRole" type="checkbox"></div></div>
+                    <div class="fm-actions"><button class="fm-btn fm-btn-primary" type="submit">Save edits</button><button id="rerollBtn" class="fm-btn" type="button">Reroll this NPC</button></div>
+                    <div class="fm-section-label">Reroll one field</div>
+                    <div class="fm-control-grid"><select id="rerollField" class="fm-select"><option value="firstName">Name</option><option value="race">Race</option><option value="age">Age</option><option value="gender">Gender</option><option value="profession">Profession</option></select><button id="rerollFieldBtn" class="fm-btn fm-btn-small" type="button">Reroll field</button></div>
+                </form>
+            </aside>
+
+            <section class="fm-panel fm-output" aria-label="Family output">
+                <div class="fm-output-head"><h2>Family output</h2><div class="fm-output-actions"><button id="copyBtn" class="fm-btn fm-btn-small" type="button">Copy Markdown</button><button id="downloadBtn" class="fm-btn fm-btn-small" type="button">Download JSON</button></div></div>
+                <textarea id="outputText" class="fm-textarea" readonly placeholder="Your readable family output will appear here."></textarea>
+                <div id="validationBox" class="fm-validation" hidden></div>
+            </section>
+        </section>
+    </main>
+    <div id="toast" class="fm-toast" role="status"></div>
+    <script src="Data/npc-family-maker-data.js"></script>
+    <script src="npc-family-maker-engine.js"></script>
+    <script>
+        (function () {
+            'use strict';
+            const engine = window.NpcFamilyMakerEngine;
+            const $ = (id) => document.getElementById(id);
+            let family = null;
+            let selectedId = null;
+
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+            }
+
+            function populateRaceOptions() {
+                ['anchorRace', 'editRace'].forEach((id) => {
+                    $(id).innerHTML = Object.keys(engine.RACES).map((race) => `<option>${race}</option>`).join('');
+                });
+            }
+
+            function showToast(message) {
+                const toast = $('toast');
+                toast.textContent = message;
+                toast.classList.add('is-visible');
+                window.clearTimeout(showToast.timer);
+                showToast.timer = window.setTimeout(() => toast.classList.remove('is-visible'), 1800);
+            }
+
+            function anchorFromForm() {
+                if (!$('anchorEnabled').checked) return null;
+                const ageValue = $('anchorAge').value.trim();
+                return {
+                    firstName: $('anchorName').value.trim() || undefined,
+                    race: $('anchorRace').value,
+                    age: ageValue ? Number(ageValue) : undefined,
+                    gender: $('anchorGender').value,
+                    profession: $('anchorProfession').value.trim() || undefined,
+                    lockedFields: ['firstName', 'race', 'age', 'gender', 'profession']
+                };
+            }
+
+            function generate() {
+                const seed = $('seedInput').value.trim() || 'family-01';
+                const optionalNumber = (id) => $(id).value.trim() === '' ? undefined : Number($(id).value);
+                family = engine.buildFamily({
+                    seed,
+                    familyType: $('familyType').value,
+                    householdClass: $('householdClass').value,
+                    childCount: optionalNumber('childCount'),
+                    siblingCount: optionalNumber('siblingCount'),
+                    roommateCount: optionalNumber('roommateCount'),
+                    servantCount: optionalNumber('servantCount'),
+                    allowSecondWifeChance: $('allowSecondWifeChance').checked,
+                    includeElders: $('includeElders').checked,
+                    anchor: anchorFromForm()
+                });
+                selectedId = family.members[0]?.id || null;
+                render();
+            }
+
+            function groupMembers() {
+                const groups = { Core: [], Partners: [], Children: [], Elders: [], Siblings: [], Household: [] };
+                family.members.forEach((member, index) => {
+                    const role = member.relationshipRole;
+                    if (index === 0) groups.Core.push(member);
+                    else if (['Husband', 'Wife'].includes(role)) groups.Partners.push(member);
+                    else if (['Son', 'Daughter'].includes(role)) groups.Children.push(member);
+                    else if (role.includes('Grandfather') || role.includes('Grandmother') || role.includes("'s Father") || role.includes("'s Mother")) groups.Elders.push(member);
+                    else if (['Brother', 'Sister'].includes(role)) groups.Siblings.push(member);
+                    else groups.Household.push(member);
+                });
+                return groups;
+            }
+
+            function card(member) {
+                const selected = member.id === selectedId ? ' is-selected' : '';
+                const locked = member.lockedFields?.length ? `<span class="fm-badge">${member.lockedFields.length} locked</span>` : '';
+                return `<button class="fm-card${selected}" type="button" data-member-id="${member.id}"><span class="fm-card-name">${escapeHtml(member.firstName)} ${escapeHtml(member.surname)}</span><span class="fm-card-meta">${escapeHtml(member.race)} · ${escapeHtml(member.age)} · ${escapeHtml(member.relationshipRole)}</span>${member.profession ? `<span class="fm-card-job">${escapeHtml(member.profession)}</span>` : ''}${locked}</button>`;
+            }
+
+            function renderTree() {
+                const groups = groupMembers();
+                $('familyTree').innerHTML = Object.entries(groups).filter(([, members]) => members.length).map(([title, members]) => `<div class="fm-group"><h3 class="fm-group-title">${title}</h3>${members.map(card).join('')}</div>`).join('');
+                $('familyTree').querySelectorAll('[data-member-id]').forEach((button) => button.addEventListener('click', () => { selectedId = button.dataset.memberId; render(); }));
+            }
+
+            function renderInspector() {
+                const member = family?.members.find((candidate) => candidate.id === selectedId);
+                if (!member) { $('inspectorEmpty').hidden = false; $('inspectorForm').hidden = true; return; }
+                $('inspectorEmpty').hidden = true;
+                $('inspectorForm').hidden = false;
+                $('editName').value = member.firstName;
+                $('editRace').value = member.race;
+                $('editAge').value = member.age;
+                $('editGender').value = member.gender;
+                $('editProfession').value = member.profession || '';
+                $('editRole').value = member.relationshipRole;
+                $('lockName').checked = member.lockedFields?.includes('firstName');
+                $('lockRace').checked = member.lockedFields?.includes('race');
+                $('lockAge').checked = member.lockedFields?.includes('age');
+                $('lockGender').checked = member.lockedFields?.includes('gender');
+                $('lockProfession').checked = member.lockedFields?.includes('profession');
+                $('lockRole').checked = member.lockedFields?.includes('relationshipRole');
+            }
+
+            function render() {
+                if (!family) return;
+                $('statMembers').textContent = family.members.length;
+                $('statType').textContent = family.familyType;
+                $('statSeed').textContent = family.seed.length > 13 ? `${family.seed.slice(0, 12)}…` : family.seed;
+                $('familyTitle').textContent = family.familyType === 'Roommate' ? 'Roommate household' : `The ${family.surname} Family`;
+                const flags = [family.householdClass, family.flags.widow ? 'widowed' : '', family.flags.mixedRace ? 'mixed race' : '', family.flags.secondWife ? 'second wife branch' : ''].filter(Boolean);
+                $('familyFlags').textContent = flags.join(' · ');
+                renderTree();
+                renderInspector();
+                $('outputText').value = engine.toMarkdown(family);
+                const validation = $('validationBox');
+                validation.hidden = !family.validationIssues.length;
+                validation.innerHTML = family.validationIssues.length ? `<strong>Validation notes</strong><br>${family.validationIssues.map(escapeHtml).join('<br>')}` : '';
+                localStorage.setItem('npcFamilyMakerLastFamily', JSON.stringify(family));
+            }
+
+            $('anchorEnabled').addEventListener('change', () => { $('anchorFields').hidden = !$('anchorEnabled').checked; });
+            $('generateBtn').addEventListener('click', generate);
+            $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = `family-${Date.now().toString(36)}`; generate(); });
+            $('inspectorForm').addEventListener('submit', (event) => {
+                event.preventDefault();
+                const member = family.members.find((candidate) => candidate.id === selectedId);
+                if (!member) return;
+                const lockedFields = ['firstName', 'race', 'age', 'gender', 'profession', 'relationshipRole'].filter((field) => ({ firstName: $('lockName'), race: $('lockRace'), age: $('lockAge'), gender: $('lockGender'), profession: $('lockProfession'), relationshipRole: $('lockRole') }[field]).checked);
+                family = engine.updateMember(family, selectedId, { firstName: $('editName').value.trim() || member.firstName, race: $('editRace').value, age: Number($('editAge').value) || 0, gender: $('editGender').value, profession: $('editProfession').value.trim(), relationshipRole: $('editRole').value.trim() || member.relationshipRole, lockedFields });
+                render();
+                showToast('NPC edits saved');
+            });
+            $('rerollBtn').addEventListener('click', () => { family = engine.rerollMember(family, selectedId); render(); showToast('NPC rerolled'); });
+            $('rerollFieldBtn').addEventListener('click', () => {
+                const field = $('rerollField').value;
+                const member = family.members.find((candidate) => candidate.id === selectedId);
+                if (member?.lockedFields?.includes(field)) { showToast('That field is locked'); return; }
+                family = engine.rerollField(family, selectedId, field);
+                render();
+                showToast(`${field === 'firstName' ? 'Name' : field[0].toUpperCase() + field.slice(1)} rerolled`);
+            });
+            $('copyBtn').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('outputText').value); showToast('Markdown copied'); } catch { $('outputText').select(); document.execCommand('copy'); showToast('Markdown copied'); } });
+            $('downloadBtn').addEventListener('click', () => { const blob = new Blob([JSON.stringify(family, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${family.surname || 'npc-family'}-family.json`; link.click(); URL.revokeObjectURL(link.href); showToast('JSON downloaded'); });
+
+            populateRaceOptions();
+            try {
+                const saved = JSON.parse(localStorage.getItem('npcFamilyMakerLastFamily') || 'null');
+                if (saved?.members?.length) {
+                    family = saved;
+                    selectedId = family.members[0].id;
+                    $('seedInput').value = family.seed;
+                    $('familyType').value = family.familyType;
+                    $('householdClass').value = family.householdClass;
+                    render();
+                } else generate();
+            } catch { generate(); }
+        }());
+    </script>
+</body>
+</html>
