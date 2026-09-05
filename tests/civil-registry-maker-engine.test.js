@@ -26,6 +26,20 @@ assert.equal(subraceAnchor.errors.length, 0);
 assert.equal(subraceAnchor.anchors[0].gender, 'Non-binary');
 assert.equal(subraceAnchor.anchors[0].race, 'Wood Elf');
 
+const plainElfAnchor = engine.parseAnchors('name, sex, race, age, roll\nAelar Moonwhisper, Male, Elf, 240, Archivist');
+assert.equal(plainElfAnchor.errors.length, 0);
+assert.equal(plainElfAnchor.anchors[0].race, 'Elf');
+const plainElfRegistry = engine.buildRegistry({
+    seed: 'plain-elf-anchor',
+    familyCount: 1,
+    anchorText: 'name, sex, race, age, roll\nAelar Moonwhisper, Male, Elf, 240, Archivist',
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeElders: false
+});
+assert.equal(plainElfRegistry.families[0].members[0].race, 'Elf');
+assert.equal(plainElfRegistry.families[0].validationIssues.length, 0);
+
 assert.throws(() => engine.normalizePercentages({ Lower: 40, Medium: 40, Upper: 10 }), /total 100/);
 assert.throws(() => engine.parseAnchors('name, sex, race, age, roll\nBad, Unknown, Human, 20, Job').errors.length && engine.buildRegistry({ familyCount: 1, anchorText: 'name, sex, race, age, roll\nBad, Unknown, Human, 20, Job' }), /unsupported sex/);
 

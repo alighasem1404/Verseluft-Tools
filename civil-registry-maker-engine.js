@@ -64,10 +64,11 @@
                 return;
             }
             const gender = normalizeGender(cells[1]);
-            const race = familyEngine.resolveRaceName(cells[2]);
+            const rawRace = String(cells[2] || '').trim();
+            const race = rawRace.toLowerCase() === 'elf' ? 'Elf' : familyEngine.resolveRaceName(rawRace);
             const age = Number(cells[3]);
             if (!gender) errors.push(`Anchor line ${index + 1} has an unsupported sex: ${cells[1] || '(blank)'}.`);
-            if (!race || !races[race]) errors.push(`Anchor line ${index + 1} has an unsupported race: ${cells[2] || '(blank)'}.`);
+            if (!race || (race !== 'Elf' && !races[race])) errors.push(`Anchor line ${index + 1} has an unsupported race: ${cells[2] || '(blank)'}.`);
             if (!Number.isFinite(age) || age < 0) errors.push(`Anchor line ${index + 1} has an invalid age: ${cells[3] || '(blank)'}.`);
             const name = parseName(cells[0]);
             anchors.push({

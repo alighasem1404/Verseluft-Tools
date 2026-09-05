@@ -127,7 +127,16 @@
         return resolved || 'Human';
     }
 
+    function isPlainElf(race) {
+        return String(race || '').trim().toLowerCase() === 'elf';
+    }
+
+    function getRaceData(race) {
+        return isPlainElf(race) ? ELF_TEMPLATE : RACES[normalizeRace(race)];
+    }
+
     function sourceRace(race) {
+        if (isPlainElf(race)) return 'Elf';
         const resolved = resolveRaceName(race);
         return ELF_SUBRACES.has(resolved) ? 'Elf' : (resolved || 'Human');
     }
@@ -137,7 +146,7 @@
     }
 
     function getNamePool(race, gender) {
-        const data = RACES[normalizeRace(race)];
+        const data = getRaceData(race);
         const genderPool = data?.[`${String(gender || '').toLowerCase()}Names`];
         return genderPool?.length ? genderPool : data?.names?.length ? data.names : ['Unnamed'];
     }
@@ -147,13 +156,13 @@
     }
 
     function makeName(rng, race, surname, gender) {
-        const data = RACES[normalizeRace(race)];
+        const data = getRaceData(race);
         return { firstName: rng.pick(getNamePool(race, nameGender(rng, gender))), surname: surname || rng.pick(data.surnames || FAMILY_SURNAME_FALLBACKS) };
     }
 
     function makeUniqueName(rng, race, surname, family, gender) {
         const existing = new Set(family.members.map((member) => `${member.firstName} ${member.surname}`));
-        const data = RACES[normalizeRace(race)];
+        const data = getRaceData(race);
         const pool = getNamePool(race, nameGender(rng, gender));
         const available = pool.filter((firstName) => !existing.has(`${firstName} ${surname}`));
         if (available.length) return { firstName: rng.pick(available), surname };
@@ -161,14 +170,14 @@
     }
 
     function generateAge(rng, race, stage, parentAge) {
-        const data = RACES[normalizeRace(race)];
+        const data = getRaceData(race);
         if (stage === 'child') return rng.int(0, clamp((parentAge || data.adulthood + 20) - data.adulthood, 0, 18));
         if (stage === 'elder') return rng.int(Math.max(data.adulthood + 25, Math.floor(data.maxAge * 0.45)), data.maxAge);
         return rng.int(data.adulthood, Math.max(data.adulthood, Math.floor(data.maxAge * 0.72)));
     }
 
     function getLifeStage(race, age) {
-        const data = RACES[normalizeRace(race)] || {};
+        const data = getRaceData(race) || {};
         const value = Number(age) || 0;
         if (value < Number(data.youngAdulthood ?? data.adulthood ?? 18)) return 'child';
         if (value < Number(data.adulthood ?? 18)) return 'youngAdult';
@@ -189,7 +198,7 @@
     }
 
     function chooseSurname(rng, race) {
-        const surnames = RACES[normalizeRace(race)]?.surnames || FAMILY_SURNAME_FALLBACKS;
+        const surnames = getRaceData(race)?.surnames || FAMILY_SURNAME_FALLBACKS;
         return rng.pick(surnames.length ? surnames : FAMILY_SURNAME_FALLBACKS);
     }
 
@@ -198,11 +207,11 @@
         if (direct) return direct === 'Elf' ? chooseRace(rng, 'Elf') : direct;
         const reverse = OFFSPRING[sourceRace(secondRace)]?.[sourceRace(firstRace)];
         if (reverse) return reverse === 'Elf' ? chooseRace(rng, 'Elf') : reverse;
-        return rng.next() < 0.5 ? normalizeRace(firstRace) : normalizeRace(secondRace);
+        return rng.next() < 0.5 ? chooseRace(rng, firstRace) : chooseRace(rng, secondRace);
     }
 
     function addMember(family, rng, spec) {
-        const race = chooseRace(rng, spec.race);
+        const race = spec.preserveRace && isPlainElf(spec.race) ? 'Elf' : chooseRace(rng, spec.race);
         const gender = spec.gender || rng.pick(['Male', 'Female']);
         const name = spec.firstName ? { firstName: spec.firstName, surname: spec.surname || family.surname } : makeUniqueName(rng, race, spec.surname || family.surname, family, gender);
         const age = spec.age ?? generateAge(rng, race, spec.stage || 'adult', spec.parentAge);
@@ -273,6 +282,7 @@
             status: anchor.status,
             lockedFields: anchor.lockedFields || (options.anchor ? ['firstName', 'race', 'age', 'gender', 'profession'] : []),
             traits: anchor.traits,
+            preserveRace: isPlainElf(anchor.race),
             sourceNotes: options.anchor ? ['Designed anchor NPC'] : []
         });
 
@@ -294,7 +304,7 @@
             partners.push(partner);
             relate(family, core.id, partner.id, 'partner');
             relate(family, partner.id, core.id, 'partner');
-            family.flags.mixedRace = partner.race !== core.race;
+            family.flags.mixedRace = sourceRace(partner.race) !== sourceRace(core.race);
             if (isSecondWife) {
                 const parentLabel = `Wife ${index + 1}`;
                 [['Father', 'Male'], ['Mother', 'Female']].forEach(([parentType, gender]) => {
@@ -330,7 +340,7 @@
                         : 0;
             for (let i = 0; i < siblingCount; i += 1) {
                 const gender = rng.pick(['Male', 'Female']);
-                const sibling = addMember(family, rng, { race: core.race, gender, relationshipRole: gender === 'Male' ? 'Brother' : 'Sister', age: clamp(core.age + rng.int(-18, 18), 0, RACES[core.race].maxAge) });
+                const sibling = addMember(family, rng, { race: core.race, gender, relationshipRole: gender === 'Male' ? 'Brother' : 'Sister', age: clamp(core.age + rng.int(-18, 18), 0, getRaceData(core.race).maxAge) });
                 relate(family, sibling.id, core.id, 'sibling');
                 relate(family, core.id, sibling.id, 'sibling');
             }
@@ -380,9 +390,10 @@
         family.members.forEach((member) => {
             if (ids.has(member.id)) issues.push(`Duplicate NPC id: ${member.id}`);
             ids.add(member.id);
-            if (!RACES[member.race]) issues.push(`${member.firstName} has an unsupported race.`);
+            const raceData = member.race === 'Elf' ? ELF_TEMPLATE : RACES[member.race];
+            if (!raceData) issues.push(`${member.firstName} has an unsupported race.`);
             if (!Number.isFinite(Number(member.age)) || member.age < 0) issues.push(`${member.firstName} has an invalid age.`);
-            if (RACES[member.race] && member.age > RACES[member.race].maxAge) issues.push(`${member.firstName} exceeds the source maximum age for ${member.race}.`);
+            if (raceData && member.age > raceData.maxAge) issues.push(`${member.firstName} exceeds the source maximum age for ${member.race}.`);
         });
         family.relationships.forEach((relationship) => {
             if (!ids.has(relationship.fromNpcId) || !ids.has(relationship.toNpcId)) issues.push(`Broken relationship: ${relationship.type}.`);
