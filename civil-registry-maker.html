@@ -38,10 +38,15 @@
                 <h2>Registry wizard</h2>
 
                 <div class="cr-step-panel" data-step-panel="1">
-                    <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text" value="town-01"></div>
+                    <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text"></div>
                     <div class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
-                    <div class="cr-field"><label for="anchorText">Anchor NPC list</label><textarea id="anchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Gregory Marrow, Male, Human, 58, Head of the Hearth Council"></textarea></div>
-                    <p class="cr-help">One anchor becomes the core member of one family. Leave the list shorter than the family count; the remaining households will be generated randomly.</p>
+                    <div class="cr-section-label">Anchor NPCs by social class</div>
+                    <div class="cr-anchor-grid">
+                        <div class="cr-field"><label for="lowerAnchorText">Lower-class anchors</label><textarea id="lowerAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 34, Farmer"></textarea></div>
+                        <div class="cr-field"><label for="mediumAnchorText">Medium-class anchors</label><textarea id="mediumAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Female, Human, 44, Shopkeeper"></textarea></div>
+                        <div class="cr-field"><label for="upperAnchorText">Upper-class anchors</label><textarea id="upperAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 58, Chancellor"></textarea></div>
+                    </div>
+                    <p class="cr-help">Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution.</p>
                 </div>
 
                 <div class="cr-step-panel" data-step-panel="2" hidden>
@@ -54,7 +59,7 @@
                     <p id="percentageTotal" class="cr-help">Total: 100%</p>
                     <div class="cr-field"><label for="familyType">Family type</label><select id="familyType" class="cr-select"><option value="random">Use workbook weights</option><option>Normal</option><option>Gay</option><option>Sibling</option><option>Roommate</option><option>Single</option></select></div>
                     <div class="cr-field"><label for="outputFormat">Output format</label><select id="outputFormat" class="cr-select"><option value="homebrewery">Homebrewery paging · 3 columns</option><option value="numbered">Numbered Markdown</option><option value="plain">Plain family blocks</option></select></div>
-                    <label class="cr-check"><input id="allowSecondWifeChance" type="checkbox"> Allow random second-wife chance (Normal families only · 40%)</label>
+                    <label class="cr-check"><input id="allowSecondWifeChance" type="checkbox" checked> Allow random second-wife chance (Normal families only · 40%)</label>
                     <label class="cr-check"><input id="includeElders" type="checkbox" checked> Include elders when eligible</label>
                     <p class="cr-help">The registry does not apply the Family Maker’s maximum-member warning or limit.</p>
                 </div>
@@ -96,6 +101,21 @@
             let registry = null;
             let history = loadHistory();
 
+            function randomSeed() {
+                const suffix = typeof crypto !== 'undefined' && crypto.getRandomValues
+                    ? Array.from(crypto.getRandomValues(new Uint32Array(2))).map((value) => value.toString(36)).join('-')
+                    : `${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+                return `town-${suffix}`;
+            }
+
+            function ensureSeed() {
+                const existing = $('seedInput').value.trim();
+                if (existing) return existing;
+                const generated = randomSeed();
+                $('seedInput').value = generated;
+                return generated;
+            }
+
             function escapeHtml(value) {
                 return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
             }
@@ -129,9 +149,13 @@
 
             function optionsFromForm() {
                 return {
-                    seed: $('seedInput').value.trim() || 'town-01',
+                    seed: ensureSeed(),
                     familyCount: Number($('familyCount').value),
-                    anchorText: $('anchorText').value,
+                    anchorTextByClass: {
+                        Lower: $('lowerAnchorText').value,
+                        Medium: $('mediumAnchorText').value,
+                        Upper: $('upperAnchorText').value
+                    },
                     classPercentages: { Lower: Number($('lowerPercent').value), Medium: Number($('mediumPercent').value), Upper: Number($('upperPercent').value) },
                     familyType: $('familyType').value,
                     outputFormat: $('outputFormat').value,
@@ -196,11 +220,12 @@
             $('backBtn').addEventListener('click', () => showStep(step - 1));
             ['lowerPercent', 'mediumPercent', 'upperPercent'].forEach((id) => $(id).addEventListener('input', updatePercentageTotal));
             $('generateBtn').addEventListener('click', generate);
-            $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = `town-${Date.now().toString(36)}`; generate(); });
+            $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = randomSeed(); generate(); });
             $('outputFormat').addEventListener('change', () => { if (registry) renderRegistry(); });
             $('copyBtn').addEventListener('click', async () => { if (!registry) return; try { await navigator.clipboard.writeText($('outputText').value); } catch { $('outputText').select(); document.execCommand('copy'); } });
             $('downloadBtn').addEventListener('click', () => { if (!registry) return; const blob = new Blob([$('outputText').value], { type: 'text/markdown' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${registry.seed}-civil-registry.md`; link.click(); URL.revokeObjectURL(link.href); });
             updatePercentageTotal();
+            $('seedInput').value = randomSeed();
             renderHistory();
             showStep(1);
         }());

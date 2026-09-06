@@ -84,6 +84,17 @@
         return { anchors, errors };
     }
 
+    function parseAnchorsByClass(anchorTextByClass = {}, races = familyEngine.RACES) {
+        const anchors = [];
+        const errors = [];
+        ['Lower', 'Medium', 'Upper'].forEach((householdClass) => {
+            const parsed = parseAnchors(anchorTextByClass[householdClass] || '', races);
+            errors.push(...parsed.errors.map((error) => `${householdClass} class: ${error}`));
+            anchors.push(...parsed.anchors.map((anchor) => ({ ...anchor, householdClass })));
+        });
+        return { anchors, errors };
+    }
+
     function normalizePercentages(percentages = DEFAULT_CLASS_PERCENTAGES) {
         const result = {};
         for (const className of ['Lower', 'Medium', 'Upper']) {
@@ -109,7 +120,10 @@
         const familyCount = Math.floor(Number(options.familyCount));
         if (!Number.isInteger(familyCount) || familyCount < 1) throw new Error('Family count must be a positive whole number.');
         const percentages = normalizePercentages(options.classPercentages);
-        const parsed = parseAnchors(options.anchorText || options.anchors || '');
+        const anchorTextByClass = options.anchorTextByClass || options.anchorTextsByClass;
+        const parsed = anchorTextByClass
+            ? parseAnchorsByClass(anchorTextByClass)
+            : parseAnchors(options.anchorText || options.anchors || '');
         if (parsed.errors.length) throw new Error(parsed.errors.join(' '));
         if (parsed.anchors.length > familyCount) throw new Error('There cannot be more anchors than families.');
 
@@ -119,8 +133,8 @@
             const familySeed = `${seed}:family-${index + 1}`;
             const typeRng = familyEngine.createRng(`${familySeed}:type`);
             const familyType = chooseFamilyType(typeRng, options.familyType);
-            const householdClass = registryRng.weighted(classEntries(percentages));
             const sourceAnchor = parsed.anchors[index];
+            const householdClass = sourceAnchor?.householdClass || registryRng.weighted(classEntries(percentages));
             const anchor = sourceAnchor ? {
                 ...sourceAnchor,
                 relationshipRole: anchorRole(familyType, sourceAnchor.gender),
@@ -209,6 +223,7 @@
         WRAP_LINE_LENGTH,
         parseCsvLine,
         parseAnchors,
+        parseAnchorsByClass,
         normalizePercentages,
         buildRegistry,
         familyToMarkdown,

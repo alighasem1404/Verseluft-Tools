@@ -40,6 +40,7 @@ h1 span { color: var(--accent); }
 .cr-textarea { min-height: 200px; resize: vertical; }
 .cr-help { color: var(--muted); font-size: 13px; }
 .cr-class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cr-anchor-grid { display: grid; gap: 10px; }
 .cr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .cr-btn { padding: 10px 14px; color: var(--text); background: var(--panel-2); }
 .cr-btn-primary { border-color: transparent; color: #1d1026; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); font-weight: 800; }

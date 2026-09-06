@@ -200,7 +200,7 @@ Planned export formats are Markdown, HTML, PDF, CSV, and JSON. The renderer must
 
 ## 8.1 Civil Registry output and history
 
-Civil Registry Maker produces one continuous registry rather than separate regional results. Its default Homebrewery export uses the reference workbook's paging convention: three columns, a 260 calculated-line page capacity, and a 60-character wrapping threshold. A family is never split across pages; the exporter inserts `\\page` between family blocks and keeps numbering continuous across the entire registry.
+Civil Registry Maker produces one continuous registry rather than separate regional results. Its default Homebrewery export uses the reference workbook's paging convention: three columns, a 260 calculated-line page capacity, and a 60-character wrapping threshold. A family is never split across pages; the exporter inserts `\\page` between family blocks and keeps numbering continuous across the entire registry. Civil Registry anchors are entered in separate Lower, Medium, and Upper class lists; each anchor keeps the class of its list, while unanchored families use the configured class percentages.
 
 Completed registries are saved in browser storage with their seed, settings, generated family data, and selected output format. The history panel can reopen or delete each saved registry independently.
 

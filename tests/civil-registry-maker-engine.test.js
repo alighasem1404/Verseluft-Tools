@@ -64,6 +64,21 @@ assert.equal(registry.families.every((family) => !family.validationIssues.some((
 assert.equal(registry.families.every((family) => ['Lower', 'Medium', 'Upper'].includes(family.householdClass)), true);
 assert.match(engine.toMarkdown(registry), /^The "Marrow" Family\n\n- Gregory, Human, 58, Husband, Head of the Hearth Council/);
 
+const classAnchoredRegistry = engine.buildRegistry({
+    seed: 'class-anchored-registry',
+    familyCount: 5,
+    anchorTextByClass: {
+        Lower: 'name, sex, race, age, roll\nLena Field, Female, Human, 34, Farmer',
+        Medium: 'name, sex, race, age, roll\nMarek Stone, Male, Dwarf, 105, Blacksmith',
+        Upper: 'name, sex, race, age, roll\nSeraphine Gold, Female, Human, 42, Chancellor'
+    },
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeElders: false
+});
+assert.equal(classAnchoredRegistry.anchorCount, 3);
+assert.deepEqual(classAnchoredRegistry.families.slice(0, 3).map((family) => family.householdClass), ['Lower', 'Medium', 'Upper']);
+
 const nonBinaryRegistry = engine.buildRegistry({
     seed: 'non-binary-registry',
     familyCount: 1,
