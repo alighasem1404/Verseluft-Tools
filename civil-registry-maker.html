@@ -35,7 +35,7 @@
 
         <section class="cr-layout">
             <aside class="cr-panel">
-                <h2>Registry wizard</h2>
+                <div class="cr-output-head"><h2>Registry wizard</h2><button id="resetInputsBtn" class="cr-btn" type="button">Reset inputs</button></div>
 
                 <div class="cr-step-panel" data-step-panel="1">
                     <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text"></div>
@@ -218,11 +218,36 @@
                 }
             }
 
+            function resetInputs() {
+                $('seedInput').value = randomSeed();
+                $('familyCount').value = '20';
+                $('population').value = '';
+                $('lowerAnchorText').value = '';
+                $('mediumAnchorText').value = '';
+                $('upperAnchorText').value = '';
+                $('lowerPercent').value = '40';
+                $('mediumPercent').value = '40';
+                $('upperPercent').value = '20';
+                $('familyType').value = 'random';
+                $('outputFormat').value = 'homebrewery';
+                $('allowSecondWifeChance').checked = true;
+                $('includeElders').checked = true;
+                registry = null;
+                $('outputText').value = '';
+                $('statFamilies').textContent = '0';
+                $('statAnchors').textContent = '0';
+                $('statMembers').textContent = '0';
+                $('validationBox').hidden = true;
+                updatePercentageTotal();
+                showStep(1);
+            }
+
             $('nextBtn').addEventListener('click', () => { if (step === 2) updatePercentageTotal(); showStep(step + 1); });
             $('backBtn').addEventListener('click', () => showStep(step - 1));
             ['lowerPercent', 'mediumPercent', 'upperPercent'].forEach((id) => $(id).addEventListener('input', updatePercentageTotal));
             $('generateBtn').addEventListener('click', generate);
             $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = randomSeed(); generate(); });
+            $('resetInputsBtn').addEventListener('click', resetInputs);
             $('outputFormat').addEventListener('change', () => { if (registry) renderRegistry(); });
             $('copyBtn').addEventListener('click', async () => { if (!registry) return; try { await navigator.clipboard.writeText($('outputText').value); } catch { $('outputText').select(); document.execCommand('copy'); } });
             $('downloadBtn').addEventListener('click', () => { if (!registry) return; const blob = new Blob([$('outputText').value], { type: 'text/markdown' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${registry.seed}-civil-registry.md`; link.click(); URL.revokeObjectURL(link.href); });
