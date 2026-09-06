@@ -111,6 +111,12 @@
         return Object.entries(percentages);
     }
 
+    function balancedFamilySizes(population, familyCount) {
+        const baseSize = Math.floor(population / familyCount);
+        const remainder = population % familyCount;
+        return Array.from({ length: familyCount }, (_, index) => baseSize + (index < remainder ? 1 : 0));
+    }
+
     function chooseFamilyType(rng, familyType) {
         return familyType && familyType !== 'random' ? familyType : rng.weighted(familyEngine.FAMILY_TYPES);
     }
@@ -120,6 +126,12 @@
         const familyCount = Math.floor(Number(options.familyCount));
         if (!Number.isInteger(familyCount) || familyCount < 1) throw new Error('Family count must be a positive whole number.');
         const percentages = normalizePercentages(options.classPercentages);
+        const hasPopulationLimit = options.population !== undefined && options.population !== null && String(options.population).trim() !== '';
+        const population = hasPopulationLimit ? Number(options.population) : null;
+        if (hasPopulationLimit && (!Number.isInteger(population) || population < familyCount)) {
+            throw new Error(`Population must be a whole number of at least ${familyCount} (one person per family).`);
+        }
+        const familySizes = population === null ? null : balancedFamilySizes(population, familyCount);
         const anchorTextByClass = options.anchorTextByClass || options.anchorTextsByClass;
         const parsed = anchorTextByClass
             ? parseAnchorsByClass(anchorTextByClass)
@@ -147,6 +159,7 @@
                 allowSecondWifeChance: options.allowSecondWifeChance === true,
                 includeElders: options.includeElders !== false,
                 ignoreFamilyMemberLimit: true,
+                targetMemberCount: familySizes ? familySizes[index] : undefined,
                 anchor
             }));
         }
@@ -156,8 +169,10 @@
             seed,
             familyCount,
             classPercentages: percentages,
+            populationLimit: population,
             anchorCount: parsed.anchors.length,
             families,
+            population: families.reduce((sum, family) => sum + family.members.length, 0),
             errors: []
         };
     }
@@ -225,6 +240,7 @@
         parseAnchors,
         parseAnchorsByClass,
         normalizePercentages,
+        balancedFamilySizes,
         buildRegistry,
         familyToMarkdown,
         familyToNumberedMarkdown,

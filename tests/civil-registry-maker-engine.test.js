@@ -79,6 +79,21 @@ const classAnchoredRegistry = engine.buildRegistry({
 assert.equal(classAnchoredRegistry.anchorCount, 3);
 assert.deepEqual(classAnchoredRegistry.families.slice(0, 3).map((family) => family.householdClass), ['Lower', 'Medium', 'Upper']);
 
+assert.deepEqual(engine.balancedFamilySizes(10, 4), [3, 3, 2, 2]);
+const populationRegistry = engine.buildRegistry({
+    seed: 'population-registry',
+    familyCount: 4,
+    population: 10,
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Roommate',
+    includeElders: false
+});
+assert.equal(populationRegistry.populationLimit, 10);
+assert.equal(populationRegistry.population, 10);
+assert.deepEqual(populationRegistry.families.map((family) => family.members.length), [3, 3, 2, 2]);
+assert.ok(populationRegistry.families.every((family) => family.members.length > 0));
+assert.throws(() => engine.buildRegistry({ familyCount: 4, population: 3, classPercentages: { Lower: 40, Medium: 40, Upper: 20 } }), /at least 4/);
+
 const nonBinaryRegistry = engine.buildRegistry({
     seed: 'non-binary-registry',
     familyCount: 1,

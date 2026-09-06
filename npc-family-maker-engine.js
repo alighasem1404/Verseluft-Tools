@@ -244,6 +244,12 @@
     function buildFamily(options = {}) {
         const seed = String(options.seed || `family-${Date.now()}`);
         const rng = createRng(seed);
+        const requestedTargetMemberCount = options.targetMemberCount === undefined || options.targetMemberCount === null
+            ? null
+            : Number(options.targetMemberCount);
+        const targetMemberCount = Number.isInteger(requestedTargetMemberCount) && requestedTargetMemberCount > 0
+            ? requestedTargetMemberCount
+            : null;
         const family = {
             id: `family-${hashSeed(seed).toString(16)}`,
             seed,
@@ -257,8 +263,11 @@
             ruleSetVersion: 'workbook-v1',
             validationIssues: [],
             flags: { mixedRace: false, widow: false, coreDeath: false, secondWife: false },
-            enforceMaxFamilyMembers: options.ignoreFamilyMemberLimit !== true
+            enforceMaxFamilyMembers: options.ignoreFamilyMemberLimit !== true,
+            targetMemberCount
         };
+
+        const hasRoom = (count = 1) => targetMemberCount === null || family.members.length + count <= targetMemberCount;
 
         const anchor = options.anchor || {};
         const coreGender = anchor.gender || rng.pick(['Male', 'Female']);
@@ -291,12 +300,14 @@
         family.flags.widow = widow;
         if (widow) family.flags.coreDeath = rng.next() < 0.5;
         const allowSecondWifeChance = options.allowSecondWifeChance ?? options.includeSecondWife;
-        const hasSecondWife = family.familyType === 'Normal' && Boolean(allowSecondWifeChance) && !widow && rng.next() < SECOND_WIFE_CHANCE;
+        const secondWifeFits = targetMemberCount === null || family.members.length + 4 <= targetMemberCount;
+        const hasSecondWife = family.familyType === 'Normal' && Boolean(allowSecondWifeChance) && !widow && secondWifeFits && rng.next() < SECOND_WIFE_CHANCE;
         family.flags.secondWife = hasSecondWife;
         const partnerCount = defaultPartnerCount + (hasSecondWife ? 1 : 0);
         const partners = [];
         for (let index = 0; index < partnerCount && !widow; index += 1) {
             const isSecondWife = index === 1;
+            if (!hasRoom(isSecondWife ? 3 : 1)) break;
             const partnerGender = isSecondWife ? 'Female' : core.gender === 'Non-binary' ? rng.pick(['Male', 'Female']) : family.familyType === 'Gay' ? core.gender : oppositeGender(core.gender);
             const partnerRace = options.partnerRace && !isSecondWife ? options.partnerRace : (rng.next() < Number(WORKBOOK_DATA.main?.controls?.mixedRaceChance || 20) / 100 ? chooseRace(rng) : core.race);
             const partnerRole = partnerGender === 'Male' ? 'Husband' : 'Wife';
@@ -319,7 +330,7 @@
         if (['Normal', 'Gay'].includes(family.familyType)) {
             const requestedChildren = options.childCount ?? rng.int(0, Math.min(5, WORKBOOK_DATA.main?.controls?.maxFamilyMembers || 10));
             const childCount = hasSecondWife ? Math.max(requestedChildren, partners.length) : requestedChildren;
-            for (let i = 0; i < childCount; i += 1) {
+            for (let i = 0; i < childCount && hasRoom(); i += 1) {
                 const childPartner = partners.length ? partners[i % partners.length] : null;
                 const childRace = chooseChildRace(rng, core.race, childPartner?.race || core.race);
                 const gender = rng.pick(['Male', 'Female']);
@@ -338,7 +349,7 @@
                     : ['Normal', 'Gay', 'Single'].includes(family.familyType) && rng.next() < Number(WORKBOOK_DATA.main?.controls?.siblingInFamily || 10) / 100
                         ? rng.int(1, maxSiblings)
                         : 0;
-            for (let i = 0; i < siblingCount; i += 1) {
+            for (let i = 0; i < siblingCount && hasRoom(); i += 1) {
                 const gender = rng.pick(['Male', 'Female']);
                 const sibling = addMember(family, rng, { race: core.race, gender, relationshipRole: gender === 'Male' ? 'Brother' : 'Sister', age: clamp(core.age + rng.int(-18, 18), 0, getRaceData(core.race).maxAge) });
                 relate(family, sibling.id, core.id, 'sibling');
@@ -354,7 +365,7 @@
                 ['Maternal Grandfather', 'Male', maternalChance], ['Maternal Grandmother', 'Female', maternalChance]
             ];
             elderSpecs.forEach(([role, gender, chance]) => {
-                if (rng.next() < chance) {
+                if (rng.next() < chance && hasRoom()) {
                     const elder = addMember(family, rng, { race: core.race, gender, relationshipRole: role, stage: 'elder' });
                     relate(family, elder.id, core.id, 'elder of');
                 }
@@ -363,7 +374,7 @@
 
         if (family.familyType === 'Roommate') {
             const roommateCount = options.roommateCount ?? rng.int(1, Math.min(4, WORKBOOK_DATA.main?.controls?.maxRoommates || 5));
-            for (let i = 0; i < roommateCount; i += 1) {
+            for (let i = 0; i < roommateCount && hasRoom(); i += 1) {
                 const roommate = addMember(family, rng, { race: chooseRace(rng), relationshipRole: 'Household member' });
                 roommate.relationshipRole = roommate.gender;
                 relate(family, roommate.id, core.id, 'roommate');
@@ -374,9 +385,30 @@
         if (family.familyType !== 'Roommate' && singleClassCanHaveServants) {
             const servantChance = family.householdClass === 'Upper' ? 0.9 : family.householdClass === 'Medium' ? Number(WORKBOOK_DATA.main?.controls?.middleClassServantChance || 60) / 100 : 0.15;
             const servantCount = options.servantCount ?? (rng.next() < servantChance ? (family.householdClass === 'Upper' ? rng.int(1, 4) : rng.int(1, 2)) : 0);
-            for (let i = 0; i < servantCount; i += 1) {
+            for (let i = 0; i < servantCount && hasRoom(); i += 1) {
                 const servant = addMember(family, rng, { race: chooseRace(rng), relationshipRole: 'Servant' });
                 relate(family, servant.id, core.id, 'serves');
+            }
+        }
+
+        while (targetMemberCount !== null && hasRoom()) {
+            const gender = rng.pick(['Male', 'Female']);
+            if (family.familyType === 'Roommate') {
+                const roommate = addMember(family, rng, { race: chooseRace(rng), gender, relationshipRole: gender });
+                relate(family, roommate.id, core.id, 'roommate');
+            } else if (['Normal', 'Gay'].includes(family.familyType)) {
+                const childPartner = partners.length ? partners[(family.members.length - 1) % partners.length] : null;
+                const childRace = chooseChildRace(rng, core.race, childPartner?.race || core.race);
+                const child = addMember(family, rng, { race: childRace, gender, relationshipRole: gender === 'Male' ? 'Son' : 'Daughter', stage: 'child', parentAge });
+                relate(family, child.id, core.id, 'child of');
+                if (childPartner) relate(family, child.id, childPartner.id, 'child of');
+            } else if (family.familyType === 'Sibling' || family.familyType === 'Single') {
+                const sibling = addMember(family, rng, { race: core.race, gender, relationshipRole: gender === 'Male' ? 'Brother' : 'Sister', age: clamp(core.age + rng.int(-18, 18), 0, getRaceData(core.race).maxAge) });
+                relate(family, sibling.id, core.id, 'sibling');
+                relate(family, core.id, sibling.id, 'sibling');
+            } else {
+                const member = addMember(family, rng, { race: chooseRace(rng), gender, relationshipRole: 'Household member' });
+                relate(family, member.id, core.id, 'household member');
             }
         }
 

@@ -40,6 +40,7 @@
                 <div class="cr-step-panel" data-step-panel="1">
                     <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text"></div>
                     <div class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
+                    <div class="cr-field"><label for="population">Population limit</label><input id="population" class="cr-input" type="number" min="1" step="1" placeholder="Optional"><p class="cr-help">When set, the population is divided as evenly as possible across the families. It must be at least the family count.</p></div>
                     <div class="cr-section-label">Anchor NPCs by social class</div>
                     <div class="cr-anchor-grid">
                         <div class="cr-field"><label for="lowerAnchorText">Lower-class anchors</label><textarea id="lowerAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 34, Farmer"></textarea></div>
@@ -151,6 +152,7 @@
                 return {
                     seed: ensureSeed(),
                     familyCount: Number($('familyCount').value),
+                    population: $('population').value.trim() ? Number($('population').value) : undefined,
                     anchorTextByClass: {
                         Lower: $('lowerAnchorText').value,
                         Medium: $('mediumAnchorText').value,
