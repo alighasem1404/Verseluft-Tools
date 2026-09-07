@@ -15,6 +15,11 @@
         Tiefling: { maxAge: 120, adulthood: 18, names: ['Abaddon', 'Akta', 'Azazel', 'Damaia', 'Jorogumo', 'Kazanir', 'Nyx', 'Raziel', 'Xythor', 'Zariel'], surnames: ['Brimstone', 'Darkflame', 'Eclipse', 'Nightfury', 'Shadowhorn'] }
     };
 
+    const ADDITIONAL_RACES = {
+        Centaur: { maxAge: 100, adulthood: 18, names: ['Arion', 'Astera', 'Brontes', 'Chiron', 'Damaris', 'Eryx', 'Galene', 'Melantha', 'Pholus', 'Thyra'], surnames: ['Cloudhoof', 'Dawnmane', 'Galestride', 'Moonrunner', 'Stonehoof'] },
+        'Deer-folk': { maxAge: 100, adulthood: 18, names: ['Alder', 'Antler', 'Bracken', 'Cervan', 'Fawn', 'Hazel', 'Juniper', 'Meadow', 'Rowan', 'Willow'], surnames: ['Antlerbough', 'Briarstep', 'Deerhaven', 'Leafwhisper', 'Mossgrove'] }
+    };
+
     const FALLBACK_RACE_WEIGHTS = [
         ['Human', 30], ['Elf', 15], ['Half-elf', 25], ['Half-orc', 5], ['Dwarf', 5],
         ['Halfling', 5], ['Gnome', 5], ['Dragonborn', 5], ['Tiefling', 5]
@@ -53,7 +58,8 @@
     const ELF_TEMPLATE = SOURCE_RACES.Elf || FALLBACK_RACES.Elf;
     const RACES = Object.fromEntries([
         ...Object.entries(SOURCE_RACES).filter(([race]) => race !== 'Elf'),
-        ...ELF_SUBRACE_NAMES.map((race) => [race, { ...ELF_TEMPLATE }])
+        ...ELF_SUBRACE_NAMES.map((race) => [race, { ...ELF_TEMPLATE }]),
+        ...Object.entries(ADDITIONAL_RACES)
     ]);
     const SOURCE_RACE_WEIGHTS = Object.entries(WORKBOOK_DATA.main?.raceWeights || {}).length
         ? Object.entries(WORKBOOK_DATA.main.raceWeights)

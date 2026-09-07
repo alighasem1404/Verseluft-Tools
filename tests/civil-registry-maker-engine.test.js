@@ -40,6 +40,10 @@ const plainElfRegistry = engine.buildRegistry({
 assert.equal(plainElfRegistry.families[0].members[0].race, 'Elf');
 assert.equal(plainElfRegistry.families[0].validationIssues.length, 0);
 
+const addedRaceAnchors = engine.parseAnchors('name, sex, race, age, roll\nArion Cloudhoof, Male, Centaur, 34, Scout\nWillow Mossgrove, Female, Deer-folk, 29, Herbalist');
+assert.equal(addedRaceAnchors.errors.length, 0);
+assert.deepEqual(addedRaceAnchors.anchors.map((anchor) => anchor.race), ['Centaur', 'Deer-folk']);
+
 assert.throws(() => engine.normalizePercentages({ Lower: 40, Medium: 40, Upper: 10 }), /total 100/);
 assert.throws(() => engine.parseAnchors('name, sex, race, age, roll\nBad, Unknown, Human, 20, Job').errors.length && engine.buildRegistry({ familyCount: 1, anchorText: 'name, sex, race, age, roll\nBad, Unknown, Human, 20, Job' }), /unsupported sex/);
 

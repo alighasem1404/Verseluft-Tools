@@ -24,6 +24,10 @@ assert.equal(Object.prototype.hasOwnProperty.call(engine.RACES, 'Elf'), false);
 assert.deepEqual(Object.keys(engine.RACES).filter((race) => race.toLowerCase().includes('elf')), ['Half-elf', 'Wood Elf', 'High Elf', 'Dark Elf']);
 assert.equal(engine.resolveRaceName('wood elf'), 'Wood Elf');
 assert.equal(engine.resolveRaceName('Elf'), null);
+assert.equal(engine.resolveRaceName('centaur'), 'Centaur');
+assert.equal(engine.resolveRaceName('Deer-folk'), 'Deer-folk');
+assert.ok(engine.RACES.Centaur);
+assert.ok(engine.RACES['Deer-folk']);
 
 const lifeStageExpectations = [
     ['Human', 13, 'child'], ['Human', 14, 'youngAdult'], ['Human', 18, 'adult'],
