@@ -29,6 +29,20 @@ assert.equal(subraceAnchor.anchors[0].race, 'Wood Elf');
 const plainElfAnchor = engine.parseAnchors('name, sex, race, age, roll\nAelar Moonwhisper, Male, Elf, 240, Archivist');
 assert.equal(plainElfAnchor.errors.length, 0);
 assert.equal(plainElfAnchor.anchors[0].race, 'Elf');
+
+const singleNameAnchor = engine.parseAnchors('name, sex, race, age, roll\nSierra, Female, Human, 19, Courier');
+assert.equal(singleNameAnchor.errors.length, 0);
+assert.equal(singleNameAnchor.anchors[0].firstName, 'Sierra');
+assert.equal(singleNameAnchor.anchors[0].surname, 'Sierra');
+const singleNameRegistry = engine.buildRegistry({
+    seed: 'single-name-anchor',
+    familyCount: 1,
+    anchorText: 'name, sex, race, age, roll\nSierra, Female, Human, 19, Courier',
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeElders: false
+});
+assert.match(engine.toNumberedMarkdown(singleNameRegistry), /###### 1 The Sierra Family/);
 const plainElfRegistry = engine.buildRegistry({
     seed: 'plain-elf-anchor',
     familyCount: 1,

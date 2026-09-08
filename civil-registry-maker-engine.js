@@ -32,7 +32,10 @@
 
     function parseName(fullName) {
         const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
-        if (parts.length < 2) return { firstName: parts[0] || 'Unnamed', surname: 'Unknown' };
+        if (parts.length < 2) {
+            const name = parts[0] || 'Unnamed';
+            return { firstName: name, surname: name };
+        }
         return { firstName: parts.shift(), surname: parts.join(' ') };
     }
 
