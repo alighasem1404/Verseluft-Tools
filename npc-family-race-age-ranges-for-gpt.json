@@ -1,0 +1,331 @@
+{
+  "title": "NPC Family Maker Race Age Ranges",
+  "schemaVersion": "1.0.0",
+  "description": "Race age limits and life-stage boundaries used by the NPC Family Maker. Ages are in years.",
+  "source": {
+    "workbook": "New Population Maker",
+    "sourceFile": "Data/npc-family-maker-data.js",
+    "note": "The 2024 Basic Rules say most species live about 80 years and reach physical maturity at about the same age, but do not give separate numerical adulthood ages for Orcs or Goliaths. The app therefore uses the Human maturity convention for them: young adult at 14, adult at 18, maximum age 80. Satyr is from Mordenkainen Presents: Monsters of the Multiverse and uses the same human-like convention in this app. For Centaur and Deer-folk, the app uses maximum age 100 and adulthood at 18."
+  },
+  "rules": {
+    "lifeStageClassification": "child is below youngAdulthood; youngAdult is from youngAdulthood through adulthood minus 1; adult is adulthood and older.",
+    "generatedAdultAge": "The app generates ordinary adults from adulthood through floor(maxAge * 0.72).",
+    "generatedElderAge": "The app generates elders from max(adulthood + 25, floor(maxAge * 0.45)) through maxAge.",
+    "childAgeNote": "Child generation also considers the parent age, so a child does not always use the entire theoretical child interval."
+  },
+  "races": {
+    "Human": {
+      "maxAge": 100,
+      "meanAge": 30,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 13
+        },
+        "youngAdult": {
+          "min": 14,
+          "max": 17
+        },
+        "adult": {
+          "min": 18,
+          "max": 100
+        }
+      }
+    },
+    "Elf": {
+      "maxAge": 750,
+      "meanAge": 225,
+      "youngAdulthood": 96,
+      "adulthood": 120,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 95
+        },
+        "youngAdult": {
+          "min": 96,
+          "max": 119
+        },
+        "adult": {
+          "min": 120,
+          "max": 750
+        }
+      }
+    },
+    "Half-elf": {
+      "maxAge": 180,
+      "meanAge": 54,
+      "youngAdulthood": 16,
+      "adulthood": 20,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 15
+        },
+        "youngAdult": {
+          "min": 16,
+          "max": 19
+        },
+        "adult": {
+          "min": 20,
+          "max": 180
+        }
+      }
+    },
+    "Half-orc": {
+      "maxAge": 75,
+      "meanAge": 22.5,
+      "youngAdulthood": 11,
+      "adulthood": 14,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 10
+        },
+        "youngAdult": {
+          "min": 11,
+          "max": 13
+        },
+        "adult": {
+          "min": 14,
+          "max": 75
+        }
+      }
+    },
+    "Dwarf": {
+      "maxAge": 350,
+      "meanAge": 157.5,
+      "youngAdulthood": 80,
+      "adulthood": 100,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 79
+        },
+        "youngAdult": {
+          "min": 80,
+          "max": 99
+        },
+        "adult": {
+          "min": 100,
+          "max": 350
+        }
+      }
+    },
+    "Halfling": {
+      "maxAge": 150,
+      "meanAge": 45,
+      "youngAdulthood": 16,
+      "adulthood": 20,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 15
+        },
+        "youngAdult": {
+          "min": 16,
+          "max": 19
+        },
+        "adult": {
+          "min": 20,
+          "max": 150
+        }
+      }
+    },
+    "Gnome": {
+      "maxAge": 400,
+      "meanAge": 120,
+      "youngAdulthood": 32,
+      "adulthood": 40,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 31
+        },
+        "youngAdult": {
+          "min": 32,
+          "max": 39
+        },
+        "adult": {
+          "min": 40,
+          "max": 400
+        }
+      }
+    },
+    "Dragonborn": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 12,
+      "adulthood": 15,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 11
+        },
+        "youngAdult": {
+          "min": 12,
+          "max": 14
+        },
+        "adult": {
+          "min": 15,
+          "max": 80
+        }
+      }
+    },
+    "Tiefling": {
+      "maxAge": 120,
+      "meanAge": 36,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 13
+        },
+        "youngAdult": {
+          "min": 14,
+          "max": 17
+        },
+        "adult": {
+          "min": 18,
+          "max": 120
+        }
+      }
+    },
+    "Wood Elf": {
+      "maxAge": 750,
+      "meanAge": 225,
+      "youngAdulthood": 96,
+      "adulthood": 120,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 95
+        },
+        "youngAdult": {
+          "min": 96,
+          "max": 119
+        },
+        "adult": {
+          "min": 120,
+          "max": 750
+        }
+      }
+    },
+    "High Elf": {
+      "maxAge": 750,
+      "meanAge": 225,
+      "youngAdulthood": 96,
+      "adulthood": 120,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 95
+        },
+        "youngAdult": {
+          "min": 96,
+          "max": 119
+        },
+        "adult": {
+          "min": 120,
+          "max": 750
+        }
+      }
+    },
+    "Dark Elf": {
+      "maxAge": 750,
+      "meanAge": 225,
+      "youngAdulthood": 96,
+      "adulthood": 120,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 95
+        },
+        "youngAdult": {
+          "min": 96,
+          "max": 119
+        },
+        "adult": {
+          "min": 120,
+          "max": 750
+        }
+      }
+    },
+    "Centaur": {
+      "maxAge": 100,
+      "meanAge": 30,
+      "youngAdulthood": 18,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 17
+        },
+        "youngAdult": {
+          "min": 18,
+          "max": 17
+        },
+        "adult": {
+          "min": 18,
+          "max": 100
+        }
+      }
+    },
+    "Deer-folk": {
+      "maxAge": 100,
+      "meanAge": 30,
+      "youngAdulthood": 18,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {
+          "min": 0,
+          "max": 17
+        },
+        "youngAdult": {
+          "min": 18,
+          "max": 17
+        },
+        "adult": {
+          "min": 18,
+          "max": 100
+        }
+      }
+    },
+    "Orc": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Goliath": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Satyr": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    }
+  }
+}

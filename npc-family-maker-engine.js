@@ -12,17 +12,23 @@
         Halfling: { maxAge: 150, adulthood: 20, names: ['Alton', 'Daisy', 'Finnan', 'Jago', 'Lila', 'Milo', 'Pippa', 'Quincy', 'Rosie', 'Tobin'], surnames: ['Appleblossom', 'Barleyfoot', 'Cloverhill', 'Dewdrop', 'Greenbottle'] },
         Gnome: { maxAge: 400, adulthood: 40, names: ['Bimpnottin', 'Dimble', 'Gozzle', 'Jinx', 'Nissa', 'Twidget', 'Wibble', 'Wizzle', 'Yumble', 'Zook'], surnames: ['Dabblegear', 'Muddlesprocket', 'Quickwhistle', 'Thimblefizz', 'Upgear'] },
         Dragonborn: { maxAge: 80, adulthood: 15, names: ['Balasar', 'Draaros', 'Ghesh', 'Heskan', 'Rhogar', 'Rynnor', 'Taenaran', 'Vezendok', 'Zhorak', 'Zorvatha'], surnames: ['Flamebrow', 'Frostjaw', 'Goldclaw', 'Ironscale', 'Whitescale'] },
-        Tiefling: { maxAge: 120, adulthood: 18, names: ['Abaddon', 'Akta', 'Azazel', 'Damaia', 'Jorogumo', 'Kazanir', 'Nyx', 'Raziel', 'Xythor', 'Zariel'], surnames: ['Brimstone', 'Darkflame', 'Eclipse', 'Nightfury', 'Shadowhorn'] }
+        Tiefling: { maxAge: 120, adulthood: 18, names: ['Abaddon', 'Akta', 'Azazel', 'Damaia', 'Jorogumo', 'Kazanir', 'Nyx', 'Raziel', 'Xythor', 'Zariel'], surnames: ['Brimstone', 'Darkflame', 'Eclipse', 'Nightfury', 'Shadowhorn'] },
+        Orc: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Asha', 'Brakka', 'Borga', 'Drog', 'Grom', 'Grakka', 'Karg', 'Korga', 'Mok', 'Morga', 'Narka', 'Rogar', 'Rasha', 'Shura', 'Thokk', 'Urzog', 'Varg', 'Varka', 'Zog', 'Zura'], surnames: ['Ashfang', 'Bonebreaker', 'Cindermaw', 'Ironjaw', 'Skullcrusher', 'Stonefist', 'Stormtusk', 'Thundertusk', 'Warhowl', 'Wolfsbane'] },
+        Goliath: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aasathra', 'Aukan', 'Bromma', 'Calla', 'Eglath', 'Elan', 'Gae-Al', 'Gauthak', 'Katha', 'Keothi', 'Lo-Kag', 'Manneo', 'Mavek', 'Nalla', 'Orilo', 'Phelaia', 'Tala', 'Thalai', 'Vervak', 'Weyr'], surnames: ['Al-Herak', 'Kalatak', 'Mornak', 'Tarkana', 'Uthilak', 'Wemirak'] },
+        Satyr: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aisopos', 'Ariadne', 'Chrysa', 'Damon', 'Daphne', 'Eirene', 'Eryx', 'Kallias', 'Melia', 'Melas', 'Nysa', 'Orpheus', 'Pan', 'Phoebe', 'Silenos', 'Thaleia', 'Thyrsus', 'Xanthe', 'Zephyros', 'Zoe'], surnames: ['Briarhoof', 'Dapplehorn', 'Goldenreed', 'Moonmeadow', 'Oakstep', 'Pinewhistle', 'Silverflute', 'Thornsong', 'Vinehoof', 'Wildgrove'] }
     };
 
     const ADDITIONAL_RACES = {
         Centaur: { maxAge: 100, adulthood: 18, names: ['Arion', 'Astera', 'Brontes', 'Chiron', 'Damaris', 'Eryx', 'Galene', 'Melantha', 'Pholus', 'Thyra'], surnames: ['Cloudhoof', 'Dawnmane', 'Galestride', 'Moonrunner', 'Stonehoof'] },
-        'Deer-folk': { maxAge: 100, adulthood: 18, names: ['Alder', 'Antler', 'Bracken', 'Cervan', 'Fawn', 'Hazel', 'Juniper', 'Meadow', 'Rowan', 'Willow'], surnames: ['Antlerbough', 'Briarstep', 'Deerhaven', 'Leafwhisper', 'Mossgrove'] }
+        'Deer-folk': { maxAge: 100, adulthood: 18, names: ['Alder', 'Antler', 'Bracken', 'Cervan', 'Fawn', 'Hazel', 'Juniper', 'Meadow', 'Rowan', 'Willow'], surnames: ['Antlerbough', 'Briarstep', 'Deerhaven', 'Leafwhisper', 'Mossgrove'] },
+        Orc: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Asha', 'Brakka', 'Borga', 'Drog', 'Grom', 'Grakka', 'Karg', 'Korga', 'Mok', 'Morga', 'Narka', 'Rogar', 'Rasha', 'Shura', 'Thokk', 'Urzog', 'Varg', 'Varka', 'Zog', 'Zura'], surnames: ['Ashfang', 'Bonebreaker', 'Cindermaw', 'Ironjaw', 'Skullcrusher', 'Stonefist', 'Stormtusk', 'Thundertusk', 'Warhowl', 'Wolfsbane'] },
+        Goliath: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aasathra', 'Aukan', 'Bromma', 'Calla', 'Eglath', 'Elan', 'Gae-Al', 'Gauthak', 'Katha', 'Keothi', 'Lo-Kag', 'Manneo', 'Mavek', 'Nalla', 'Orilo', 'Phelaia', 'Tala', 'Thalai', 'Vervak', 'Weyr'], surnames: ['Al-Herak', 'Kalatak', 'Mornak', 'Tarkana', 'Uthilak', 'Wemirak'] },
+        Satyr: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aisopos', 'Ariadne', 'Chrysa', 'Damon', 'Daphne', 'Eirene', 'Eryx', 'Kallias', 'Melia', 'Melas', 'Nysa', 'Orpheus', 'Pan', 'Phoebe', 'Silenos', 'Thaleia', 'Thyrsus', 'Xanthe', 'Zephyros', 'Zoe'], surnames: ['Briarhoof', 'Dapplehorn', 'Goldenreed', 'Moonmeadow', 'Oakstep', 'Pinewhistle', 'Silverflute', 'Thornsong', 'Vinehoof', 'Wildgrove'] }
     };
 
     const FALLBACK_RACE_WEIGHTS = [
         ['Human', 30], ['Elf', 15], ['Half-elf', 25], ['Half-orc', 5], ['Dwarf', 5],
-        ['Halfling', 5], ['Gnome', 5], ['Dragonborn', 5], ['Tiefling', 5]
+        ['Halfling', 5], ['Gnome', 5], ['Dragonborn', 5], ['Tiefling', 5], ['Orc', 5], ['Goliath', 5]
     ];
 
     const ELF_SUBRACE_WEIGHTS = [['Wood Elf', 50], ['High Elf', 40], ['Dark Elf', 10]];
@@ -64,7 +70,11 @@
     const SOURCE_RACE_WEIGHTS = Object.entries(WORKBOOK_DATA.main?.raceWeights || {}).length
         ? Object.entries(WORKBOOK_DATA.main.raceWeights)
         : FALLBACK_RACE_WEIGHTS;
-    const RACE_WEIGHTS = SOURCE_RACE_WEIGHTS.flatMap(([race, weight]) => race === 'Elf'
+    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5]];
+    const RACE_WEIGHTS = [
+        ...SOURCE_RACE_WEIGHTS,
+        ...ADDITIONAL_RACE_WEIGHTS.filter(([race]) => !SOURCE_RACE_WEIGHTS.some(([sourceRace]) => sourceRace === race))
+    ].flatMap(([race, weight]) => race === 'Elf'
         ? ELF_SUBRACE_WEIGHTS.map(([subrace, subraceWeight]) => [subrace, Number(weight) * Number(subraceWeight) / 100])
         : [[race, weight]]);
     const FAMILY_TYPES = Object.entries(WORKBOOK_DATA.main?.familyTypeWeights || {}).length

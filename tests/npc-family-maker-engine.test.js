@@ -26,8 +26,14 @@ assert.equal(engine.resolveRaceName('wood elf'), 'Wood Elf');
 assert.equal(engine.resolveRaceName('Elf'), null);
 assert.equal(engine.resolveRaceName('centaur'), 'Centaur');
 assert.equal(engine.resolveRaceName('Deer-folk'), 'Deer-folk');
+assert.equal(engine.resolveRaceName('orc'), 'Orc');
+assert.equal(engine.resolveRaceName('goliath'), 'Goliath');
+assert.equal(engine.resolveRaceName('satyr'), 'Satyr');
 assert.ok(engine.RACES.Centaur);
 assert.ok(engine.RACES['Deer-folk']);
+assert.ok(engine.RACES.Orc);
+assert.ok(engine.RACES.Goliath);
+assert.ok(engine.RACES.Satyr);
 
 const lifeStageExpectations = [
     ['Human', 13, 'child'], ['Human', 14, 'youngAdult'], ['Human', 18, 'adult'],
@@ -38,7 +44,10 @@ const lifeStageExpectations = [
     ['Halfling', 15, 'child'], ['Halfling', 16, 'youngAdult'], ['Halfling', 20, 'adult'],
     ['Gnome', 31, 'child'], ['Gnome', 32, 'youngAdult'], ['Gnome', 40, 'adult'],
     ['Dragonborn', 11, 'child'], ['Dragonborn', 12, 'youngAdult'], ['Dragonborn', 15, 'adult'],
-    ['Tiefling', 13, 'child'], ['Tiefling', 14, 'youngAdult'], ['Tiefling', 18, 'adult']
+    ['Tiefling', 13, 'child'], ['Tiefling', 14, 'youngAdult'], ['Tiefling', 18, 'adult'],
+    ['Orc', 13, 'child'], ['Orc', 14, 'youngAdult'], ['Orc', 18, 'adult'],
+    ['Goliath', 13, 'child'], ['Goliath', 14, 'youngAdult'], ['Goliath', 18, 'adult'],
+    ['Satyr', 13, 'child'], ['Satyr', 14, 'youngAdult'], ['Satyr', 18, 'adult']
 ];
 for (const [race, age, stage] of lifeStageExpectations) assert.equal(engine.getLifeStage(race, age), stage);
 

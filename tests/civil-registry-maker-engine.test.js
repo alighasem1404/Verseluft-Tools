@@ -44,6 +44,14 @@ const addedRaceAnchors = engine.parseAnchors('name, sex, race, age, roll\nArion 
 assert.equal(addedRaceAnchors.errors.length, 0);
 assert.deepEqual(addedRaceAnchors.anchors.map((anchor) => anchor.race), ['Centaur', 'Deer-folk']);
 
+const species2024Anchors = engine.parseAnchors('name, sex, race, age, roll\nGrakka Ashfang, Female, Orc, 32, Guard\nAukan Kalatak, Male, Goliath, 44, Mason');
+assert.equal(species2024Anchors.errors.length, 0);
+assert.deepEqual(species2024Anchors.anchors.map((anchor) => anchor.race), ['Orc', 'Goliath']);
+
+const satyrAnchor = engine.parseAnchors('name, sex, race, age, roll\nPan Wildgrove, Male, Satyr, 26, Reveler');
+assert.equal(satyrAnchor.errors.length, 0);
+assert.equal(satyrAnchor.anchors[0].race, 'Satyr');
+
 const backerAnchorText = 'name, sex, race, age, roll, backer name\nGregory Marrow, Male, Human, 58, Council Head, House Brightwater';
 const backerRegistry = engine.buildRegistry({
     seed: 'backer-registry',
