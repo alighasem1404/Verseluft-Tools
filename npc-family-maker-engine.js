@@ -270,7 +270,8 @@
             validationIssues: [],
             flags: { mixedRace: false, widow: false, coreDeath: false, secondWife: false },
             enforceMaxFamilyMembers: options.ignoreFamilyMemberLimit !== true,
-            targetMemberCount
+            targetMemberCount,
+            backerName: options.backerName || null
         };
 
         const hasRoom = (count = 1) => targetMemberCount === null || family.members.length + count <= targetMemberCount;

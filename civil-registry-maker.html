@@ -41,13 +41,14 @@
                     <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text"></div>
                     <div class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
                     <div class="cr-field"><label for="population">Population limit</label><input id="population" class="cr-input" type="number" min="1" step="1" placeholder="Optional"><p class="cr-help">When set, the population is divided as evenly as possible across the families. It must be at least the family count.</p></div>
+                    <label class="cr-check"><input id="includeBackerNames" type="checkbox"> Include backer names in the registry output</label>
                     <div class="cr-section-label">Anchor NPCs by social class</div>
                     <div class="cr-anchor-grid">
                         <div class="cr-field"><label for="lowerAnchorText">Lower-class anchors</label><textarea id="lowerAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 34, Farmer"></textarea></div>
                         <div class="cr-field"><label for="mediumAnchorText">Medium-class anchors</label><textarea id="mediumAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Female, Human, 44, Shopkeeper"></textarea></div>
                         <div class="cr-field"><label for="upperAnchorText">Upper-class anchors</label><textarea id="upperAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 58, Chancellor"></textarea></div>
                     </div>
-                    <p class="cr-help">Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution.</p>
+                    <p class="cr-help">Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution. Optional anchor format: name, sex, race, age, roll, backer name.</p>
                 </div>
 
                 <div class="cr-step-panel" data-step-panel="2" hidden>
@@ -222,6 +223,7 @@
                 $('seedInput').value = randomSeed();
                 $('familyCount').value = '20';
                 $('population').value = '';
+                $('includeBackerNames').checked = false;
                 $('lowerAnchorText').value = '';
                 $('mediumAnchorText').value = '';
                 $('upperAnchorText').value = '';

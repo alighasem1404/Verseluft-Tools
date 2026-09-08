@@ -44,6 +44,30 @@ const addedRaceAnchors = engine.parseAnchors('name, sex, race, age, roll\nArion 
 assert.equal(addedRaceAnchors.errors.length, 0);
 assert.deepEqual(addedRaceAnchors.anchors.map((anchor) => anchor.race), ['Centaur', 'Deer-folk']);
 
+const backerAnchorText = 'name, sex, race, age, roll, backer name\nGregory Marrow, Male, Human, 58, Council Head, House Brightwater';
+const backerRegistry = engine.buildRegistry({
+    seed: 'backer-registry',
+    familyCount: 1,
+    anchorText: backerAnchorText,
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeBackerNames: true,
+    includeElders: false
+});
+assert.equal(backerRegistry.families[0].backerName, 'House Brightwater');
+assert.match(engine.toNumberedMarkdown(backerRegistry), /###### \(Backer's Name: House Brightwater\)/);
+const missingBackerRegistry = engine.buildRegistry({
+    seed: 'missing-backer-registry',
+    familyCount: 1,
+    anchorText: 'name, sex, race, age, roll, backer name\nGregory Marrow, Male, Human, 58, Council Head',
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeBackerNames: true,
+    includeElders: false
+});
+assert.equal(missingBackerRegistry.families[0].backerName, null);
+assert.doesNotMatch(engine.toNumberedMarkdown(missingBackerRegistry), /Backer's Name/);
+
 assert.throws(() => engine.normalizePercentages({ Lower: 40, Medium: 40, Upper: 10 }), /total 100/);
 assert.throws(() => engine.parseAnchors('name, sex, race, age, roll\nBad, Unknown, Human, 20, Job').errors.length && engine.buildRegistry({ familyCount: 1, anchorText: 'name, sex, race, age, roll\nBad, Unknown, Human, 20, Job' }), /unsupported sex/);
 

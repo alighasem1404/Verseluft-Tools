@@ -77,7 +77,8 @@
                 gender: gender || 'Male',
                 race: race || 'Human',
                 age: Number.isFinite(age) && age >= 0 ? age : 0,
-                profession: cells.slice(4).join(', ').trim() || undefined,
+                profession: cells[4]?.trim() || undefined,
+                ...(cells.slice(5).join(', ').trim() ? { backerName: cells.slice(5).join(', ').trim() } : {}),
                 sourceNotes: ['Civil Registry anchor']
             });
         });
@@ -160,6 +161,7 @@
                 includeElders: options.includeElders !== false,
                 ignoreFamilyMemberLimit: true,
                 targetMemberCount: familySizes ? familySizes[index] : undefined,
+                backerName: options.includeBackerNames === true ? sourceAnchor?.backerName : undefined,
                 anchor
             }));
         }
@@ -179,6 +181,7 @@
 
     function familyToMarkdown(family) {
         const lines = [`The "${family.surname}" Family`, ''];
+        if (family.backerName) lines.push(`###### (Backer's Name: ${family.backerName})`, '');
         family.members.forEach((member) => {
             const profession = member.profession ? `, ${member.profession}` : '';
             lines.push(`- ${member.firstName}, ${member.race}, ${member.age}, ${member.relationshipRole}${profession}`);
@@ -188,6 +191,7 @@
 
     function familyToNumberedMarkdown(family, number) {
         const lines = [`###### ${number} The ${family.surname} Family`];
+        if (family.backerName) lines.push('', `###### (Backer's Name: ${family.backerName})`, '');
         family.members.forEach((member) => {
             const profession = member.profession ? `, ${member.profession}` : '';
             lines.push(`- ${member.firstName}, ${member.race}, ${member.age}, ${member.relationshipRole}${profession}`);
