@@ -126,6 +126,10 @@
         const seed = String(options.seed || 'village-01');
         const familyCount = Math.floor(Number(options.familyCount));
         if (!Number.isInteger(familyCount) || familyCount < 1) throw new Error('Family count must be a positive whole number.');
+        const startingNumber = options.startingNumber === undefined || options.startingNumber === null || String(options.startingNumber).trim() === ''
+            ? 1
+            : Number(options.startingNumber);
+        if (!Number.isInteger(startingNumber) || startingNumber < 1) throw new Error('Starting family number must be a positive whole number.');
         const percentages = normalizePercentages(options.classPercentages);
         const hasPopulationLimit = options.population !== undefined && options.population !== null && String(options.population).trim() !== '';
         const population = hasPopulationLimit ? Number(options.population) : null;
@@ -170,6 +174,7 @@
             id: `registry-${seed}`,
             seed,
             familyCount,
+            startingNumber,
             classPercentages: percentages,
             populationLimit: population,
             anchorCount: parsed.anchors.length,
@@ -205,12 +210,12 @@
             .reduce((count, line) => count + (line.length > WRAP_LINE_LENGTH ? 2 : 1), 0);
     }
 
-    function paginateFamilies(families) {
+    function paginateFamilies(families, startingNumber = 1) {
         const pages = [];
         let current = [];
         let usedLines = 0;
         families.forEach((family, index) => {
-            const block = familyToNumberedMarkdown(family, index + 1);
+            const block = familyToNumberedMarkdown(family, startingNumber + index);
             const blockCost = wrappedLineCount(block);
             if (current.length && usedLines + blockCost >= PAGE_LINE_CAPACITY) {
                 pages.push(current);
@@ -225,11 +230,13 @@
     }
 
     function toNumberedMarkdown(registry) {
-        return registry.families.map((family, index) => familyToNumberedMarkdown(family, index + 1)).join('\n\n');
+        const startingNumber = Number.isInteger(registry.startingNumber) ? registry.startingNumber : 1;
+        return registry.families.map((family, index) => familyToNumberedMarkdown(family, startingNumber + index)).join('\n\n');
     }
 
     function toHomebreweryMarkdown(registry) {
-        return paginateFamilies(registry.families).map((page) => `{{index,wide,columns:3\n\n${page.join('\n\n')}\n\n}}\n\n\\page\n`).join('\n');
+        const startingNumber = Number.isInteger(registry.startingNumber) ? registry.startingNumber : 1;
+        return paginateFamilies(registry.families, startingNumber).map((page) => `{{index,wide,columns:3\n\n${page.join('\n\n')}\n\n}}\n\n\\page\n`).join('\n');
     }
 
     function toMarkdown(registry) {

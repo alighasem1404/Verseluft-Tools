@@ -204,7 +204,7 @@ Civil Registry Maker produces one continuous registry rather than separate regio
 
 Completed registries are saved in browser storage with their seed, settings, generated family data, and selected output format. The history panel can reopen or delete each saved registry independently.
 
-When enabled, the Civil Registry backer option reads an optional sixth anchor field after the roll/profession and adds `###### (Backer's Name: ...)` beneath that family's numbered heading. Missing backer names are ignored without validation errors.
+When enabled, the Civil Registry backer option reads an optional sixth anchor field after the roll/profession and adds `###### (Backer's Name: ...)` beneath that family's numbered heading. Missing backer names are ignored without validation errors. The output can start at a user-selected positive family number; numbering remains continuous from that starting value.
 
 ## 9. Seeded generation and validation
 

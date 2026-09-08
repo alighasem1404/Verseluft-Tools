@@ -160,6 +160,8 @@ const homebrewery = engine.toHomebreweryMarkdown(longRegistry);
 assert.match(homebrewery, /^\{\{index,wide,columns:3/);
 assert.match(homebrewery, /\\page/);
 assert.match(homebrewery, /###### 100 The Family100 Family/);
+assert.match(engine.toNumberedMarkdown({ ...longRegistry, startingNumber: 78 }), /^###### 78 The Family1 Family/);
+assert.match(engine.toHomebreweryMarkdown({ ...longRegistry, startingNumber: 78 }), /###### 78 The Family1 Family/);
 
 const reproducible = engine.buildRegistry({
     seed: 'registry-test',
