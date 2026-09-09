@@ -5,7 +5,7 @@
   "source": {
     "workbook": "New Population Maker",
     "sourceFile": "Data/npc-family-maker-data.js",
-    "note": "The 2024 Basic Rules say most species live about 80 years and reach physical maturity at about the same age, but do not give separate numerical adulthood ages for Orcs or Goliaths. The app therefore uses the Human maturity convention for them: young adult at 14, adult at 18, maximum age 80. Satyr, Raven, Hyena, and Celestial use the same human-like custom-race convention in this app. For Centaur and Deer-folk, the app uses maximum age 100 and adulthood at 18."
+    "note": "The 2024 Basic Rules say most species live about 80 years and reach physical maturity at about the same age, but do not give separate numerical adulthood ages for Orcs or Goliaths. The app therefore uses the Human maturity convention for them: young adult at 14, adult at 18, maximum age 80. Goblin uses the published adulthood 8 and lifespan 60 convention; Hobgoblin uses the human-like convention of young adult 14, adult 18, maximum age 80. Satyr, Raven, Hyena, and Celestial use the same human-like custom-race convention in this app. For Centaur and Deer-folk, the app uses maximum age 100 and adulthood at 18."
   },
   "rules": {
     "lifeStageClassification": "child is below youngAdulthood; youngAdult is from youngAdulthood through adulthood minus 1; adult is adulthood and older.",
@@ -350,6 +350,28 @@
       }
     },
     "Celestial": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Goblin": {
+      "maxAge": 60,
+      "meanAge": 18,
+      "youngAdulthood": 6,
+      "adulthood": 8,
+      "lifeStages": {
+        "child": {"min": 0, "max": 5},
+        "youngAdult": {"min": 6, "max": 7},
+        "adult": {"min": 8, "max": 60}
+      }
+    },
+    "Hobgoblin": {
       "maxAge": 80,
       "meanAge": 24,
       "youngAdulthood": 14,

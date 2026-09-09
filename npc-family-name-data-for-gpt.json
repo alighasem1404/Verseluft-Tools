@@ -1,11 +1,11 @@
 {
   "title": "NPC Family Maker Name Data",
   "schemaVersion": "1.0.0",
-  "description": "Race-based first-name and surname pools for use by the NPC Family Maker and Civil Registry Maker. Elf subraces use the same source name pools as Elf. Orc, Goliath, Satyr, Raven, Hyena, and Celestial pools are app-provided fantasy name pools.",
+  "description": "Race-based first-name and surname pools for use by the NPC Family Maker and Civil Registry Maker. Elf subraces use the same source name pools as Elf. Orc, Goliath, Satyr, Raven, Hyena, Celestial, Goblin, and Hobgoblin pools are app-provided fantasy name pools.",
   "source": {
     "workbook": "New Population Maker",
     "sourceFile": "Data/npc-family-maker-data.js",
-    "note": "The app accepts plain Elf as an anchor input. Generated Elf members use Wood Elf, High Elf, or Dark Elf according to the app rules; all three subraces share these Elf name pools. Orc and Goliath are included as 2024 species, Satyr is included as an extra species, and Raven, Hyena, and Celestial are custom fantasy races."
+    "note": "The app accepts plain Elf as an anchor input. Generated Elf members use Wood Elf, High Elf, or Dark Elf according to the app rules; all three subraces share these Elf name pools. Orc and Goliath are included as 2024 species, Satyr, Goblin, and Hobgoblin are included as extra species, and Raven, Hyena, and Celestial are custom fantasy races."
   },
   "races": {
     "Human": {
@@ -16449,6 +16449,18 @@
       "maleNames": ["Cassiel", "Elyon", "Iriel", "Lumin", "Seraphiel", "Uriel", "Vael", "Zerach"],
       "femaleNames": ["Aurelia", "Iriel", "Solenne", "Vael", "Lumin", "Elyon"],
       "surnames": ["Dawnbringer", "Goldhalo", "Heavenward", "Radiantwing", "Starfall", "Sunspire"]
+    },
+    "Goblin": {
+      "names": ["Bik", "Bixa", "Dalla", "Dib", "Gik", "Gilda", "Grib", "Keg", "Ketta", "Mira", "Mub", "Nalla", "Nix", "Rik", "Rizza", "Sava", "Snik", "Tikka", "Vek", "Zana"],
+      "maleNames": ["Bik", "Dib", "Gik", "Grib", "Keg", "Mub", "Nix", "Rik", "Snik", "Vek"],
+      "femaleNames": ["Bixa", "Dalla", "Gilda", "Ketta", "Mira", "Nalla", "Rizza", "Sava", "Tikka", "Zana"],
+      "surnames": ["Ashsnout", "Bittertooth", "Cinderclaw", "Mudfoot", "Redcap", "Scrapnose", "Sootfinger", "Stinkfoot", "Wirepick"]
+    },
+    "Hobgoblin": {
+      "names": ["Asha", "Brag", "Dara", "Drov", "Kara", "Kav", "Marek", "Mira", "Nara", "Rava", "Ruk", "Seka", "Tala", "Targ", "Vara", "Vek", "Wargan", "Yara", "Zor"],
+      "maleNames": ["Brag", "Drov", "Kav", "Marek", "Ruk", "Targ", "Vek", "Wargan", "Zor"],
+      "femaleNames": ["Asha", "Dara", "Kara", "Mira", "Nara", "Rava", "Seka", "Tala", "Vara", "Yara"],
+      "surnames": ["Ashbanner", "Blackstandard", "Ironmarch", "Redbanner", "Stoneguard", "Warcrest", "Warhammer", "Wolfbanner"]
     }
   }
 }

@@ -26,7 +26,9 @@
         Satyr: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aisopos', 'Ariadne', 'Chrysa', 'Damon', 'Daphne', 'Eirene', 'Eryx', 'Kallias', 'Melia', 'Melas', 'Nysa', 'Orpheus', 'Pan', 'Phoebe', 'Silenos', 'Thaleia', 'Thyrsus', 'Xanthe', 'Zephyros', 'Zoe'], surnames: ['Briarhoof', 'Dapplehorn', 'Goldenreed', 'Moonmeadow', 'Oakstep', 'Pinewhistle', 'Silverflute', 'Thornsong', 'Vinehoof', 'Wildgrove'] },
         Raven: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Ash', 'Avaris', 'Corvin', 'Ebon', 'Kestrel', 'Morrow', 'Nera', 'Ravenna', 'Rook', 'Vesper', 'Ysolde'], surnames: ['Blackwing', 'Duskfeather', 'Nightwing', 'Ravencrest', 'Shadowplume', 'Stormfeather'] },
         Hyena: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Bakka', 'Duma', 'Kito', 'Koba', 'Mara', 'Nala', 'Sefu', 'Tala', 'Zarek', 'Zuri'], surnames: ['Bonechewer', 'Dustlaugh', 'Redtooth', 'Sunscavenge', 'Thornhide', 'Wildjaw'] },
-        Celestial: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aurelia', 'Cassiel', 'Elyon', 'Iriel', 'Lumin', 'Seraphiel', 'Solenne', 'Uriel', 'Vael', 'Zerach'], surnames: ['Dawnbringer', 'Goldhalo', 'Heavenward', 'Radiantwing', 'Starfall', 'Sunspire'] }
+        Celestial: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aurelia', 'Cassiel', 'Elyon', 'Iriel', 'Lumin', 'Seraphiel', 'Solenne', 'Uriel', 'Vael', 'Zerach'], surnames: ['Dawnbringer', 'Goldhalo', 'Heavenward', 'Radiantwing', 'Starfall', 'Sunspire'] },
+        Goblin: { maxAge: 60, youngAdulthood: 6, adulthood: 8, names: ['Bik', 'Bixa', 'Dalla', 'Dib', 'Gik', 'Gilda', 'Grib', 'Keg', 'Ketta', 'Mira', 'Mub', 'Nalla', 'Nix', 'Rik', 'Rizza', 'Sava', 'Snik', 'Tikka', 'Vek', 'Zana'], surnames: ['Ashsnout', 'Bittertooth', 'Cinderclaw', 'Mudfoot', 'Redcap', 'Scrapnose', 'Sootfinger', 'Stinkfoot', 'Wirepick'] },
+        Hobgoblin: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Asha', 'Brag', 'Dara', 'Drov', 'Kara', 'Kav', 'Marek', 'Mira', 'Nara', 'Rava', 'Ruk', 'Seka', 'Tala', 'Targ', 'Vara', 'Vek', 'Wargan', 'Yara', 'Zor'], surnames: ['Ashbanner', 'Blackstandard', 'Ironmarch', 'Redbanner', 'Stoneguard', 'Warcrest', 'Warhammer', 'Wolfbanner'] }
     };
 
     const FALLBACK_RACE_WEIGHTS = [
@@ -73,7 +75,7 @@
     const SOURCE_RACE_WEIGHTS = Object.entries(WORKBOOK_DATA.main?.raceWeights || {}).length
         ? Object.entries(WORKBOOK_DATA.main.raceWeights)
         : FALLBACK_RACE_WEIGHTS;
-    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5], ['Raven', 5], ['Hyena', 5], ['Celestial', 5]];
+    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5], ['Raven', 5], ['Hyena', 5], ['Celestial', 5], ['Goblin', 5], ['Hobgoblin', 5]];
     const RACE_WEIGHTS = [
         ...SOURCE_RACE_WEIGHTS,
         ...ADDITIONAL_RACE_WEIGHTS.filter(([race]) => !SOURCE_RACE_WEIGHTS.some(([sourceRace]) => sourceRace === race))

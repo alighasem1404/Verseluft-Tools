@@ -32,6 +32,8 @@ assert.equal(engine.resolveRaceName('satyr'), 'Satyr');
 assert.equal(engine.resolveRaceName('raven'), 'Raven');
 assert.equal(engine.resolveRaceName('hyena'), 'Hyena');
 assert.equal(engine.resolveRaceName('celestial'), 'Celestial');
+assert.equal(engine.resolveRaceName('goblin'), 'Goblin');
+assert.equal(engine.resolveRaceName('hobgoblin'), 'Hobgoblin');
 assert.ok(engine.RACES.Centaur);
 assert.ok(engine.RACES['Deer-folk']);
 assert.ok(engine.RACES.Orc);
@@ -40,6 +42,8 @@ assert.ok(engine.RACES.Satyr);
 assert.ok(engine.RACES.Raven);
 assert.ok(engine.RACES.Hyena);
 assert.ok(engine.RACES.Celestial);
+assert.ok(engine.RACES.Goblin);
+assert.ok(engine.RACES.Hobgoblin);
 
 const lifeStageExpectations = [
     ['Human', 13, 'child'], ['Human', 14, 'youngAdult'], ['Human', 18, 'adult'],
@@ -56,7 +60,9 @@ const lifeStageExpectations = [
     ['Satyr', 13, 'child'], ['Satyr', 14, 'youngAdult'], ['Satyr', 18, 'adult'],
     ['Raven', 13, 'child'], ['Raven', 14, 'youngAdult'], ['Raven', 18, 'adult'],
     ['Hyena', 13, 'child'], ['Hyena', 14, 'youngAdult'], ['Hyena', 18, 'adult'],
-    ['Celestial', 13, 'child'], ['Celestial', 14, 'youngAdult'], ['Celestial', 18, 'adult']
+    ['Celestial', 13, 'child'], ['Celestial', 14, 'youngAdult'], ['Celestial', 18, 'adult'],
+    ['Goblin', 5, 'child'], ['Goblin', 6, 'youngAdult'], ['Goblin', 8, 'adult'],
+    ['Hobgoblin', 13, 'child'], ['Hobgoblin', 14, 'youngAdult'], ['Hobgoblin', 18, 'adult']
 ];
 for (const [race, age, stage] of lifeStageExpectations) assert.equal(engine.getLifeStage(race, age), stage);
 

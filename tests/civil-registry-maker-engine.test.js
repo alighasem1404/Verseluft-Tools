@@ -70,6 +70,10 @@ const customRaceAnchors = engine.parseAnchors('name, sex, race, age, roll\nRook 
 assert.equal(customRaceAnchors.errors.length, 0);
 assert.deepEqual(customRaceAnchors.anchors.map((anchor) => anchor.race), ['Raven', 'Hyena', 'Celestial']);
 
+const goblinoidAnchors = engine.parseAnchors('name, sex, race, age, roll\nBik Ashsnout, Male, Goblin, 12, Scavenger\nAsha Ashbanner, Female, Hobgoblin, 24, Soldier');
+assert.equal(goblinoidAnchors.errors.length, 0);
+assert.deepEqual(goblinoidAnchors.anchors.map((anchor) => anchor.race), ['Goblin', 'Hobgoblin']);
+
 const backerOnlyRegistry = engine.buildRegistry({
     registryMode: 'backers',
     seed: 'backer-only-registry',
