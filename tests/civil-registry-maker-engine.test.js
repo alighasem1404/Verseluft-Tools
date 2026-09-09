@@ -66,6 +66,10 @@ const satyrAnchor = engine.parseAnchors('name, sex, race, age, roll\nPan Wildgro
 assert.equal(satyrAnchor.errors.length, 0);
 assert.equal(satyrAnchor.anchors[0].race, 'Satyr');
 
+const customRaceAnchors = engine.parseAnchors('name, sex, race, age, roll\nRook Blackwing, Male, Raven, 26, Scout\nZuri Wildjaw, Female, Hyena, 31, Hunter\nAurelia Starfall, Female, Celestial, 40, Priest');
+assert.equal(customRaceAnchors.errors.length, 0);
+assert.deepEqual(customRaceAnchors.anchors.map((anchor) => anchor.race), ['Raven', 'Hyena', 'Celestial']);
+
 const backerOnlyRegistry = engine.buildRegistry({
     registryMode: 'backers',
     seed: 'backer-only-registry',

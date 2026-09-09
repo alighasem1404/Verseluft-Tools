@@ -1,11 +1,11 @@
 {
   "title": "NPC Family Maker Name Data",
   "schemaVersion": "1.0.0",
-  "description": "Race-based first-name and surname pools for use by the NPC Family Maker and Civil Registry Maker. Elf subraces use the same source name pools as Elf. Orc, Goliath, and Satyr pools are app-provided fantasy name pools; the rules sources do not publish species name tables.",
+  "description": "Race-based first-name and surname pools for use by the NPC Family Maker and Civil Registry Maker. Elf subraces use the same source name pools as Elf. Orc, Goliath, Satyr, Raven, Hyena, and Celestial pools are app-provided fantasy name pools.",
   "source": {
     "workbook": "New Population Maker",
     "sourceFile": "Data/npc-family-maker-data.js",
-    "note": "The app accepts plain Elf as an anchor input. Generated Elf members use Wood Elf, High Elf, or Dark Elf according to the app rules; all three subraces share these Elf name pools. Orc and Goliath are included as 2024 species, and Satyr is included as an extra species from Mordenkainen Presents: Monsters of the Multiverse."
+    "note": "The app accepts plain Elf as an anchor input. Generated Elf members use Wood Elf, High Elf, or Dark Elf according to the app rules; all three subraces share these Elf name pools. Orc and Goliath are included as 2024 species, Satyr is included as an extra species, and Raven, Hyena, and Celestial are custom fantasy races."
   },
   "races": {
     "Human": {
@@ -16431,6 +16431,24 @@
       "maleNames": ["Aisopos", "Damon", "Eryx", "Kallias", "Melas", "Orpheus", "Pan", "Silenos", "Thyrsus", "Zephyros"],
       "femaleNames": ["Ariadne", "Chrysa", "Daphne", "Eirene", "Melia", "Nysa", "Phoebe", "Thaleia", "Xanthe", "Zoe"],
       "surnames": ["Briarhoof", "Dapplehorn", "Goldenreed", "Moonmeadow", "Oakstep", "Pinewhistle", "Silverflute", "Thornsong", "Vinehoof", "Wildgrove"]
+    },
+    "Raven": {
+      "names": ["Ash", "Avaris", "Corvin", "Ebon", "Kestrel", "Morrow", "Nera", "Ravenna", "Rook", "Vesper", "Ysolde"],
+      "maleNames": ["Ash", "Avaris", "Corvin", "Ebon", "Kestrel", "Morrow", "Rook", "Vesper"],
+      "femaleNames": ["Ash", "Avaris", "Kestrel", "Nera", "Ravenna", "Rook", "Vesper", "Ysolde"],
+      "surnames": ["Blackwing", "Duskfeather", "Nightwing", "Ravencrest", "Shadowplume", "Stormfeather"]
+    },
+    "Hyena": {
+      "names": ["Bakka", "Duma", "Kito", "Koba", "Mara", "Nala", "Sefu", "Tala", "Zarek", "Zuri"],
+      "maleNames": ["Bakka", "Duma", "Kito", "Koba", "Sefu", "Zarek"],
+      "femaleNames": ["Mara", "Nala", "Tala", "Zuri", "Kito", "Sefu"],
+      "surnames": ["Bonechewer", "Dustlaugh", "Redtooth", "Sunscavenge", "Thornhide", "Wildjaw"]
+    },
+    "Celestial": {
+      "names": ["Aurelia", "Cassiel", "Elyon", "Iriel", "Lumin", "Seraphiel", "Solenne", "Uriel", "Vael", "Zerach"],
+      "maleNames": ["Cassiel", "Elyon", "Iriel", "Lumin", "Seraphiel", "Uriel", "Vael", "Zerach"],
+      "femaleNames": ["Aurelia", "Iriel", "Solenne", "Vael", "Lumin", "Elyon"],
+      "surnames": ["Dawnbringer", "Goldhalo", "Heavenward", "Radiantwing", "Starfall", "Sunspire"]
     }
   }
 }

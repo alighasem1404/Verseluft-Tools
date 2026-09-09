@@ -23,7 +23,10 @@
         'Deer-folk': { maxAge: 100, adulthood: 18, names: ['Alder', 'Antler', 'Bracken', 'Cervan', 'Fawn', 'Hazel', 'Juniper', 'Meadow', 'Rowan', 'Willow'], surnames: ['Antlerbough', 'Briarstep', 'Deerhaven', 'Leafwhisper', 'Mossgrove'] },
         Orc: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Asha', 'Brakka', 'Borga', 'Drog', 'Grom', 'Grakka', 'Karg', 'Korga', 'Mok', 'Morga', 'Narka', 'Rogar', 'Rasha', 'Shura', 'Thokk', 'Urzog', 'Varg', 'Varka', 'Zog', 'Zura'], surnames: ['Ashfang', 'Bonebreaker', 'Cindermaw', 'Ironjaw', 'Skullcrusher', 'Stonefist', 'Stormtusk', 'Thundertusk', 'Warhowl', 'Wolfsbane'] },
         Goliath: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aasathra', 'Aukan', 'Bromma', 'Calla', 'Eglath', 'Elan', 'Gae-Al', 'Gauthak', 'Katha', 'Keothi', 'Lo-Kag', 'Manneo', 'Mavek', 'Nalla', 'Orilo', 'Phelaia', 'Tala', 'Thalai', 'Vervak', 'Weyr'], surnames: ['Al-Herak', 'Kalatak', 'Mornak', 'Tarkana', 'Uthilak', 'Wemirak'] },
-        Satyr: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aisopos', 'Ariadne', 'Chrysa', 'Damon', 'Daphne', 'Eirene', 'Eryx', 'Kallias', 'Melia', 'Melas', 'Nysa', 'Orpheus', 'Pan', 'Phoebe', 'Silenos', 'Thaleia', 'Thyrsus', 'Xanthe', 'Zephyros', 'Zoe'], surnames: ['Briarhoof', 'Dapplehorn', 'Goldenreed', 'Moonmeadow', 'Oakstep', 'Pinewhistle', 'Silverflute', 'Thornsong', 'Vinehoof', 'Wildgrove'] }
+        Satyr: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aisopos', 'Ariadne', 'Chrysa', 'Damon', 'Daphne', 'Eirene', 'Eryx', 'Kallias', 'Melia', 'Melas', 'Nysa', 'Orpheus', 'Pan', 'Phoebe', 'Silenos', 'Thaleia', 'Thyrsus', 'Xanthe', 'Zephyros', 'Zoe'], surnames: ['Briarhoof', 'Dapplehorn', 'Goldenreed', 'Moonmeadow', 'Oakstep', 'Pinewhistle', 'Silverflute', 'Thornsong', 'Vinehoof', 'Wildgrove'] },
+        Raven: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Ash', 'Avaris', 'Corvin', 'Ebon', 'Kestrel', 'Morrow', 'Nera', 'Ravenna', 'Rook', 'Vesper', 'Ysolde'], surnames: ['Blackwing', 'Duskfeather', 'Nightwing', 'Ravencrest', 'Shadowplume', 'Stormfeather'] },
+        Hyena: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Bakka', 'Duma', 'Kito', 'Koba', 'Mara', 'Nala', 'Sefu', 'Tala', 'Zarek', 'Zuri'], surnames: ['Bonechewer', 'Dustlaugh', 'Redtooth', 'Sunscavenge', 'Thornhide', 'Wildjaw'] },
+        Celestial: { maxAge: 80, youngAdulthood: 14, adulthood: 18, names: ['Aurelia', 'Cassiel', 'Elyon', 'Iriel', 'Lumin', 'Seraphiel', 'Solenne', 'Uriel', 'Vael', 'Zerach'], surnames: ['Dawnbringer', 'Goldhalo', 'Heavenward', 'Radiantwing', 'Starfall', 'Sunspire'] }
     };
 
     const FALLBACK_RACE_WEIGHTS = [
@@ -70,7 +73,7 @@
     const SOURCE_RACE_WEIGHTS = Object.entries(WORKBOOK_DATA.main?.raceWeights || {}).length
         ? Object.entries(WORKBOOK_DATA.main.raceWeights)
         : FALLBACK_RACE_WEIGHTS;
-    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5]];
+    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5], ['Raven', 5], ['Hyena', 5], ['Celestial', 5]];
     const RACE_WEIGHTS = [
         ...SOURCE_RACE_WEIGHTS,
         ...ADDITIONAL_RACE_WEIGHTS.filter(([race]) => !SOURCE_RACE_WEIGHTS.some(([sourceRace]) => sourceRace === race))

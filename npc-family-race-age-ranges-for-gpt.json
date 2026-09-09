@@ -5,7 +5,7 @@
   "source": {
     "workbook": "New Population Maker",
     "sourceFile": "Data/npc-family-maker-data.js",
-    "note": "The 2024 Basic Rules say most species live about 80 years and reach physical maturity at about the same age, but do not give separate numerical adulthood ages for Orcs or Goliaths. The app therefore uses the Human maturity convention for them: young adult at 14, adult at 18, maximum age 80. Satyr is from Mordenkainen Presents: Monsters of the Multiverse and uses the same human-like convention in this app. For Centaur and Deer-folk, the app uses maximum age 100 and adulthood at 18."
+    "note": "The 2024 Basic Rules say most species live about 80 years and reach physical maturity at about the same age, but do not give separate numerical adulthood ages for Orcs or Goliaths. The app therefore uses the Human maturity convention for them: young adult at 14, adult at 18, maximum age 80. Satyr, Raven, Hyena, and Celestial use the same human-like custom-race convention in this app. For Centaur and Deer-folk, the app uses maximum age 100 and adulthood at 18."
   },
   "rules": {
     "lifeStageClassification": "child is below youngAdulthood; youngAdult is from youngAdulthood through adulthood minus 1; adult is adulthood and older.",
@@ -317,6 +317,39 @@
       }
     },
     "Satyr": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Raven": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Hyena": {
+      "maxAge": 80,
+      "meanAge": 24,
+      "youngAdulthood": 14,
+      "adulthood": 18,
+      "lifeStages": {
+        "child": {"min": 0, "max": 13},
+        "youngAdult": {"min": 14, "max": 17},
+        "adult": {"min": 18, "max": 80}
+      }
+    },
+    "Celestial": {
       "maxAge": 80,
       "meanAge": 24,
       "youngAdulthood": 14,
