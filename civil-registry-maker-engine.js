@@ -99,6 +99,21 @@
         return { anchors, errors };
     }
 
+    function parseBackersByClass(backerTextByClass = {}) {
+        const backers = [];
+        const errors = [];
+        ['Lower', 'Medium', 'Upper'].forEach((householdClass) => {
+            const lines = String(backerTextByClass[householdClass] || '').split(/\r?\n/);
+            lines.forEach((line, index) => {
+                const name = line.trim();
+                if (!name) return;
+                if (index === 0 && ['name', 'backer', 'backer name', 'backer names'].includes(name.toLowerCase())) return;
+                backers.push({ name, householdClass });
+            });
+        });
+        return { backers, errors };
+    }
+
     function normalizePercentages(percentages = DEFAULT_CLASS_PERCENTAGES) {
         const result = {};
         for (const className of ['Lower', 'Medium', 'Upper']) {
@@ -127,13 +142,18 @@
 
     function buildRegistry(options = {}) {
         const seed = String(options.seed || 'village-01');
-        const familyCount = Math.floor(Number(options.familyCount));
-        if (!Number.isInteger(familyCount) || familyCount < 1) throw new Error('Family count must be a positive whole number.');
+        const backerOnly = options.registryMode === 'backers' || options.backerOnly === true;
+        const requestedFamilyCount = Math.floor(Number(options.familyCount));
         const startingNumber = options.startingNumber === undefined || options.startingNumber === null || String(options.startingNumber).trim() === ''
             ? 1
             : Number(options.startingNumber);
         if (!Number.isInteger(startingNumber) || startingNumber < 1) throw new Error('Starting family number must be a positive whole number.');
         const percentages = normalizePercentages(options.classPercentages);
+        const backerParsed = backerOnly ? parseBackersByClass(options.backerTextByClass || options.backerNamesByClass || {}) : { backers: [], errors: [] };
+        const familyCount = backerOnly ? backerParsed.backers.length : requestedFamilyCount;
+        if (!Number.isInteger(familyCount) || familyCount < 1) {
+            throw new Error(backerOnly ? 'Enter at least one backer name.' : 'Family count must be a positive whole number.');
+        }
         const hasPopulationLimit = options.population !== undefined && options.population !== null && String(options.population).trim() !== '';
         const population = hasPopulationLimit ? Number(options.population) : null;
         if (hasPopulationLimit && (!Number.isInteger(population) || population < familyCount)) {
@@ -141,11 +161,13 @@
         }
         const familySizes = population === null ? null : balancedFamilySizes(population, familyCount);
         const anchorTextByClass = options.anchorTextByClass || options.anchorTextsByClass;
-        const parsed = anchorTextByClass
-            ? parseAnchorsByClass(anchorTextByClass)
-            : parseAnchors(options.anchorText || options.anchors || '');
+        const parsed = backerOnly
+            ? { anchors: [], errors: backerParsed.errors }
+            : anchorTextByClass
+                ? parseAnchorsByClass(anchorTextByClass)
+                : parseAnchors(options.anchorText || options.anchors || '');
         if (parsed.errors.length) throw new Error(parsed.errors.join(' '));
-        if (parsed.anchors.length > familyCount) throw new Error('There cannot be more anchors than families.');
+        if (!backerOnly && parsed.anchors.length > familyCount) throw new Error('There cannot be more anchors than families.');
 
         const families = [];
         const registryRng = familyEngine.createRng(seed);
@@ -154,7 +176,8 @@
             const typeRng = familyEngine.createRng(`${familySeed}:type`);
             const familyType = chooseFamilyType(typeRng, options.familyType);
             const sourceAnchor = parsed.anchors[index];
-            const householdClass = sourceAnchor?.householdClass || registryRng.weighted(classEntries(percentages));
+            const sourceBacker = backerParsed.backers[index];
+            const householdClass = sourceBacker?.householdClass || sourceAnchor?.householdClass || registryRng.weighted(classEntries(percentages));
             const anchor = sourceAnchor ? {
                 ...sourceAnchor,
                 relationshipRole: anchorRole(familyType, sourceAnchor.gender),
@@ -168,7 +191,7 @@
                 includeElders: options.includeElders !== false,
                 ignoreFamilyMemberLimit: true,
                 targetMemberCount: familySizes ? familySizes[index] : undefined,
-                backerName: options.includeBackerNames === true ? sourceAnchor?.backerName : undefined,
+                backerName: backerOnly ? sourceBacker.name : (options.includeBackerNames === true ? sourceAnchor?.backerName : undefined),
                 anchor
             }));
         }
@@ -176,11 +199,13 @@
         return {
             id: `registry-${seed}`,
             seed,
+            registryMode: backerOnly ? 'backers' : 'anchors',
             familyCount,
             startingNumber,
             classPercentages: percentages,
             populationLimit: population,
             anchorCount: parsed.anchors.length,
+            backerCount: backerParsed.backers.length,
             families,
             population: families.reduce((sum, family) => sum + family.members.length, 0),
             errors: []
@@ -253,6 +278,7 @@
         parseCsvLine,
         parseAnchors,
         parseAnchorsByClass,
+        parseBackersByClass,
         normalizePercentages,
         balancedFamilySizes,
         buildRegistry,

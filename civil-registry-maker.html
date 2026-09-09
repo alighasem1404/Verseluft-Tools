@@ -18,17 +18,17 @@
             <div>
                 <div class="cr-eyebrow">Local town-scale generator · family-maker rules</div>
                 <h1>Build a registry for an entire <span>town.</span></h1>
-                <p class="cr-lede">Assign each anchor NPC to one household, fill the remaining families from your social-class distribution, and export the complete registry in a predictable family-by-family format.</p>
+                <p class="cr-lede">Assign anchor NPCs or backers to households, generate the remaining family details from your social-class rules, and export the complete registry in a predictable family-by-family format.</p>
             </div>
             <div class="cr-stat-grid" aria-label="Registry summary">
                 <div class="cr-stat"><span id="statFamilies" class="cr-stat-value">0</span><span class="cr-stat-label">Families</span></div>
-                <div class="cr-stat"><span id="statAnchors" class="cr-stat-value">0</span><span class="cr-stat-label">Anchors</span></div>
+                <div class="cr-stat"><span id="statAnchors" class="cr-stat-value">0</span><span id="statPeopleLabel" class="cr-stat-label">Anchors</span></div>
                 <div class="cr-stat"><span id="statMembers" class="cr-stat-value">0</span><span class="cr-stat-label">Members</span></div>
             </div>
         </section>
 
         <div class="cr-stepper" aria-label="Wizard progress">
-            <div class="cr-step is-active" data-step-indicator="1">1 · Anchors</div>
+            <div class="cr-step is-active" data-step-indicator="1">1 · Inputs</div>
             <div class="cr-step" data-step-indicator="2">2 · Distribution</div>
             <div class="cr-step" data-step-indicator="3">3 · Registry</div>
         </div>
@@ -39,17 +39,19 @@
 
                 <div class="cr-step-panel" data-step-panel="1">
                     <div class="cr-field"><label for="seedInput">Seed</label><input id="seedInput" class="cr-input" type="text"></div>
-                    <div class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
+                    <div class="cr-field"><label for="registryMode">Generation mode</label><select id="registryMode" class="cr-select"><option value="anchors">Anchor NPC families</option><option value="backers">Backer-only families</option></select><p id="modeHelp" class="cr-help">Anchor NPCs become the core member of their family.</p></div>
+                    <div id="familyCountField" class="cr-field"><label for="familyCount">Number of families</label><input id="familyCount" class="cr-input" type="number" min="1" step="1" value="20"></div>
+                    <p id="backerCountHint" class="cr-help" hidden>Family count will equal the number of backer names entered below.</p>
                     <div class="cr-field"><label for="startingNumber">Starting family number</label><input id="startingNumber" class="cr-input" type="number" min="1" step="1" value="1"></div>
                     <div class="cr-field"><label for="population">Population limit</label><input id="population" class="cr-input" type="number" min="1" step="1" placeholder="Optional"><p class="cr-help">When set, the population is divided as evenly as possible across the families. It must be at least the family count.</p></div>
-                    <label class="cr-check"><input id="includeBackerNames" type="checkbox"> Include backer names in the registry output</label>
-                    <div class="cr-section-label">Anchor NPCs by social class</div>
+                    <label id="includeBackerNamesControl" class="cr-check"><input id="includeBackerNames" type="checkbox"> Include backer names in the registry output</label>
+                    <div id="classInputLabel" class="cr-section-label">Anchor NPCs by social class</div>
                     <div class="cr-anchor-grid">
-                        <div class="cr-field"><label for="lowerAnchorText">Lower-class anchors</label><textarea id="lowerAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 34, Farmer"></textarea></div>
-                        <div class="cr-field"><label for="mediumAnchorText">Medium-class anchors</label><textarea id="mediumAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Female, Human, 44, Shopkeeper"></textarea></div>
-                        <div class="cr-field"><label for="upperAnchorText">Upper-class anchors</label><textarea id="upperAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 58, Chancellor"></textarea></div>
+                        <div class="cr-field"><label id="lowerInputLabel" for="lowerAnchorText">Lower-class anchors</label><textarea id="lowerAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 34, Farmer"></textarea></div>
+                        <div class="cr-field"><label id="mediumInputLabel" for="mediumAnchorText">Medium-class anchors</label><textarea id="mediumAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Female, Human, 44, Shopkeeper"></textarea></div>
+                        <div class="cr-field"><label id="upperInputLabel" for="upperAnchorText">Upper-class anchors</label><textarea id="upperAnchorText" class="cr-textarea" placeholder="name, sex, race, age, roll&#10;Example, Male, Human, 58, Chancellor"></textarea></div>
                     </div>
-                    <p class="cr-help">Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution. Optional anchor format: name, sex, race, age, roll, backer name.</p>
+                    <p id="classInputHelp" class="cr-help">Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution. Optional anchor format: name, sex, race, age, roll, backer name.</p>
                 </div>
 
                 <div class="cr-step-panel" data-step-panel="2" hidden>
@@ -150,9 +152,32 @@
                 $('percentageTotal').textContent = `Total: ${total}%${total === 100 ? '' : ' (must equal 100%)'}`;
             }
 
+            function updateModeVisibility() {
+                const backerOnly = $('registryMode').value === 'backers';
+                $('familyCountField').hidden = backerOnly;
+                $('backerCountHint').hidden = !backerOnly;
+                $('includeBackerNamesControl').hidden = backerOnly;
+                $('classInputLabel').textContent = backerOnly ? 'Backer names by social class' : 'Anchor NPCs by social class';
+                $('lowerInputLabel').textContent = backerOnly ? 'Lower-class backers' : 'Lower-class anchors';
+                $('mediumInputLabel').textContent = backerOnly ? 'Medium-class backers' : 'Medium-class anchors';
+                $('upperInputLabel').textContent = backerOnly ? 'Upper-class backers' : 'Upper-class anchors';
+                $('lowerAnchorText').placeholder = backerOnly ? 'One backer name per line\nSierra\nHouse Ironroot' : 'name, sex, race, age, roll\nExample, Male, Human, 34, Farmer';
+                $('mediumAnchorText').placeholder = backerOnly ? 'One backer name per line\nHouse Silverstone\nThe Marrow Guild' : 'name, sex, race, age, roll\nExample, Female, Human, 44, Shopkeeper';
+                $('upperAnchorText').placeholder = backerOnly ? 'One backer name per line\nHouse Highwood\nThe Crown Estate' : 'name, sex, race, age, roll\nExample, Male, Human, 58, Chancellor';
+                $('modeHelp').textContent = backerOnly
+                    ? 'Each backer name creates one family. No anchor NPC data is required, and each backer keeps the class of its input list.'
+                    : 'Anchor NPCs become the core member of their family.';
+                $('classInputHelp').textContent = backerOnly
+                    ? 'Enter only one backer name per line. Every name creates one family, receives a generated household, and appears in the output as the backer name. The three lists preserve social class.'
+                    : 'Each anchor becomes the core member of one family and stays in the social class of its input list. Remaining families use the percentage distribution. Optional anchor format: name, sex, race, age, roll, backer name.';
+                $('statPeopleLabel').textContent = backerOnly ? 'Backers' : 'Anchors';
+            }
+
             function optionsFromForm() {
+                const backerOnly = $('registryMode').value === 'backers';
                 return {
                     seed: ensureSeed(),
+                    registryMode: backerOnly ? 'backers' : 'anchors',
                     familyCount: Number($('familyCount').value),
                     startingNumber: Number($('startingNumber').value),
                     population: $('population').value.trim() ? Number($('population').value) : undefined,
@@ -161,10 +186,15 @@
                         Medium: $('mediumAnchorText').value,
                         Upper: $('upperAnchorText').value
                     },
+                    backerTextByClass: {
+                        Lower: $('lowerAnchorText').value,
+                        Medium: $('mediumAnchorText').value,
+                        Upper: $('upperAnchorText').value
+                    },
                     classPercentages: { Lower: Number($('lowerPercent').value), Medium: Number($('mediumPercent').value), Upper: Number($('upperPercent').value) },
                     familyType: $('familyType').value,
                     outputFormat: $('outputFormat').value,
-                    includeBackerNames: $('includeBackerNames').checked,
+                    includeBackerNames: backerOnly || $('includeBackerNames').checked,
                     allowSecondWifeChance: $('allowSecondWifeChance').checked,
                     includeElders: $('includeElders').checked
                 };
@@ -180,7 +210,8 @@
                 if (!registry) return;
                 $('outputText').value = formatOutput($('outputFormat').value);
                 $('statFamilies').textContent = registry.families.length;
-                $('statAnchors').textContent = registry.anchorCount;
+                $('statAnchors').textContent = registry.registryMode === 'backers' ? registry.backerCount : registry.anchorCount;
+                $('statPeopleLabel').textContent = registry.registryMode === 'backers' ? 'Backers' : 'Anchors';
                 $('statMembers').textContent = registry.families.reduce((sum, family) => sum + family.members.length, 0);
             }
 
@@ -224,6 +255,7 @@
 
             function resetInputs() {
                 $('seedInput').value = randomSeed();
+                $('registryMode').value = 'anchors';
                 $('familyCount').value = '20';
                 $('startingNumber').value = '1';
                 $('population').value = '';
@@ -245,6 +277,7 @@
                 $('statMembers').textContent = '0';
                 $('validationBox').hidden = true;
                 updatePercentageTotal();
+                updateModeVisibility();
                 showStep(1);
             }
 
@@ -254,11 +287,13 @@
             $('generateBtn').addEventListener('click', generate);
             $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = randomSeed(); generate(); });
             $('resetInputsBtn').addEventListener('click', resetInputs);
+            $('registryMode').addEventListener('change', updateModeVisibility);
             $('outputFormat').addEventListener('change', () => { if (registry) renderRegistry(); });
             $('copyBtn').addEventListener('click', async () => { if (!registry) return; try { await navigator.clipboard.writeText($('outputText').value); } catch { $('outputText').select(); document.execCommand('copy'); } });
             $('downloadBtn').addEventListener('click', () => { if (!registry) return; const blob = new Blob([$('outputText').value], { type: 'text/markdown' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${registry.seed}-civil-registry.md`; link.click(); URL.revokeObjectURL(link.href); });
             updatePercentageTotal();
             $('seedInput').value = randomSeed();
+            updateModeVisibility();
             renderHistory();
             showStep(1);
         }());

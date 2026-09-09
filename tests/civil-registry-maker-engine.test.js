@@ -66,6 +66,28 @@ const satyrAnchor = engine.parseAnchors('name, sex, race, age, roll\nPan Wildgro
 assert.equal(satyrAnchor.errors.length, 0);
 assert.equal(satyrAnchor.anchors[0].race, 'Satyr');
 
+const backerOnlyRegistry = engine.buildRegistry({
+    registryMode: 'backers',
+    seed: 'backer-only-registry',
+    familyCount: 999,
+    backerTextByClass: {
+        Lower: 'Sierra\nHouse Ironroot',
+        Medium: 'The Marrow Guild',
+        Upper: 'House Highwood\nThe Crown Estate'
+    },
+    classPercentages: { Lower: 40, Medium: 40, Upper: 20 },
+    familyType: 'Single',
+    includeElders: false
+});
+assert.equal(backerOnlyRegistry.registryMode, 'backers');
+assert.equal(backerOnlyRegistry.familyCount, 5);
+assert.equal(backerOnlyRegistry.anchorCount, 0);
+assert.equal(backerOnlyRegistry.backerCount, 5);
+assert.deepEqual(backerOnlyRegistry.families.map((family) => [family.householdClass, family.backerName]), [
+    ['Lower', 'Sierra'], ['Lower', 'House Ironroot'], ['Medium', 'The Marrow Guild'], ['Upper', 'House Highwood'], ['Upper', 'The Crown Estate']
+]);
+assert.match(engine.toNumberedMarkdown(backerOnlyRegistry), /###### \(Backer's Name: Sierra\)/);
+
 const backerAnchorText = 'name, sex, race, age, roll, backer name\nGregory Marrow, Male, Human, 58, Council Head, House Brightwater';
 const backerRegistry = engine.buildRegistry({
     seed: 'backer-registry',
