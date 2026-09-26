@@ -215,7 +215,7 @@
 
     function chooseRace(rng, preferred) {
         if (String(preferred || '').trim().toLowerCase() === 'elf') return rng.weighted(ELF_SUBRACE_WEIGHTS);
-        return normalizeRace(preferred || rng.weighted(RACE_WEIGHTS));
+        return normalizeRace(preferred || rng.weighted(rng.raceWeights || RACE_WEIGHTS));
     }
 
     function chooseSurname(rng, race) {
@@ -224,6 +224,7 @@
     }
 
     function chooseChildRace(rng, firstRace, secondRace) {
+        if (rng.raceWeights?.length === 1) return rng.raceWeights[0][0];
         const direct = OFFSPRING[sourceRace(firstRace)]?.[sourceRace(secondRace)];
         if (direct) return direct === 'Elf' ? chooseRace(rng, 'Elf') : direct;
         const reverse = OFFSPRING[sourceRace(secondRace)]?.[sourceRace(firstRace)];
@@ -265,6 +266,12 @@
     function buildFamily(options = {}) {
         const seed = String(options.seed || `family-${Date.now()}`);
         const rng = createRng(seed);
+        if (options.raceWeights) {
+            const weights = Object.entries(options.raceWeights).map(([race, weight]) => [resolveRaceName(race), Number(weight)]);
+            if (weights.some(([race, weight]) => !race || !Number.isFinite(weight) || weight < 0)) throw new Error('Race weights must use supported races and non-negative numbers.');
+            rng.raceWeights = weights.filter(([, weight]) => weight > 0);
+            if (!rng.raceWeights.length) throw new Error('At least one race weight must be greater than zero.');
+        }
         const requestedTargetMemberCount = options.targetMemberCount === undefined || options.targetMemberCount === null
             ? null
             : Number(options.targetMemberCount);
@@ -510,6 +517,7 @@
 
     global.NpcFamilyMakerEngine = {
         RACES,
+        RACE_WEIGHTS,
         ELF_SUBRACE_WEIGHTS,
         FAMILY_TYPES,
         CLASS_JOBS,

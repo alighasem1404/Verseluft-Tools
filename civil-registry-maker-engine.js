@@ -191,6 +191,7 @@
                 includeElders: options.includeElders !== false,
                 ignoreFamilyMemberLimit: true,
                 targetMemberCount: familySizes ? familySizes[index] : undefined,
+                raceWeights: options.raceWeights,
                 backerName: backerOnly ? sourceBacker.name : (options.includeBackerNames === true ? sourceAnchor?.backerName : undefined),
                 anchor
             }));

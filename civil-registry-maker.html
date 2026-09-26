@@ -62,6 +62,11 @@
                         <div class="cr-field"><label for="upperPercent">Upper</label><input id="upperPercent" class="cr-input" type="number" min="0" max="100" value="20"></div>
                     </div>
                     <p id="percentageTotal" class="cr-help">Total: 100%</p>
+                    <div class="cr-section-label">Race distribution</div>
+                    <div class="cr-field"><label for="raceWeightMode">Race weights</label><select id="raceWeightMode" class="cr-select"><option value="default">Use default race weights</option><option value="custom">Set custom weights</option><option value="single">Generate one race only</option></select><p class="cr-help">Weights guide randomly generated family members. Anchor NPC races stay as entered.</p></div>
+                    <div id="singleRaceField" class="cr-field" hidden><label for="singleRace">Race to generate</label><select id="singleRace" class="cr-select"></select></div>
+                    <div id="customRaceWeights" class="cr-race-weights" hidden></div>
+                    <p id="raceWeightHelp" class="cr-help" hidden>Weights are relative values; they do not need to add up to 100. Set a race to 0 to exclude it.</p>
                     <div class="cr-field"><label for="familyType">Family type</label><select id="familyType" class="cr-select"><option value="random">Use workbook weights</option><option>Normal</option><option>Gay</option><option>Sibling</option><option>Roommate</option><option>Single</option></select></div>
                     <div class="cr-field"><label for="outputFormat">Output format</label><select id="outputFormat" class="cr-select"><option value="homebrewery">Homebrewery paging · 3 columns</option><option value="numbered">Numbered Markdown</option><option value="plain">Plain family blocks</option></select></div>
                     <label class="cr-check"><input id="allowSecondWifeChance" type="checkbox" checked> Allow random second-wife chance (Normal families only · 40%)</label>
@@ -152,6 +157,27 @@
                 $('percentageTotal').textContent = `Total: ${total}%${total === 100 ? '' : ' (must equal 100%)'}`;
             }
 
+            function initializeRaceControls() {
+                const raceWeights = engine ? window.NpcFamilyMakerEngine.RACE_WEIGHTS : [];
+                $('singleRace').innerHTML = raceWeights.map(([race]) => `<option value="${escapeHtml(race)}">${escapeHtml(race)}</option>`).join('');
+                $('customRaceWeights').innerHTML = raceWeights.map(([race, weight]) => `<label class="cr-race-weight"><span>${escapeHtml(race)}</span><input class="cr-input" type="number" min="0" step="any" value="${Number(weight)}" data-race-weight="${escapeHtml(race)}" aria-label="${escapeHtml(race)} race weight"></label>`).join('');
+                updateRaceWeightVisibility();
+            }
+
+            function updateRaceWeightVisibility() {
+                const mode = $('raceWeightMode').value;
+                $('singleRaceField').hidden = mode !== 'single';
+                $('customRaceWeights').hidden = mode !== 'custom';
+                $('raceWeightHelp').hidden = mode !== 'custom';
+            }
+
+            function selectedRaceWeights() {
+                const mode = $('raceWeightMode').value;
+                if (mode === 'default') return undefined;
+                if (mode === 'single') return { [$('singleRace').value]: 1 };
+                return Object.fromEntries([...document.querySelectorAll('[data-race-weight]')].map((input) => [input.dataset.raceWeight, Number(input.value)]));
+            }
+
             function updateModeVisibility() {
                 const backerOnly = $('registryMode').value === 'backers';
                 $('familyCountField').hidden = backerOnly;
@@ -191,6 +217,7 @@
                         Medium: $('mediumAnchorText').value,
                         Upper: $('upperAnchorText').value
                     },
+                    raceWeights: selectedRaceWeights(),
                     classPercentages: { Lower: Number($('lowerPercent').value), Medium: Number($('mediumPercent').value), Upper: Number($('upperPercent').value) },
                     familyType: $('familyType').value,
                     outputFormat: $('outputFormat').value,
@@ -259,6 +286,12 @@
                 $('familyCount').value = '20';
                 $('startingNumber').value = '1';
                 $('population').value = '';
+                $('raceWeightMode').value = 'default';
+                $('singleRace').value = 'Human';
+                [...document.querySelectorAll('[data-race-weight]')].forEach((input) => {
+                    const defaultWeight = window.NpcFamilyMakerEngine.RACE_WEIGHTS.find(([race]) => race === input.dataset.raceWeight)?.[1] ?? 0;
+                    input.value = String(defaultWeight);
+                });
                 $('includeBackerNames').checked = false;
                 $('lowerAnchorText').value = '';
                 $('mediumAnchorText').value = '';
@@ -277,6 +310,7 @@
                 $('statMembers').textContent = '0';
                 $('validationBox').hidden = true;
                 updatePercentageTotal();
+                updateRaceWeightVisibility();
                 updateModeVisibility();
                 showStep(1);
             }
@@ -288,11 +322,13 @@
             $('newSeedBtn').addEventListener('click', () => { $('seedInput').value = randomSeed(); generate(); });
             $('resetInputsBtn').addEventListener('click', resetInputs);
             $('registryMode').addEventListener('change', updateModeVisibility);
+            $('raceWeightMode').addEventListener('change', updateRaceWeightVisibility);
             $('outputFormat').addEventListener('change', () => { if (registry) renderRegistry(); });
             $('copyBtn').addEventListener('click', async () => { if (!registry) return; try { await navigator.clipboard.writeText($('outputText').value); } catch { $('outputText').select(); document.execCommand('copy'); } });
             $('downloadBtn').addEventListener('click', () => { if (!registry) return; const blob = new Blob([$('outputText').value], { type: 'text/markdown' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${registry.seed}-civil-registry.md`; link.click(); URL.revokeObjectURL(link.href); });
             updatePercentageTotal();
             $('seedInput').value = randomSeed();
+            initializeRaceControls();
             updateModeVisibility();
             renderHistory();
             showStep(1);
