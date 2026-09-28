@@ -171,6 +171,7 @@
                             <option value="Celestial">Celestial</option>
                             <option value="Undead">Undead</option>
                             <option value="Gnome">Gnome</option>
+                            <option value="Deer-folk">Deer-folk</option>
                         </select>
                     </div>
 
@@ -402,7 +403,7 @@
 
     <!-- JS Logic -->
     <script>
-        const races = ["Human", "Elf", "Dwarf", "Tiefling", "Dragonborn", "Halfling", "Orc", "Celestial", "Undead", "Gnome"];
+        const races = ["Human", "Elf", "Dwarf", "Tiefling", "Dragonborn", "Halfling", "Orc", "Celestial", "Undead", "Gnome", "Deer-folk"];
         const sexes = ["Male", "Female"];
         const genders = ["Male", "Female", "Non-binary", "Androgynous", "Agender"];
         const proficiencies = [
@@ -461,6 +462,11 @@
                 Male: ["Boddynock", "Dimble", "Fonkin", "Gimble", "Kellen", "Namfoodle", "Orryn", "Wrenn"],
                 Female: ["Bimpnottin", "Breena", "Caramip", "Ellywick", "Lilli", "Loopmarda", "Roywyn", "Zanna"],
                 Neutral: ["Fizzle", "Spark", "Tinker", "Gears", "Pip", "Wren", "Sprocket", "Rusty"]
+            },
+            "Deer-folk": {
+                Male: ["Alder", "Antler", "Bracken", "Cervan", "Rowan"],
+                Female: ["Fawn", "Hazel", "Juniper", "Meadow", "Willow"],
+                Neutral: ["Alder", "Bracken", "Fawn", "Juniper", "Rowan", "Willow"]
             }
         };
 
@@ -474,7 +480,8 @@
             Orc: ["Skullcrusher", "Bloodfist", "Ironfang", "Goretusk", "Doomhammer", "Ragetearer", "Bonebreaker", "Steelclaw"],
             Celestial: ["Solarsong", "Starweaver", "Aetherwing", "Lightshield", "Seraphis", "Dawnbreaker", "Highheaven", "Sunbearer"],
             Undead: ["Gravewalker", "Deadwood", "Nightshade", "Soulreaper", "Cryptkeeper", "Coldheart", "Plaguewing", "Shadowmend"],
-            Gnome: ["Sprockets", "Fizzlebang", "Geargrinder", "Tinkertoy", "Copperwire", "Goldspark", "Clockwork", "Quickwit"]
+            Gnome: ["Sprockets", "Fizzlebang", "Geargrinder", "Tinkertoy", "Copperwire", "Goldspark", "Clockwork", "Quickwit"],
+            "Deer-folk": ["Antlerbough", "Briarstep", "Deerhaven", "Leafwhisper", "Mossgrove"]
         };
 
         // Matching structures for local fallback generation
@@ -823,6 +830,8 @@
                         ageNum = Math.floor(Math.random() * 500) + 150;
                     } else if (race === "Dwarf") {
                         ageNum = Math.floor(Math.random() * 150) + 100;
+                    } else if (race === "Deer-folk") {
+                        ageNum = Math.floor(Math.random() * 25) + 76;
                     } else {
                         ageNum = Math.floor(Math.random() * 30) + 76;
                     }

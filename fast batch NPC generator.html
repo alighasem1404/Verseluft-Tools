@@ -296,6 +296,7 @@
                             <option value="Gnome">Gnome</option>
                             <option value="Tiefling">Tiefling</option>
                             <option value="Dragonborn">Dragonborn</option>
+                            <option value="Deer-folk">Deer-folk</option>
                         </select>
                     </div>
 
@@ -339,7 +340,11 @@
     <script>
         const firstNames = {
             Male: ['Alden', 'Brom', 'Cedric', 'Darrin', 'Eldric', 'Garmund', 'Hadrian', 'Ivor', 'Joric', 'Kael', 'Luthor', 'Marek', 'Nerin', 'Orrin', 'Perrin', 'Quill', 'Rudgar', 'Soren', 'Tarin', 'Varric'],
-            Female: ['Ada', 'Brina', 'Cerys', 'Delma', 'Elira', 'Fara', 'Gwyn', 'Hela', 'Isolde', 'Jessa', 'Klara', 'Lysa', 'Mira', 'Nora', 'Orla', 'Petra', 'Raina', 'Sera', 'Tilda', 'Vessa']
+            Female: ['Ada', 'Brina', 'Cerys', 'Delma', 'Elira', 'Fara', 'Gwyn', 'Hela', 'Isolde', 'Jessa', 'Klara', 'Lysa', 'Mira', 'Nora', 'Orla', 'Petra', 'Raina', 'Sera', 'Tilda', 'Vessa'],
+            'Deer-folk': {
+                Male: ['Alder', 'Antler', 'Bracken', 'Cervan', 'Rowan'],
+                Female: ['Fawn', 'Hazel', 'Juniper', 'Meadow', 'Willow']
+            }
         };
 
         const surnames = {
@@ -350,10 +355,11 @@
             Orc: ['Skullsplitter', 'Grimjaw', 'Bonecrusher', 'Ashhide', 'Stormaxe', 'Mireborn', 'Ragefist'],
             Gnome: ['Copperwick', 'Fizzlebang', 'Tinkerpin', 'Geargrin', 'Nimbletune', 'Quickbolt'],
             Tiefling: ['Nightvein', 'Ashthorn', 'Redveil', 'Duskwing', 'Morrow', 'Blackflame'],
-            Dragonborn: ['Emberclaw', 'Goldscale', 'Ironspine', 'Stormhorn', 'Brightbreath', 'Cindertooth']
+            Dragonborn: ['Emberclaw', 'Goldscale', 'Ironspine', 'Stormhorn', 'Brightbreath', 'Cindertooth'],
+            'Deer-folk': ['Antlerbough', 'Briarstep', 'Deerhaven', 'Leafwhisper', 'Mossgrove']
         };
 
-        const racePool = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Gnome', 'Tiefling', 'Dragonborn'];
+        const racePool = ['Human', 'Elf', 'Dwarf', 'Halfling', 'Orc', 'Gnome', 'Tiefling', 'Dragonborn', 'Deer-folk'];
 
         const socialClasses = {
             lower: {
@@ -458,7 +464,7 @@
                 return nameDataMap[key];
             }
 
-            return firstNames[sex] || firstNames.Male;
+            return firstNames[race]?.[sex] || firstNames[sex] || firstNames.Male;
         }
 
         function getSurnamePool(race) {
@@ -492,6 +498,7 @@
             if (race === 'Orc') maxAge = Math.min(Math.max(maxAge, 70), 90);
             if (race === 'Dragonborn') maxAge = Math.max(maxAge, 95);
             if (race === 'Tiefling') maxAge = Math.max(maxAge, 110);
+            if (race === 'Deer-folk') maxAge = Math.max(maxAge, 100);
 
             return pickRange(minAge, maxAge);
         }

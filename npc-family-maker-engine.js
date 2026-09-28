@@ -75,7 +75,7 @@
     const SOURCE_RACE_WEIGHTS = Object.entries(WORKBOOK_DATA.main?.raceWeights || {}).length
         ? Object.entries(WORKBOOK_DATA.main.raceWeights)
         : FALLBACK_RACE_WEIGHTS;
-    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5], ['Raven', 5], ['Hyena', 5], ['Celestial', 5], ['Goblin', 5], ['Hobgoblin', 5]];
+    const ADDITIONAL_RACE_WEIGHTS = [['Orc', 5], ['Goliath', 5], ['Satyr', 5], ['Raven', 5], ['Hyena', 5], ['Celestial', 5], ['Goblin', 5], ['Hobgoblin', 5], ['Deer-folk', 5]];
     const RACE_WEIGHTS = [
         ...SOURCE_RACE_WEIGHTS,
         ...ADDITIONAL_RACE_WEIGHTS.filter(([race]) => !SOURCE_RACE_WEIGHTS.some(([sourceRace]) => sourceRace === race))
