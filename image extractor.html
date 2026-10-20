@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Image Extractor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="image-extractor.css">
+</head>
+<body>
+    <div class="page">
+        <header class="shell header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Offline file tool</div>
+                <h1 class="title">Image <span>Extractor</span></h1>
+                <p class="lede">Find image links and embedded images in text, Markdown, or JSON files, then save the images to a folder on your computer.</p>
+                <div class="actions">
+                    <a class="btn btn-ghost soft-focus" href="index.html">Back to hub</a>
+                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Clear</button>
+                </div>
+            </section>
+            <aside class="stats" aria-label="Extraction summary">
+                <div class="stat"><span id="imageCount" class="value">0</span><span class="label">Images found</span></div>
+                <div class="stat"><span class="value">Local</span><span class="label">Processing</span></div>
+                <div class="stat"><span class="value">No API</span><span class="label">Required</span></div>
+            </aside>
+        </header>
+
+        <main class="extractor-main">
+            <section class="tool-interface extractor-shell" aria-label="Image extraction">
+                <div class="extractor-controls">
+                    <div class="field">
+                        <label for="fileInput">Choose text, Markdown, or JSON files</label>
+                        <input id="fileInput" type="file" accept=".txt,.md,.markdown,.json,text/plain,text/markdown,application/json" multiple>
+                        <p class="muted-note">Reads Markdown image syntax, HTML image tags, image URLs, and embedded data images.</p>
+                    </div>
+                    <div class="field destination-field">
+                        <label>Save location</label>
+                        <button id="folderBtn" class="btn btn-ghost soft-focus" type="button">Choose output folder</button>
+                        <span id="folderName" class="muted">Required — choose a destination folder</span>
+                    </div>
+                </div>
+
+                <div id="dropzone" class="converter-dropzone extractor-dropzone soft-focus" tabindex="0" role="button" aria-label="Drop text, Markdown, or JSON files here or click to select">
+                    <strong>Drop your files here</strong>
+                    <div class="muted">or click to browse .txt, .md, and .json files</div>
+                </div>
+
+                <div class="extractor-actions">
+                    <button id="extractBtn" class="btn btn-primary soft-focus" type="button" disabled>Extract and save images</button>
+                    <span id="statusText" class="muted extractor-status" role="status" aria-live="polite">Choose one or more files to begin.</span>
+                </div>
+
+                <div class="panel-title extractor-results-title">
+                    <h3>Found images</h3>
+                    <span id="resultBadge" class="badge">Nothing extracted yet</span>
+                </div>
+                <div id="results" class="extractor-results" aria-live="polite"></div>
+                <p class="muted-note extractor-note">Choose a destination folder before extracting. Images are written directly to that folder; there is no Downloads-folder fallback. Remote image links must allow browser access (CORS). Embedded data images work locally. Relative file paths cannot be read unless the image files themselves are selected.</p>
+            </section>
+        </main>
+    </div>
+    <script src="image-extractor.js"></script>
+</body>
+</html>

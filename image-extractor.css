@@ -1,0 +1,28 @@
+.extractor-main { margin-top: 24px; }
+.extractor-shell { display: grid; gap: 18px; }
+.extractor-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .65fr); gap: 18px; align-items: end; }
+.extractor-controls .field { min-width: 0; }
+.extractor-controls input[type="file"] { width: 100%; }
+.destination-field { display: grid; gap: 10px; }
+.destination-field .btn { justify-self: start; }
+.destination-field .muted { overflow-wrap: anywhere; font-size: .9rem; }
+.extractor-dropzone { cursor: pointer; }
+.extractor-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.extractor-status { padding: 7px 10px; border-radius: 9px; }
+.extractor-status.is-error { color: #ff858c; background: rgba(255, 72, 88, .12); border: 1px solid rgba(255, 92, 105, .42); font-weight: 750; }
+.extractor-results-title { margin-top: 4px; }
+.extractor-results { display: grid; gap: 10px; }
+.extractor-empty { border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 20px; color: var(--muted-2); text-align: center; }
+.extractor-item { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08); }
+.extractor-thumb { width: 64px; height: 64px; border-radius: 12px; background: rgba(5,4,10,.8); object-fit: cover; }
+.extractor-item-info { min-width: 0; }
+.extractor-item-name { font-weight: 750; overflow-wrap: anywhere; }
+.extractor-item-source { margin-top: 4px; font-size: .82rem; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.extractor-item-status { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.extractor-note { line-height: 1.6; }
+@media (max-width: 700px) {
+    .extractor-controls { grid-template-columns: 1fr; }
+    .extractor-item { grid-template-columns: 52px minmax(0,1fr); }
+    .extractor-thumb { width: 52px; height: 52px; }
+    .extractor-item-status { grid-column: 2; }
+}
