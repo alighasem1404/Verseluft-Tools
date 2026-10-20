@@ -1,0 +1,294 @@
+(function (global) {
+    'use strict';
+
+    const familyEngine = global.NpcFamilyMakerEngine;
+    if (!familyEngine) throw new Error('Civil Registry Maker requires the NPC Family Maker engine.');
+
+    const DEFAULT_CLASS_PERCENTAGES = { Lower: 40, Medium: 40, Upper: 20 };
+    const PAGE_LINE_CAPACITY = 260;
+    const WRAP_LINE_LENGTH = 60;
+
+    function parseCsvLine(line) {
+        const cells = [];
+        let cell = '';
+        let quoted = false;
+        for (let index = 0; index < line.length; index += 1) {
+            const character = line[index];
+            if (character === '"' && line[index + 1] === '"' && quoted) {
+                cell += '"';
+                index += 1;
+            } else if (character === '"') {
+                quoted = !quoted;
+            } else if (character === ',' && !quoted) {
+                cells.push(cell.trim());
+                cell = '';
+            } else {
+                cell += character;
+            }
+        }
+        cells.push(cell.trim());
+        return cells;
+    }
+
+    function parseName(fullName) {
+        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) {
+            const name = parts[0] || 'Unnamed';
+            return { firstName: name, surname: name };
+        }
+        return { firstName: parts.shift(), surname: parts.join(' ') };
+    }
+
+    function normalizeGender(value) {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (['male', 'm'].includes(normalized)) return 'Male';
+        if (['female', 'f'].includes(normalized)) return 'Female';
+        if (['non-binary', 'nonbinary', 'non binary', 'nb'].includes(normalized)) return 'Non-binary';
+        return null;
+    }
+
+    function anchorRole(familyType, gender) {
+        if (['Single', 'Roommate'].includes(familyType)) return gender;
+        if (gender === 'Non-binary') return 'Spouse';
+        if (familyType === 'Roommate') return 'Roommate';
+        if (familyType === 'Sibling') return gender === 'Male' ? 'Brother' : 'Sister';
+        return gender === 'Male' ? 'Husband' : 'Wife';
+    }
+
+    function parseAnchors(text, races = familyEngine.RACES) {
+        const errors = [];
+        const anchors = [];
+        const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        lines.forEach((line, index) => {
+            const cells = parseCsvLine(line);
+            if (index === 0 && cells[0]?.toLowerCase() === 'name') return;
+            if (cells.length < 5) {
+                errors.push(`Anchor line ${index + 1} must contain name, sex, race, age, and roll.`);
+                return;
+            }
+            const gender = normalizeGender(cells[1]);
+            const rawRace = String(cells[2] || '').trim();
+            const race = rawRace.toLowerCase() === 'elf' ? 'Elf' : familyEngine.resolveRaceName(rawRace);
+            const age = Number(cells[3]);
+            if (!gender) errors.push(`Anchor line ${index + 1} has an unsupported sex: ${cells[1] || '(blank)'}.`);
+            if (!race || (race !== 'Elf' && !races[race])) errors.push(`Anchor line ${index + 1} has an unsupported race: ${cells[2] || '(blank)'}.`);
+            if (!Number.isFinite(age) || age < 0) errors.push(`Anchor line ${index + 1} has an invalid age: ${cells[3] || '(blank)'}.`);
+            const name = parseName(cells[0]);
+            anchors.push({
+                firstName: name.firstName,
+                surname: name.surname,
+                gender: gender || 'Male',
+                race: race || 'Human',
+                age: Number.isFinite(age) && age >= 0 ? age : 0,
+                profession: cells[4]?.trim() || undefined,
+                ...(cells.slice(5).join(', ').trim() ? { backerName: cells.slice(5).join(', ').trim() } : {}),
+                sourceNotes: ['Civil Registry anchor']
+            });
+        });
+        return { anchors, errors };
+    }
+
+    function parseAnchorsByClass(anchorTextByClass = {}, races = familyEngine.RACES) {
+        const anchors = [];
+        const errors = [];
+        ['Lower', 'Medium', 'Upper'].forEach((householdClass) => {
+            const parsed = parseAnchors(anchorTextByClass[householdClass] || '', races);
+            errors.push(...parsed.errors.map((error) => `${householdClass} class: ${error}`));
+            anchors.push(...parsed.anchors.map((anchor) => ({ ...anchor, householdClass })));
+        });
+        return { anchors, errors };
+    }
+
+    function parseBackersByClass(backerTextByClass = {}) {
+        const backers = [];
+        const errors = [];
+        ['Lower', 'Medium', 'Upper'].forEach((householdClass) => {
+            const lines = String(backerTextByClass[householdClass] || '').split(/\r?\n/);
+            lines.forEach((line, index) => {
+                const name = line.trim();
+                if (!name) return;
+                if (index === 0 && ['name', 'backer', 'backer name', 'backer names'].includes(name.toLowerCase())) return;
+                backers.push({ name, householdClass });
+            });
+        });
+        return { backers, errors };
+    }
+
+    function normalizePercentages(percentages = DEFAULT_CLASS_PERCENTAGES) {
+        const result = {};
+        for (const className of ['Lower', 'Medium', 'Upper']) {
+            const value = Number(percentages[className]);
+            if (!Number.isFinite(value) || value < 0) throw new Error(`${className} class percentage must be a non-negative number.`);
+            result[className] = value;
+        }
+        const total = result.Lower + result.Medium + result.Upper;
+        if (Math.abs(total - 100) > 0.001) throw new Error(`Social class percentages must total 100%; current total is ${total}%.`);
+        return result;
+    }
+
+    function classEntries(percentages) {
+        return Object.entries(percentages);
+    }
+
+    function balancedFamilySizes(population, familyCount) {
+        const baseSize = Math.floor(population / familyCount);
+        const remainder = population % familyCount;
+        return Array.from({ length: familyCount }, (_, index) => baseSize + (index < remainder ? 1 : 0));
+    }
+
+    function chooseFamilyType(rng, familyType) {
+        return familyType && familyType !== 'random' ? familyType : rng.weighted(familyEngine.FAMILY_TYPES);
+    }
+
+    function buildRegistry(options = {}) {
+        const seed = String(options.seed || 'village-01');
+        const backerOnly = options.registryMode === 'backers' || options.backerOnly === true;
+        const requestedFamilyCount = Math.floor(Number(options.familyCount));
+        const startingNumber = options.startingNumber === undefined || options.startingNumber === null || String(options.startingNumber).trim() === ''
+            ? 1
+            : Number(options.startingNumber);
+        if (!Number.isInteger(startingNumber) || startingNumber < 1) throw new Error('Starting family number must be a positive whole number.');
+        const percentages = normalizePercentages(options.classPercentages);
+        const backerParsed = backerOnly ? parseBackersByClass(options.backerTextByClass || options.backerNamesByClass || {}) : { backers: [], errors: [] };
+        const familyCount = backerOnly ? backerParsed.backers.length : requestedFamilyCount;
+        if (!Number.isInteger(familyCount) || familyCount < 1) {
+            throw new Error(backerOnly ? 'Enter at least one backer name.' : 'Family count must be a positive whole number.');
+        }
+        const hasPopulationLimit = options.population !== undefined && options.population !== null && String(options.population).trim() !== '';
+        const population = hasPopulationLimit ? Number(options.population) : null;
+        if (hasPopulationLimit && (!Number.isInteger(population) || population < familyCount)) {
+            throw new Error(`Population must be a whole number of at least ${familyCount} (one person per family).`);
+        }
+        const familySizes = population === null ? null : balancedFamilySizes(population, familyCount);
+        const anchorTextByClass = options.anchorTextByClass || options.anchorTextsByClass;
+        const parsed = backerOnly
+            ? { anchors: [], errors: backerParsed.errors }
+            : anchorTextByClass
+                ? parseAnchorsByClass(anchorTextByClass)
+                : parseAnchors(options.anchorText || options.anchors || '');
+        if (parsed.errors.length) throw new Error(parsed.errors.join(' '));
+        if (!backerOnly && parsed.anchors.length > familyCount) throw new Error('There cannot be more anchors than families.');
+
+        const families = [];
+        const registryRng = familyEngine.createRng(seed);
+        for (let index = 0; index < familyCount; index += 1) {
+            const familySeed = `${seed}:family-${index + 1}`;
+            const typeRng = familyEngine.createRng(`${familySeed}:type`);
+            const familyType = chooseFamilyType(typeRng, options.familyType);
+            const sourceAnchor = parsed.anchors[index];
+            const sourceBacker = backerParsed.backers[index];
+            const householdClass = sourceBacker?.householdClass || sourceAnchor?.householdClass || registryRng.weighted(classEntries(percentages));
+            const anchor = sourceAnchor ? {
+                ...sourceAnchor,
+                relationshipRole: anchorRole(familyType, sourceAnchor.gender),
+                lockedFields: ['firstName', 'race', 'age', 'gender', 'profession']
+            } : undefined;
+            families.push(familyEngine.buildFamily({
+                seed: familySeed,
+                familyType,
+                householdClass,
+                allowSecondWifeChance: options.allowSecondWifeChance === true,
+                includeElders: options.includeElders !== false,
+                ignoreFamilyMemberLimit: true,
+                targetMemberCount: familySizes ? familySizes[index] : undefined,
+                raceWeights: options.raceWeights,
+                backerName: backerOnly ? sourceBacker.name : (options.includeBackerNames === true ? sourceAnchor?.backerName : undefined),
+                anchor
+            }));
+        }
+
+        return {
+            id: `registry-${seed}`,
+            seed,
+            registryMode: backerOnly ? 'backers' : 'anchors',
+            familyCount,
+            startingNumber,
+            classPercentages: percentages,
+            populationLimit: population,
+            anchorCount: parsed.anchors.length,
+            backerCount: backerParsed.backers.length,
+            families,
+            population: families.reduce((sum, family) => sum + family.members.length, 0),
+            errors: []
+        };
+    }
+
+    function familyToMarkdown(family) {
+        const lines = [`The "${family.surname}" Family`, ''];
+        if (family.backerName) lines.push(`###### (Backer's Name: ${family.backerName})`, '');
+        family.members.forEach((member) => {
+            const profession = member.profession ? `, ${member.profession}` : '';
+            lines.push(`- ${member.firstName}, ${member.race}, ${member.age}, ${member.relationshipRole}${profession}`);
+        });
+        return lines.join('\n');
+    }
+
+    function familyToNumberedMarkdown(family, number) {
+        const lines = [`###### ${number} The ${family.surname} Family`];
+        if (family.backerName) lines.push('', `###### (Backer's Name: ${family.backerName})`, '');
+        family.members.forEach((member) => {
+            const profession = member.profession ? `, ${member.profession}` : '';
+            lines.push(`- ${member.firstName}, ${member.race}, ${member.age}, ${member.relationshipRole}${profession}`);
+        });
+        return lines.join('\n');
+    }
+
+    function wrappedLineCount(text) {
+        return String(text).split('\n')
+            .filter((line) => line.length > 0)
+            .reduce((count, line) => count + (line.length > WRAP_LINE_LENGTH ? 2 : 1), 0);
+    }
+
+    function paginateFamilies(families, startingNumber = 1) {
+        const pages = [];
+        let current = [];
+        let usedLines = 0;
+        families.forEach((family, index) => {
+            const block = familyToNumberedMarkdown(family, startingNumber + index);
+            const blockCost = wrappedLineCount(block);
+            if (current.length && usedLines + blockCost >= PAGE_LINE_CAPACITY) {
+                pages.push(current);
+                current = [];
+                usedLines = 0;
+            }
+            current.push(block);
+            usedLines += blockCost;
+        });
+        if (current.length) pages.push(current);
+        return pages;
+    }
+
+    function toNumberedMarkdown(registry) {
+        const startingNumber = Number.isInteger(registry.startingNumber) ? registry.startingNumber : 1;
+        return registry.families.map((family, index) => familyToNumberedMarkdown(family, startingNumber + index)).join('\n\n');
+    }
+
+    function toHomebreweryMarkdown(registry) {
+        const startingNumber = Number.isInteger(registry.startingNumber) ? registry.startingNumber : 1;
+        return paginateFamilies(registry.families, startingNumber).map((page) => `{{index,wide,columns:3\n\n${page.join('\n\n')}\n\n}}\n\n\\page\n`).join('\n');
+    }
+
+    function toMarkdown(registry) {
+        return registry.families.map(familyToMarkdown).join('\n\n');
+    }
+
+    global.CivilRegistryMakerEngine = {
+        DEFAULT_CLASS_PERCENTAGES,
+        PAGE_LINE_CAPACITY,
+        WRAP_LINE_LENGTH,
+        parseCsvLine,
+        parseAnchors,
+        parseAnchorsByClass,
+        parseBackersByClass,
+        normalizePercentages,
+        balancedFamilySizes,
+        buildRegistry,
+        familyToMarkdown,
+        familyToNumberedMarkdown,
+        wrappedLineCount,
+        paginateFamilies,
+        toNumberedMarkdown,
+        toHomebreweryMarkdown,
+        toMarkdown
+    };
+}(window));
