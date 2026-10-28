@@ -1,0 +1,19 @@
+.toc-main { margin-top: 24px; }
+.toc-controls { display: flex; flex-direction: row; flex-wrap: wrap; align-items: end; gap: 18px; }
+.toc-controls .field { flex: 1 1 220px; }
+.toc-controls input, .toc-controls select { width: 100%; }
+.toc-help { flex-basis: 100%; margin: 0; line-height: 1.6; }
+.toc-status { margin: 18px 0; padding: 12px 14px; border: 1px solid var(--card-border); border-radius: 12px; color: var(--muted); line-height: 1.5; }
+.toc-status.is-error { color: #ff9da3; background: rgba(255, 72, 88, .12); border-color: rgba(255, 92, 105, .5); font-weight: 700; }
+.toc-editors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.toc-panel { min-width: 0; gap: 14px; }
+.toc-panel .panel-title { min-height: 44px; gap: 12px; margin-bottom: 0; }
+.toc-panel h2 { font-size: 1.1rem; margin: 0; }
+.toc-panel textarea { display: block; width: 100%; min-height: 440px; resize: vertical; padding: 16px; border: 1px solid var(--card-border-strong); border-radius: 14px; background: rgba(5, 4, 10, .7); color: var(--text); font: 13px/1.7 Consolas, "Courier New", monospace; tab-size: 2; }
+.toc-panel textarea:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+.toc-panel .muted-note { margin-bottom: 0; line-height: 1.6; }
+.toc-main button:disabled { opacity: .45; cursor: not-allowed; animation: none; }
+@media (max-width: 800px) {
+    .toc-editors { grid-template-columns: 1fr; }
+    .toc-panel textarea { min-height: 300px; }
+}

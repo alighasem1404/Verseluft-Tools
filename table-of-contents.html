@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Table of Contents Builder</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="table-of-contents.css">
+</head>
+<body>
+    <div class="page">
+        <header class="shell header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Offline Markdown tool</div>
+                <h1 class="title">Table of <span>Contents</span></h1>
+                <p class="lede">Paste your Homebrewery Markdown, choose a heading depth, and create a table of contents with page links.</p>
+                <div class="actions">
+                    <a class="btn btn-ghost soft-focus" href="index.html">Back to hub</a>
+                    <button id="exampleBtn" class="btn btn-ghost soft-focus" type="button">Load example</button>
+                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Clear</button>
+                </div>
+            </section>
+            <aside class="stats" aria-label="Contents summary">
+                <div class="stat"><span id="entryCount" class="value">0</span><span class="label">TOC entries</span></div>
+                <div class="stat"><span class="value">Local</span><span class="label">Processing</span></div>
+                <div class="stat"><span class="value">No API</span><span class="label">Required</span></div>
+            </aside>
+        </header>
+        <main class="toc-main">
+            <form id="tocForm" class="tool-interface toc-controls">
+                <div class="field">
+                    <label for="depthInput">Include headings through</label>
+                    <select id="depthInput">
+                        <option value="1">Level 1 — # only</option>
+                        <option value="2">Level 2 — # and ##</option>
+                        <option value="3" selected>Level 3 — #, ##, and ###</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="startPageInput">First page number</label>
+                    <input id="startPageInput" type="number" min="1" max="1000000" step="1" value="1" required aria-describedby="pageHint">
+                </div>
+                <button class="btn btn-primary soft-focus" type="submit">Create TOC</button>
+                <p id="pageHint" class="muted-note toc-help">Each <code>\page</code> on its own line starts the next page. For a full document, start at 1; for an excerpt, enter its first page. Links use these document page numbers, not custom printed footer numbers.</p>
+            </form>
+            <div id="statusText" class="toc-status" role="status" aria-live="polite">Paste your source, choose the depth, then create your TOC.</div>
+            <div class="toc-editors">
+                <section class="tool-interface toc-panel">
+                    <div class="panel-title"><h2><label for="sourceInput">Source Markdown</label></h2><span class="badge">Paste here</span></div>
+                    <textarea id="sourceInput" spellcheck="false" aria-describedby="sourceHint" placeholder="# Sylwaen&#10;&#10;### Behavior&#10;Text goes here.&#10;&#10;\page&#10;&#10;## Description"></textarea>
+                    <p id="sourceHint" class="muted-note">Reads #, ##, and ### headings in source order, including headings inside Homebrewery blocks. Code fences and HTML comments are ignored.</p>
+                </section>
+                <section class="tool-interface toc-panel">
+                    <div class="panel-title"><h2><label for="outputText">Table of contents</label></h2><button id="copyBtn" class="btn btn-ghost soft-focus" type="button" disabled>Copy TOC</button></div>
+                    <textarea id="outputText" spellcheck="false" readonly placeholder="Your TOC will appear here after processing."></textarea>
+                    <p class="muted-note"># → ### &nbsp;·&nbsp; ## → #### &nbsp;·&nbsp; ### → an indented list item. Every entry includes <code>{{ Title}}{{ page}}</code> and a <code>#p…</code> link.</p>
+                </section>
+            </div>
+        </main>
+    </div>
+    <script src="table-of-contents.js"></script>
+</body>
+</html>
