@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0712">
+    <title>Email List Matcher</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="email-list-matcher.css">
+</head>
+<body>
+    <div class="page">
+        <header class="shell header">
+            <section>
+                <div class="eyebrow"><span class="dot"></span>Offline list tool</div>
+                <h1 class="title">Email List <span>Matcher</span></h1>
+                <p class="lede">Find emails in list B that are missing from list A. Get their numbers as a comma-separated list and the missing emails as a separate list.</p>
+                <div class="actions">
+                    <a class="btn btn-ghost soft-focus" href="index.html">Back to hub</a>
+                    <button id="exampleBtn" class="btn btn-ghost soft-focus" type="button">Load example</button>
+                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Clear</button>
+                </div>
+            </section>
+            <aside class="stats" aria-label="Match summary">
+                <div class="stat"><span id="matchCount" class="value">0</span><span class="label">Matching rows</span></div>
+                <div class="stat"><span class="value">Local</span><span class="label">Processing</span></div>
+                <div class="stat"><span class="value">No API</span><span class="label">Required</span></div>
+            </aside>
+        </header>
+        <main class="matcher-main">
+            <div class="matcher-lists">
+                <section class="tool-interface matcher-panel">
+                    <div class="panel-title"><h2><label for="listA">List A</label></h2><span class="badge">Existing emails</span></div>
+                    <textarea id="listA" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="hintA" placeholder="alex@example.com&#10;sam@example.com"></textarea>
+                    <p id="hintA" class="muted-note">One email per line. Emails here are excluded. Leave empty to include every email in B.</p>
+                </section>
+                <section class="tool-interface matcher-panel">
+                    <div class="panel-title"><h2><label for="listB">List B</label></h2><span class="badge">Emails to check</span></div>
+                    <textarea id="listB" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="hintB" placeholder="alex@example.com&#10;maya@example.com&#10;sam@example.com&#10;noor@example.com"></textarea>
+                    <p id="hintB" class="muted-note">One email per line. Row 5 is paired with row 5 in C. Output keeps B's order and repeated emails.</p>
+                </section>
+                <section class="tool-interface matcher-panel">
+                    <div class="panel-title"><h2><label for="listC">List C</label></h2><span class="badge">Numbers for B</span></div>
+                    <textarea id="listC" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="hintC" placeholder="00101&#10;00102&#10;00103&#10;00104"></textarea>
+                    <p id="hintC" class="muted-note">One number per line, aligned with B. Leading zeros, + signs, and formatting are preserved.</p>
+                </section>
+            </div>
+            <div class="matcher-actions">
+                <button id="processBtn" class="btn btn-primary soft-focus" type="button">Find missing emails</button>
+                <p class="muted-note">Email comparison ignores case and surrounding spaces. Internal blank rows keep their positions; trailing blank rows are ignored.</p>
+            </div>
+            <div id="statusText" class="matcher-status" role="status" aria-live="polite">Paste your lists, then click Find missing emails.</div>
+            <section class="tool-interface matcher-panel matcher-output">
+                <div class="panel-title"><h2><label for="outputText">1. Numbers</label></h2><button id="copyBtn" class="btn btn-ghost soft-focus" type="button" disabled>Copy numbers</button></div>
+                <textarea id="outputText" spellcheck="false" readonly placeholder="1746, 1093, 4325"></textarea>
+                <p class="muted-note">Numbers separated by a comma and a space. Each number comes from the missing email's original row in B.</p>
+            </section>
+            <section class="tool-interface matcher-panel matcher-output matcher-email-output">
+                <div class="panel-title"><h2><label for="emailOutputText">2. Missing emails</label></h2><button id="copyEmailsBtn" class="btn btn-ghost soft-focus" type="button" disabled>Copy missing emails</button></div>
+                <textarea id="emailOutputText" spellcheck="false" readonly placeholder="maya@example.com&#10;noor@example.com"></textarea>
+                <p class="muted-note">One missing email per line, in the same order as the numbers above. Copy this list and append it to list A.</p>
+            </section>
+        </main>
+    </div>
+    <script src="email-list-matcher.js"></script>
+</body>
+</html>

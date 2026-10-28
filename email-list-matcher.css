@@ -1,0 +1,21 @@
+.matcher-main { margin-top: 24px; }
+.matcher-lists { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.matcher-panel { min-width: 0; gap: 14px; }
+.matcher-panel .panel-title { gap: 12px; min-height: 44px; margin: 0; flex-wrap: wrap; }
+.matcher-panel h2 { font-size: 1.1rem; margin: 0; }
+.matcher-panel textarea { width: 100%; min-height: 320px; resize: vertical; padding: 14px; border: 1px solid var(--card-border-strong); border-radius: 14px; background: rgba(5, 4, 10, .7); color: var(--text); font: 13px/1.7 Consolas, "Courier New", monospace; white-space: pre; overflow: auto; }
+.matcher-panel textarea:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+.matcher-panel textarea[aria-invalid="true"] { border-color: #ff858c; }
+.matcher-panel .muted-note { margin: 0; line-height: 1.6; }
+.matcher-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
+.matcher-actions .muted-note { flex: 1 1 320px; margin: 0; line-height: 1.6; }
+.matcher-status { margin: 18px 0; padding: 12px 14px; border: 1px solid var(--card-border); border-radius: 12px; color: var(--muted); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.matcher-status.is-error { color: #ff9da3; background: rgba(255, 72, 88, .12); border-color: rgba(255, 92, 105, .5); font-weight: 700; }
+.matcher-output textarea { min-height: 220px; }
+.matcher-output #outputText { white-space: pre-wrap; overflow-wrap: anywhere; }
+.matcher-email-output { margin-top: 18px; }
+.matcher-main button:disabled { opacity: .45; cursor: not-allowed; animation: none; }
+@media (max-width: 850px) {
+    .matcher-lists { grid-template-columns: 1fr; }
+    .matcher-panel textarea { min-height: 220px; }
+}
