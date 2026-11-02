@@ -12,57 +12,119 @@
     <div class="page">
         <header class="shell header">
             <section>
-                <div class="eyebrow"><span class="dot"></span>Offline file tool</div>
+                <div class="eyebrow"><span class="dot"></span>Local image workflow</div>
                 <h1 class="title">Image <span>Extractor</span></h1>
-                <p class="lede">Find image links and embedded images in text, Markdown, or JSON files, then save the images to a folder on your computer.</p>
+                <p class="lede">Use AI to name images from the document context, verify the image count, review every preview and filename, then approve the files you want to save.</p>
                 <div class="actions">
                     <a class="btn btn-ghost soft-focus" href="index.html">Back to hub</a>
-                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Clear</button>
+                    <button id="clearBtn" class="btn btn-ghost soft-focus" type="button">Start over</button>
                 </div>
             </section>
-            <aside class="stats" aria-label="Extraction summary">
-                <div class="stat"><span id="imageCount" class="value">0</span><span class="label">Images found</span></div>
-                <div class="stat"><span class="value">Local</span><span class="label">Processing</span></div>
-                <div class="stat"><span class="value">No API</span><span class="label">Required</span></div>
+            <aside class="stats" aria-label="Workflow summary">
+                <div class="stat"><span class="value">3 steps</span><span class="label">Prompt · verify · review</span></div>
+                <div class="stat"><span class="value">Local</span><span class="label">File handling</span></div>
+                <div class="stat"><span class="value">Approval</span><span class="label">Before saving</span></div>
             </aside>
         </header>
 
         <main class="extractor-main">
-            <section class="tool-interface extractor-shell" aria-label="Image extraction">
-                <div class="extractor-controls">
-                    <div class="field">
-                        <label for="fileInput">Choose text, Markdown, or JSON files</label>
-                        <input id="fileInput" type="file" accept=".txt,.md,.markdown,.json,text/plain,text/markdown,application/json" multiple>
-                        <p class="muted-note">Reads Markdown image syntax, HTML image tags, image URLs, and embedded data images.</p>
-                    </div>
-                    <div class="field destination-field">
-                        <label>Save location</label>
-                        <button id="folderBtn" class="btn btn-ghost soft-focus" type="button">Choose output folder</button>
-                        <span id="folderName" class="muted">Required — choose a destination folder</span>
-                    </div>
-                </div>
-
-                <div id="dropzone" class="converter-dropzone extractor-dropzone soft-focus" tabindex="0" role="button" aria-label="Drop text, Markdown, or JSON files here or click to select">
-                    <strong>Drop your files here</strong>
-                    <div class="muted">or click to browse .txt, .md, and .json files</div>
-                </div>
-
-                <div class="extractor-actions">
-                    <button id="extractBtn" class="btn btn-primary soft-focus" type="button" disabled>Extract and save images</button>
-                    <button id="retryBtn" class="btn btn-ghost soft-focus" type="button" hidden>Retry failed fetches</button>
-                    <span id="statusText" class="muted extractor-status" role="status" aria-live="polite">Choose one or more files to begin.</span>
-                </div>
-
-                <div class="panel-title extractor-results-title">
-                    <h3>Found images</h3>
-                    <span id="resultBadge" class="badge">Nothing extracted yet</span>
-                </div>
-                <div id="results" class="extractor-results" aria-live="polite"></div>
-                <section class="extractor-log-panel" aria-labelledby="logTitle">
-                    <div class="panel-title">
+            <section class="tool-interface extractor-shell">
+                <section class="extractor-step" aria-labelledby="promptTitle">
+                    <div class="extractor-step-head">
                         <div>
-                            <h3 id="logTitle">Diagnostic log</h3>
-                            <p class="muted-note">Includes parsed links, each fetch attempt, and save results. Sensitive URL query values are hidden.</p>
+                            <div class="eyebrow">Step 1</div>
+                            <h2 id="promptTitle">Ask AI to name the images</h2>
+                            <p class="muted">Attach your original file to an AI chat, then copy and send this prompt. Save the AI response as a JSON file.</p>
+                        </div>
+                        <button id="copyPromptBtn" class="btn btn-primary soft-focus" type="button">Copy prompt</button>
+                    </div>
+                    <textarea id="aiPrompt" class="extractor-prompt" readonly aria-label="Prompt for AI image analysis">Analyze the attached original text, Markdown, or JSON document. Identify every image occurrence in document order and infer a clear, descriptive filename from the nearby text, section heading, caption, or JSON key.
+
+Return ONLY valid JSON, with no Markdown fences or extra explanation, in exactly this structure:
+{
+  "version": 1,
+  "images": [
+    {
+      "index": 1,
+      "reference": "the exact image URL from the source document",
+      "filename": "descriptive-image-name.jpg"
+    }
+  ]
+}
+
+Rules:
+- Include only image occurrences: Markdown image syntax such as ![alt](URL), HTML <img src="URL"> tags, and image links with styling attached to the link. For bare URLs or ordinary Markdown links, include them only when the path has an image extension or the query clearly specifies an image format (such as fm=jpg or format=png).
+- Do not include ordinary webpage links, video links, or other non-image URLs.
+- Include one record per occurrence in the order it appears. If the same image URL appears twice, include it twice with different consecutive indexes.
+- Set index to 1 for the first image and count up by 1 with no gaps.
+- Copy each image URL into reference without Markdown, HTML, or styling syntax. Do not invent or alter URLs.
+- Give each image a concise, useful filename based on the document context. Use a safe basename only: no folders or path separators.
+- Include the correct image extension when it is clear from the URL; otherwise omit the extension and the app will add it after fetching.
+- If the nearby context is unclear, use the closest meaningful heading or caption. Use image-001, image-002, etc. only when the document provides no useful naming clue.
+- Return an empty images array if the document contains no images.</textarea>
+                </section>
+
+                <section class="extractor-step" aria-labelledby="compareTitle">
+                    <div class="extractor-step-head">
+                        <div>
+                            <div class="eyebrow">Step 2</div>
+                            <h2 id="compareTitle">Compare the original and AI file</h2>
+                            <p class="muted">Choose the original document and the JSON file returned by AI. The app checks the image counts before continuing.</p>
+                        </div>
+                    </div>
+                    <div class="extractor-controls">
+                        <div class="field">
+                            <label for="originalFile">Original text, Markdown, or JSON</label>
+                            <input id="originalFile" type="file" accept=".txt,.md,.markdown,.json,text/plain,text/markdown,application/json">
+                        </div>
+                        <div class="field">
+                            <label for="manifestFile">AI-processed JSON</label>
+                            <input id="manifestFile" type="file" accept=".json,application/json,text/plain">
+                        </div>
+                    </div>
+                    <div class="extractor-actions">
+                        <button id="verifyBtn" class="btn btn-primary soft-focus" type="button" disabled>Compare image counts</button>
+                        <span id="compareStatus" class="muted extractor-status" role="status" aria-live="polite">Choose both files to compare them.</span>
+                    </div>
+                    <div id="countSummary" class="extractor-count-summary" hidden></div>
+                </section>
+
+                <section id="reviewSection" class="extractor-step" aria-labelledby="reviewTitle" hidden>
+                    <div class="extractor-step-head">
+                        <div>
+                            <div class="eyebrow">Step 3</div>
+                            <h2 id="reviewTitle">Preview and approve</h2>
+                            <p class="muted">Choose a destination, load the images, and check or edit each filename. Nothing is saved until you approve.</p>
+                        </div>
+                    </div>
+                    <div class="extractor-controls extractor-review-controls">
+                        <div class="field destination-field">
+                            <label>Save destination</label>
+                            <button id="folderBtn" class="btn btn-ghost soft-focus" type="button">Choose destination folder</button>
+                            <span id="folderName" class="muted">Required before preview</span>
+                        </div>
+                        <div class="field extractor-review-buttons">
+                            <label>Review actions</label>
+                            <div class="extractor-actions">
+                                <button id="previewBtn" class="btn btn-ghost soft-focus" type="button" disabled>Load image previews</button>
+                                <button id="retryBtn" class="btn btn-ghost soft-focus" type="button" hidden>Retry failed fetches</button>
+                                <button id="approveBtn" class="btn btn-primary soft-focus" type="button" disabled>Approve &amp; save</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="reviewStatus" class="muted extractor-status" role="status" aria-live="polite">Choose a destination folder to begin previewing.</div>
+                    <div class="panel-title extractor-results-title">
+                        <h3>Image preview and filename</h3>
+                        <span id="resultBadge" class="badge">Waiting for preview</span>
+                    </div>
+                    <div id="results" class="extractor-results" aria-live="polite"></div>
+                </section>
+
+                <section class="extractor-step extractor-log-panel" aria-labelledby="logTitle">
+                    <div class="extractor-step-head">
+                        <div>
+                            <h2 id="logTitle">Diagnostic log</h2>
+                            <p class="muted">Includes parsed links, fetch attempts, count comparison, and save results. Sensitive URL query values are hidden.</p>
                         </div>
                         <div class="extractor-log-actions">
                             <button id="copyLogBtn" class="btn btn-ghost soft-focus" type="button">Copy log</button>
@@ -71,7 +133,6 @@
                     </div>
                     <textarea id="diagnosticLog" class="extractor-log-output" readonly aria-label="Diagnostic log"></textarea>
                 </section>
-                <p class="muted-note extractor-note">Choose a destination folder before extracting. Each image gets 3 automatic retries before it is skipped; the retry button reuses this destination. Images are written directly to the folder with no Downloads fallback. Remote image links must allow browser access (CORS). Embedded data images work locally. Relative file paths cannot be read unless the image files themselves are selected.</p>
             </section>
         </main>
     </div>

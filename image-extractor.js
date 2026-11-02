@@ -1,165 +1,156 @@
 (() => {
     'use strict';
-
     const MAX_FETCH_RETRIES = 3;
+    const IMAGE_EXT = /\.(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp)$/i;
+    const $ = (id) => document.getElementById(id);
+    const promptText = $('aiPrompt'), copyPromptBtn = $('copyPromptBtn');
+    const originalInput = $('originalFile'), manifestInput = $('manifestFile'), verifyBtn = $('verifyBtn');
+    const compareStatus = $('compareStatus'), countSummary = $('countSummary'), reviewSection = $('reviewSection');
+    const folderBtn = $('folderBtn'), folderName = $('folderName'), previewBtn = $('previewBtn');
+    const retryBtn = $('retryBtn'), approveBtn = $('approveBtn'), reviewStatus = $('reviewStatus');
+    const resultBadge = $('resultBadge'), results = $('results'), clearBtn = $('clearBtn');
+    const diagnosticLog = $('diagnosticLog'), copyLogBtn = $('copyLogBtn'), downloadLogBtn = $('downloadLogBtn');
 
-    const fileInput = document.getElementById('fileInput');
-    const folderBtn = document.getElementById('folderBtn');
-    const folderName = document.getElementById('folderName');
-    const dropzone = document.getElementById('dropzone');
-    const extractBtn = document.getElementById('extractBtn');
-    const retryBtn = document.getElementById('retryBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const statusText = document.getElementById('statusText');
-    const imageCount = document.getElementById('imageCount');
-    const resultBadge = document.getElementById('resultBadge');
-    const results = document.getElementById('results');
-    const diagnosticLog = document.getElementById('diagnosticLog');
-    const copyLogBtn = document.getElementById('copyLogBtn');
-    const downloadLogBtn = document.getElementById('downloadLogBtn');
-
-    let selectedFiles = [];
-    let entries = [];
-    let outputDirectory = null;
-    let retryDirectory = null;
-    let retryFolderName = '';
-    let previewUrls = [];
-    let retryInProgress = false;
+    let originalFile = null, aiFile = null, validatedPlan = null, entries = [];
+    let outputDirectory = null, previewUrls = [], previewLoaded = false;
+    let comparing = false, fetchingPreview = false, retryInProgress = false, saveInProgress = false, approvalGranted = false;
     const logLines = [];
 
     function logEvent(message) {
         logLines.push(`[${new Date().toISOString()}] ${message}`);
-        if (logLines.length > 1500) logLines.shift();
+        if (logLines.length > 2000) logLines.shift();
         diagnosticLog.value = logLines.join('\n');
         diagnosticLog.scrollTop = diagnosticLog.scrollHeight;
     }
 
     function safeLogReference(reference) {
         if (/^data:image\//i.test(reference)) {
-            return `${reference.slice(0, reference.indexOf(',') > 0 ? reference.indexOf(',') : 80)}… [embedded data omitted]`;
+            const comma = reference.indexOf(',');
+            return `${reference.slice(0, comma > 0 ? comma : 80)}… [embedded data omitted]`;
         }
         try {
             const url = new URL(reference);
             url.username = '';
             url.password = '';
             for (const key of [...url.searchParams.keys()]) {
-                if (/token|key|signature|secret|auth|password|credential|access/i.test(key)) {
-                    url.searchParams.set(key, '[redacted]');
-                }
+                if (/token|key|signature|secret|auth|password|credential|access/i.test(key)) url.searchParams.set(key, '[redacted]');
             }
             return url.href;
-        } catch (_) {
-            return String(reference).slice(0, 500);
-        }
+        } catch (_) { return String(reference).slice(0, 500); }
     }
 
-    function setStatus(message, isError = /^Error:/i.test(message)) {
-        statusText.textContent = message;
-        statusText.classList.toggle('is-error', isError);
-    }
-
-    function updateExtractAvailability() {
-        extractBtn.disabled = selectedFiles.length === 0 || !outputDirectory;
-    }
-
-    function updateRetryButton() {
-        const failedCount = entries.filter((entry) => !entry.blob && entry.error).length;
-        retryBtn.hidden = failedCount === 0;
-        retryBtn.disabled = retryInProgress || failedCount === 0;
-        retryBtn.textContent = `Retry failed fetches (${failedCount})`;
-    }
-
-    function requireDestinationAgain() {
-        outputDirectory = null;
-        folderName.textContent = 'Required — choose a destination folder';
+    function setStatus(element, message, isError = /^Error:/i.test(message)) {
+        element.textContent = message;
+        element.classList.toggle('is-error', isError);
     }
 
     function clearPreviews() {
-        for (const url of previewUrls) URL.revokeObjectURL(url);
+        previewUrls.forEach((url) => URL.revokeObjectURL(url));
         previewUrls = [];
     }
 
-    function setFiles(fileList) {
-        const incomingFiles = Array.from(fileList || []);
-        selectedFiles = incomingFiles.filter((file) => /\.(txt|md|markdown|json)$/i.test(file.name));
-        incomingFiles.filter((file) => !selectedFiles.includes(file)).forEach((file) => logEvent(`Skipped unsupported input file: ${file.name}`));
-        selectedFiles.forEach((file) => logEvent(`Selected input: ${file.name} (${file.size} bytes, ${file.type || 'unknown MIME type'})`));
-        fileInput.value = '';
-        entries = [];
-        retryDirectory = null;
-        retryFolderName = '';
-        clearPreviews();
-        imageCount.textContent = '0';
-        resultBadge.textContent = 'Nothing extracted yet';
-        updateExtractAvailability();
-        updateRetryButton();
-        setStatus(selectedFiles.length && !outputDirectory
-            ? 'Error: choose a destination folder before extracting.'
-            : (selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} ready.` : 'Choose .txt, .md, or .json files to begin.'));
-        if (selectedFiles.length) {
-            results.replaceChildren();
-            results.append(createEmpty(`Selected: ${selectedFiles.map((file) => file.name).join(', ')}`));
-        }
+    function updateButtons() {
+        verifyBtn.disabled = comparing || !originalFile || !aiFile;
+        previewBtn.disabled = !validatedPlan || !outputDirectory || fetchingPreview || previewLoaded;
+        const failed = entries.filter((entry) => !entry.blob && entry.error).length;
+        retryBtn.hidden = !failed || approvalGranted;
+        retryBtn.disabled = retryInProgress || fetchingPreview || !failed || approvalGranted;
+        const remaining = entries.filter((entry) => entry.blob && !entry.savedName).length;
+        approveBtn.disabled = !previewLoaded || saveInProgress || !remaining || !outputDirectory;
+        approveBtn.textContent = approvalGranted && remaining ? `Retry saving ${remaining} remaining`
+            : approvalGranted ? 'Save complete' : `Approve & save ${remaining} image${remaining === 1 ? '' : 's'}`;
     }
 
-    function createEmpty(message) {
-        const div = document.createElement('div');
-        div.className = 'extractor-empty';
-        div.textContent = message;
-        return div;
+    function invalidateComparison(reason) {
+        validatedPlan = null;
+        entries = [];
+        outputDirectory = null;
+        previewLoaded = false;
+        approvalGranted = false;
+        fetchingPreview = false;
+        retryInProgress = false;
+        clearPreviews();
+        results.replaceChildren();
+        reviewSection.hidden = true;
+        countSummary.hidden = true;
+        countSummary.textContent = '';
+        folderName.textContent = 'Required before preview';
+        resultBadge.textContent = 'Waiting for preview';
+        setStatus(compareStatus, 'Choose both files to compare them.');
+        setStatus(reviewStatus, 'Choose a destination folder to begin previewing.');
+        updateButtons();
+        if (reason) logEvent(reason);
+    }
+
+    function cleanFilename(value, fallback = 'image') {
+        let name = String(value || '').trim().split(/[\\/]/).pop() || fallback;
+        name = name.replace(/[<>:"|?*\x00-\x1F]/g, '_').replace(/[. ]+$/g, '').trim();
+        return name || fallback;
+    }
+
+    function extensionFromType(type) {
+        const map = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/svg+xml': '.svg', 'image/bmp': '.bmp', 'image/avif': '.avif', 'image/x-icon': '.ico', 'image/tiff': '.tif' };
+        return map[String(type || '').toLowerCase().split(';')[0].trim()] || '.img';
+    }
+
+    function filenameForBlob(filename, blob) {
+        const name = cleanFilename(filename, 'image');
+        const actual = extensionFromType(blob.type);
+        const match = name.match(/\.([a-z0-9]{2,5})$/i);
+        if (!match) return `${name}${actual}`;
+        const given = `.${match[1].toLowerCase()}`;
+        const same = given === actual || (given === '.jpeg' && actual === '.jpg') || (given === '.jpg' && actual === '.jpeg') || (given === '.tiff' && actual === '.tif');
+        return IMAGE_EXT.test(name) && same ? name : `${name.slice(0, -given.length)}${actual}`;
+    }
+
+    function uniqueName(name, used) {
+        const dot = name.lastIndexOf('.'), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+        let candidate = name, n = 2;
+        while (used.has(candidate.toLowerCase())) candidate = `${stem}-${n++}${ext}`;
+        used.add(candidate.toLowerCase());
+        return candidate;
     }
 
     function collectReferences(text) {
-        const found = [];
-        const ignored = new Set();
-        const add = (value, explicitImageReference = false) => {
-            let clean = String(value || '').trim().replace(/^<|>$/g, '');
-            const styleSuffix = clean.search(/\\?\)\{[^}]*\]/);
-            if (styleSuffix >= 0) {
-                const wrappedValue = clean;
-                clean = clean.slice(0, styleSuffix);
-                logEvent(`Removed trailing image style syntax from link: ${safeLogReference(wrappedValue)}`);
-            }
-            clean = clean.replace(/[),.;\\]+$/g, '');
-            const normalized = normalizeImageReference(clean);
-            if (normalized !== clean) logEvent(`Normalized image URL: ${safeLogReference(clean)} -> ${safeLogReference(normalized)}`);
-            clean = normalized;
-            if (!explicitImageReference && !isLikelyImageReference(clean)) {
-                if (clean && !ignored.has(clean)) {
-                    ignored.add(clean);
-                    logEvent(`Ignored non-image link: ${safeLogReference(clean)}`);
-                }
-                return;
-            }
-            if (clean) found.push(clean);
-        };
+        const candidates = [], ignored = new Set();
         const patterns = [
-            { regex: /!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\s*\)/g, explicitImage: true },
-            { regex: /\[[^\]]*\)\{[^}]*\]\((https?:\/\/[^\\\s)]+)\\?\)\{[^}]*\)/gi, explicitImage: true },
-            { regex: /\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/g, explicitImage: false },
-            { regex: /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi, explicitImage: true },
-            { regex: /(?:https?:\/\/|data:image\/)[^\s"'<>]+/gi, explicitImage: false }
+            { re: /!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\s*\)/g, image: true },
+            { re: /\[[^\]]*\)\{[^}]*\]\((https?:\/\/[^\\\s)]+)\\?\)\{[^}]*\)/gi, image: true },
+            { re: /\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/g, image: false },
+            { re: /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi, image: true },
+            { re: /(?:https?:\/\/|data:image\/)[^\s"'<>]+/gi, image: false }
         ];
         for (const pattern of patterns) {
             let match;
-            while ((match = pattern.regex.exec(text)) !== null) {
-                // Markdown and HTML patterns use capture groups; the raw URL
-                // pattern does not, so fall back to the full match.
-                add(match.slice(1).find(Boolean) || match[0], pattern.explicitImage);
+            while ((match = pattern.re.exec(text)) !== null) {
+                let ref = String(match.slice(1).find(Boolean) || match[0]).trim().replace(/^<|>$/g, '');
+                const style = ref.search(/\\?\)\{[^}]*\]/);
+                if (style >= 0) { logEvent(`Removed trailing image style syntax: ${safeLogReference(ref)}`); ref = ref.slice(0, style); }
+                ref = ref.replace(/[),.;\\]+$/g, '');
+                const normalized = normalizeImageReference(ref);
+                if (normalized !== ref) logEvent(`Normalized GitHub image URL: ${safeLogReference(ref)} -> ${safeLogReference(normalized)}`);
+                if (!pattern.image && !isLikelyImageReference(normalized)) {
+                    if (normalized && !ignored.has(normalized)) { ignored.add(normalized); logEvent(`Ignored non-image link: ${safeLogReference(normalized)}`); }
+                    continue;
+                }
+                if (normalized) candidates.push({ reference: normalized, start: match.index, end: match.index + match[0].length });
             }
         }
-        return [...new Set(found)];
+        // Nested Markdown/raw URL matches overlap; collapse those duplicates, but keep repeated image occurrences.
+        candidates.sort((a, b) => a.start - b.start || b.end - a.end);
+        const accepted = [];
+        for (const item of candidates) if (!accepted.some((other) => item.start < other.end && item.end > other.start)) accepted.push(item);
+        accepted.sort((a, b) => a.start - b.start);
+        return accepted.map((item) => item.reference);
     }
 
     function isLikelyImageReference(reference) {
         if (/^data:image\//i.test(reference)) return true;
         let url;
         try { url = new URL(reference); } catch (_) { return false; }
-        if (/\.(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(url.pathname)) return true;
-        const imageFormats = /^(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp|image\/(?:avif|bmp|gif|ico|jpe?g|png|svg\+xml|tiff?|webp))$/i;
-        for (const [key, value] of url.searchParams) {
-            if (/^(?:fm|format|mime|type|content-type|response-content-type)$/i.test(key) && imageFormats.test(value.trim())) return true;
-        }
+        if (IMAGE_EXT.test(url.pathname)) return true;
+        const formats = /^(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp|image\/(?:avif|bmp|gif|ico|jpe?g|png|svg\+xml|tiff?|webp))$/i;
+        for (const [key, value] of url.searchParams) if (/^(?:fm|format|mime|type|content-type|response-content-type)$/i.test(key) && formats.test(value.trim())) return true;
         return false;
     }
 
@@ -167,41 +158,23 @@
         if (/^data:image\//i.test(reference)) return reference;
         let url;
         try { url = new URL(reference); } catch (_) { return reference; }
-
-        const host = url.hostname.toLowerCase().replace(/^www\./, '');
-        if (host !== 'github.com') return reference;
+        if (url.hostname.toLowerCase().replace(/^www\./, '') !== 'github.com') return reference;
         const parts = url.pathname.split('/').filter(Boolean);
-        const markerIndex = parts.findIndex((part, index) => index >= 2 && (part === 'blob' || part === 'raw'));
-        if (parts.length < 5 || markerIndex !== 2) return reference;
-
-        let fileParts = parts.slice(markerIndex + 1);
-        if (fileParts[0] === 'refs' && ['heads', 'tags'].includes(fileParts[1])) {
-            fileParts = fileParts.slice(2);
-        }
+        const marker = parts.findIndex((part, index) => index >= 2 && (part === 'blob' || part === 'raw'));
+        if (parts.length < 5 || marker !== 2) return reference;
+        let tail = parts.slice(marker + 1);
+        if (tail[0] === 'refs' && ['heads', 'tags'].includes(tail[1])) tail = tail.slice(2);
         url.hostname = 'raw.githubusercontent.com';
-        url.pathname = `/${parts[0]}/${parts[1]}/${fileParts.join('/')}`;
+        url.pathname = `/${parts[0]}/${parts[1]}/${tail.join('/')}`;
         url.searchParams.delete('raw');
         return url.href;
-    }
-
-    function safeName(value, fallback) {
-        let name = String(value || '').split(/[?#]/, 1)[0].split('/').pop() || fallback;
-        try { name = decodeURIComponent(name); } catch (_) {}
-        name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
-        return name || fallback;
-    }
-
-    function extensionFromType(type) {
-        const map = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp', 'image/svg+xml': '.svg', 'image/bmp': '.bmp', 'image/avif': '.avif', 'image/x-icon': '.ico' };
-        return map[type.toLowerCase().split(';')[0].trim()] || '.img';
     }
 
     function dataImageToBlob(uri) {
         const match = uri.match(/^data:(image\/[\w.+-]+)?(;base64)?,([\s\S]*)$/i);
         if (!match) throw new Error('Invalid embedded image data');
-        const mime = match[1] || 'application/octet-stream';
-        const raw = match[3];
-        const bytes = match[2] ? Uint8Array.from(atob(raw), (char) => char.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(raw));
+        const mime = match[1] || 'application/octet-stream', raw = match[3];
+        const bytes = match[2] ? Uint8Array.from(atob(raw), (c) => c.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(raw));
         return new Blob([bytes], { type: mime });
     }
 
@@ -214,161 +187,238 @@
         try { url = new URL(reference); } catch (_) { throw new Error('Not an absolute image URL'); }
         if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported URL type');
         const response = await fetch(url.href, { mode: 'cors' });
-        logEvent(`HTTP response ${response.status} (${response.type}) from ${safeLogReference(response.url || url.href)}; content-type=${response.headers.get('content-type') || 'not provided'}`);
+        logEvent(`HTTP ${response.status} (${response.type}) from ${safeLogReference(response.url || url.href)}; content-type=${response.headers.get('content-type') || 'not provided'}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
         if (!blob.type.toLowerCase().startsWith('image/')) throw new Error('Link did not return an image');
-        let name = safeName(url.pathname, `image${extensionFromType(blob.type)}`);
-        if (!/\.[a-z0-9]{2,5}$/i.test(name)) name += extensionFromType(blob.type);
+        let name = decodeSafe(url.pathname.split('/').pop() || 'image');
+        if (!IMAGE_EXT.test(name)) name += extensionFromType(blob.type);
         return { blob, name };
     }
 
+    function decodeSafe(value) { try { return decodeURIComponent(value); } catch (_) { return value; } }
+
     async function loadImageWithRetries(reference, onRetry) {
-        let lastError;
+        let last;
         for (let retry = 0; retry <= MAX_FETCH_RETRIES; retry += 1) {
             logEvent(`Fetch attempt ${retry + 1}/${MAX_FETCH_RETRIES + 1}: ${safeLogReference(reference)}`);
             try {
                 const loaded = await loadImage(reference);
-                logEvent(`Fetch succeeded: ${loaded.name}; type=${loaded.blob.type || 'unknown'}; size=${loaded.blob.size} bytes`);
+                logEvent(`Fetch succeeded: ${loaded.name}; type=${loaded.blob.type}; size=${loaded.blob.size} bytes`);
                 return loaded;
             } catch (error) {
-                lastError = error;
+                last = error;
                 logEvent(`Fetch failed on attempt ${retry + 1}: ${error.name || 'Error'}: ${error.message || String(error)}`);
                 if (retry === MAX_FETCH_RETRIES) break;
                 if (onRetry) onRetry(retry + 1);
                 await new Promise((resolve) => setTimeout(resolve, 250 * (retry + 1)));
             }
         }
-        throw new Error(`Failed after ${MAX_FETCH_RETRIES + 1} attempts: ${lastError?.message || 'Could not load image'}`);
+        throw new Error(`Failed after ${MAX_FETCH_RETRIES + 1} attempts: ${last?.message || 'Could not load image'}`);
     }
 
-    function uniqueName(name, used) {
-        const dot = name.lastIndexOf('.');
-        const stem = dot > 0 ? name.slice(0, dot) : name;
-        const ext = dot > 0 ? name.slice(dot) : '';
-        let candidate = name;
-        let index = 2;
-        while (used.has(candidate.toLowerCase())) candidate = `${stem}-${index++}${ext}`;
-        used.add(candidate.toLowerCase());
-        return candidate;
+    function parseManifest(text) {
+        const clean = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '');
+        const value = JSON.parse(clean);
+        if (!value || !Array.isArray(value.images)) throw new Error('The AI JSON must contain an "images" array.');
+        return value.images;
+    }
+
+    async function verifyFiles() {
+        if (!originalFile || !aiFile || comparing) return;
+        invalidateComparison();
+        comparing = true;
+        updateButtons();
+        logEvent(`Comparison started: source=${originalFile.name}; AI manifest=${aiFile.name}.`);
+        setStatus(compareStatus, 'Reading both files and counting image occurrences…');
+        try {
+            const [sourceText, manifestText] = await Promise.all([originalFile.text(), aiFile.text()]);
+            const originalRefs = collectReferences(sourceText);
+            const manifestImages = parseManifest(manifestText);
+            const sourceCount = originalRefs.length, aiCount = manifestImages.length;
+            logEvent(`Count comparison: source=${sourceCount}; AI manifest=${aiCount}.`);
+            countSummary.hidden = false;
+            countSummary.classList.remove('is-error');
+            countSummary.textContent = `Original: ${sourceCount} image${sourceCount === 1 ? '' : 's'} · AI file: ${aiCount} image${aiCount === 1 ? '' : 's'}`;
+            if (sourceCount !== aiCount) {
+                countSummary.classList.add('is-error');
+                logEvent('Comparison rejected: image counts differ.');
+                setStatus(compareStatus, `Error: image counts do not match (${sourceCount} in the original, ${aiCount} in the AI file). Reprocess the original with the prompt above.`, true);
+                return;
+            }
+            for (let index = 0; index < manifestImages.length; index += 1) {
+                const item = manifestImages[index];
+                if (!item || typeof item.filename !== 'string' || !item.filename.trim()) throw new Error(`AI entry ${index + 1} is missing a filename. Reprocess the file with the prompt above.`);
+                if (item.index !== undefined && Number(item.index) !== index + 1) throw new Error(`AI indexes must be consecutive; expected ${index + 1}, got ${item.index}. Reprocess the AI file.`);
+                if (typeof item.reference !== 'string' || !item.reference.trim()) throw new Error(`AI entry ${index + 1} is missing its reference. Reprocess with the prompt above.`);
+                const aiRef = normalizeImageReference(item.reference.trim());
+                if (aiRef !== originalRefs[index]) logEvent(`Reference differs at index ${index + 1}; will use the original document URL. AI=${safeLogReference(aiRef)}; source=${safeLogReference(originalRefs[index])}`);
+            }
+            validatedPlan = originalRefs.map((reference, index) => ({
+                index: index + 1,
+                reference,
+                sourceFile: originalFile.name,
+                filename: cleanFilename(manifestImages[index].filename, `image-${String(index + 1).padStart(3, '0')}`)
+            }));
+            reviewSection.hidden = false;
+            setStatus(compareStatus, `Accepted: both files contain ${sourceCount} image occurrence${sourceCount === 1 ? '' : 's'}. You can proceed to preview.`, false);
+            setStatus(reviewStatus, 'Choose a destination folder to load previews.');
+            logEvent(`Comparison accepted: ${sourceCount} image names aligned by document order.`);
+        } catch (error) {
+            logEvent(`Comparison error: ${error.name || 'Error'}: ${error.message || String(error)}`);
+            setStatus(compareStatus, `Error: ${error.message || 'Could not compare these files.'}`, true);
+            reviewSection.hidden = true;
+        } finally {
+            comparing = false;
+            updateButtons();
+        }
     }
 
     function renderEntries() {
         clearPreviews();
         results.replaceChildren();
-        updateRetryButton();
-        imageCount.textContent = String(entries.length);
-        resultBadge.textContent = `${entries.filter((entry) => entry.blob).length} ready · ${entries.filter((entry) => !entry.blob).length} skipped`;
+        const ready = entries.filter((entry) => entry.blob).length;
+        const skipped = entries.filter((entry) => !entry.blob && entry.error).length;
+        resultBadge.textContent = `${ready} ready · ${skipped} skipped`;
         if (!entries.length) {
-            results.append(createEmpty('No image references were found in the selected files.'));
+            const empty = document.createElement('div');
+            empty.className = 'extractor-empty';
+            empty.textContent = 'No images to preview.';
+            results.append(empty);
+            updateButtons();
             return;
         }
         for (const entry of entries) {
             const row = document.createElement('div');
             row.className = 'extractor-item';
-            const preview = document.createElement('img');
-            preview.className = 'extractor-thumb';
-            preview.alt = '';
             if (entry.blob) {
+                const img = document.createElement('img');
+                img.className = 'extractor-thumb';
+                img.alt = `Preview for ${entry.filename}`;
                 const url = URL.createObjectURL(entry.blob);
                 previewUrls.push(url);
-                preview.src = url;
+                img.src = url;
+                row.append(img);
+            } else {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'extractor-thumb extractor-thumb-empty';
+                placeholder.textContent = 'Skipped';
+                row.append(placeholder);
             }
             const info = document.createElement('div');
             info.className = 'extractor-item-info';
-            const name = document.createElement('div');
-            name.className = 'extractor-item-name';
-            name.textContent = entry.name;
+            const title = document.createElement('div');
+            title.className = 'extractor-item-name';
+            title.textContent = `Image ${entry.index}`;
             const source = document.createElement('div');
             source.className = 'extractor-item-source';
-            source.textContent = `${entry.sourceFile} · ${entry.reference}`;
+            source.textContent = `${entry.sourceFile} · ${safeLogReference(entry.reference)}`;
             source.title = entry.reference;
+            info.append(title, source);
+            if (entry.blob) {
+                const label = document.createElement('label');
+                label.className = 'extractor-name-label';
+                label.textContent = 'Filename';
+                const input = document.createElement('input');
+                input.className = 'extractor-name-input';
+                input.type = 'text';
+                input.value = entry.filename;
+                input.disabled = approvalGranted;
+                input.setAttribute('aria-label', `Filename for image ${entry.index}`);
+                input.addEventListener('input', () => { entry.filename = input.value; updateButtons(); });
+                label.append(input);
+                info.append(label);
+            }
             const state = document.createElement('div');
             state.className = 'extractor-item-status';
-            state.textContent = entry.savedName ? `Saved as ${entry.savedName}` : (entry.saveError || (entry.blob ? 'Ready to save' : entry.error));
-            info.append(name, source);
-            row.append(preview, info, state);
+            state.textContent = entry.savedName ? `Saved as ${entry.savedName}` : (entry.saveError || (entry.blob ? 'Ready for approval' : entry.error));
+            row.append(info, state);
             results.append(row);
         }
+        updateButtons();
     }
 
-    async function extract() {
-        if (!selectedFiles.length) return;
-        if (!outputDirectory) {
-            logEvent('Extraction stopped: no destination folder selected.');
-            setStatus('Error: choose a destination folder before extracting.');
-            return;
-        }
-        retryDirectory = outputDirectory;
-        retryFolderName = outputDirectory.name;
-        logEvent(`Extraction started. Destination: ${retryFolderName}. Automatic retries per image: ${MAX_FETCH_RETRIES}.`);
-        extractBtn.disabled = true;
-        entries = [];
-        clearPreviews();
+    async function loadPreviews() {
+        if (!validatedPlan || !outputDirectory || fetchingPreview || previewLoaded) return;
+        fetchingPreview = true;
+        entries = validatedPlan.map((item) => ({ ...item }));
+        resultBadge.textContent = 'Loading previews';
         results.replaceChildren();
-        const references = new Map();
-        for (const file of selectedFiles) {
+        logEvent(`Preview fetch started for ${entries.length} images. Destination=${outputDirectory.name}.`);
+        updateButtons();
+        for (let index = 0; index < entries.length; index += 1) {
+            const entry = entries[index];
+            setStatus(reviewStatus, `Fetching image ${index + 1} of ${entries.length}…`);
+            logEvent(`Image ${entry.index}, source ${entry.sourceFile}: ${safeLogReference(entry.reference)}`);
             try {
-                logEvent(`Reading text file: ${file.name}`);
-                const text = await file.text();
-                const fileReferences = collectReferences(text);
-                logEvent(`Parsed ${fileReferences.length} image reference(s) from ${file.name}.`);
-                for (const reference of fileReferences) {
-                    const key = reference.startsWith('data:') ? reference.slice(0, 120) : reference;
-                    if (!references.has(key)) references.set(key, { reference, sourceFile: file.name });
-                }
+                const loaded = await loadImageWithRetries(entry.reference, (retry) => setStatus(reviewStatus, `Image ${index + 1} failed. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`));
+                entry.blob = loaded.blob;
+                entry.filename = filenameForBlob(entry.filename, loaded.blob);
+                entry.fetchedName = loaded.name;
             } catch (error) {
-                console.error('Could not read file', file.name, error);
-                logEvent(`Could not read ${file.name}: ${error.name || 'Error'}: ${error.message || String(error)}`);
+                entry.error = error.message || 'Could not fetch image';
+                logEvent(`Image ${entry.index} skipped after retries: ${entry.error}`);
             }
         }
-        const items = [...references.values()];
-        logEvent(`Found ${items.length} unique image reference(s) across selected files.`);
-        items.forEach((item, index) => logEvent(`Image ${index + 1} source ${item.sourceFile}: ${safeLogReference(item.reference)}`));
-        if (!items.length) {
-            logEvent('Extraction stopped: no image references were parsed.');
-            renderEntries();
-            requireDestinationAgain();
-            setStatus('No image references found.');
-            updateExtractAvailability();
-            return;
-        }
-        const usedNames = new Set();
-        let done = 0;
-        for (const item of items) {
-            setStatus(`Checking images… ${done} of ${items.length}`);
-            try {
-                const loaded = await loadImageWithRetries(item.reference, (retry) => {
-                    setStatus(`Image ${done + 1} of ${items.length} failed to fetch. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`);
-                });
-                entries.push({ ...item, blob: loaded.blob, name: uniqueName(loaded.name, usedNames) });
-            } catch (error) {
-                entries.push({ ...item, blob: null, name: safeName(item.reference, 'image'), error: error.message || 'Could not load image' });
-                logEvent(`Skipped image after ${MAX_FETCH_RETRIES + 1} attempts: ${safeLogReference(item.reference)}; final error: ${error.message || String(error)}`);
-            }
-            done += 1;
-        }
+        const used = new Set();
+        for (const entry of entries) if (entry.blob) entry.filename = uniqueName(cleanFilename(entry.filename, `image-${entry.index}`), used);
+        previewLoaded = true;
+        fetchingPreview = false;
         renderEntries();
-        const ready = entries.filter((entry) => entry.blob).length;
-        logEvent(`Fetch phase complete: ${ready} ready, ${entries.length - ready} skipped.`);
-        setStatus(`${ready} image${ready === 1 ? '' : 's'} ready to save${entries.length > ready ? `; ${entries.length - ready} skipped` : ''}.`);
-        if (ready) await saveImages();
-        else requireDestinationAgain();
-        updateExtractAvailability();
+        const ready = entries.filter((entry) => entry.blob).length, skipped = entries.length - ready;
+        setStatus(reviewStatus, `${ready} image${ready === 1 ? '' : 's'} ready to review${skipped ? `; ${skipped} skipped after retries` : ''}. Edit filenames, then approve to save.`);
+        logEvent(`Preview fetch complete: ${ready} loaded; ${skipped} skipped.`);
+        updateButtons();
     }
 
-    async function saveImages(entriesToSave = entries.filter((entry) => entry.blob)) {
-        const ready = entriesToSave.filter((entry) => entry.blob);
+    async function retryFailedFetches() {
+        const failed = entries.filter((entry) => !entry.blob && entry.error);
+        if (!failed.length || retryInProgress || approvalGranted || !outputDirectory) return;
+        retryInProgress = true;
+        updateButtons();
+        logEvent(`Manual retry: ${failed.length} failed images, destination=${outputDirectory.name}.`);
+        const used = new Set(entries.filter((entry) => entry.blob).map((entry) => entry.filename.toLowerCase()));
+        let recovered = 0;
+        for (let index = 0; index < failed.length; index += 1) {
+            const entry = failed[index];
+            setStatus(reviewStatus, `Retrying image ${index + 1} of ${failed.length}…`);
+            try {
+                const loaded = await loadImageWithRetries(entry.reference, (retry) => setStatus(reviewStatus, `Image ${index + 1} failed. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`));
+                entry.blob = loaded.blob;
+                entry.filename = uniqueName(filenameForBlob(entry.filename, loaded.blob), used);
+                entry.fetchedName = loaded.name;
+                delete entry.error;
+                recovered += 1;
+                logEvent(`Manual retry recovered image ${entry.index} as ${entry.filename}.`);
+            } catch (error) {
+                entry.error = error.message || 'Could not fetch image after retry';
+                logEvent(`Manual retry failed for image ${entry.index}: ${entry.error}`);
+            }
+        }
+        retryInProgress = false;
+        renderEntries();
+        const remaining = entries.filter((entry) => !entry.blob && entry.error).length;
+        setStatus(reviewStatus, `${recovered} recovered${remaining ? `; ${remaining} still skipped` : ''}. Review filenames, then approve to save.`, recovered === 0);
+        logEvent(`Manual retry complete: ${recovered} recovered, ${remaining} still skipped.`);
+        updateButtons();
+    }
+
+    async function approveAndSave() {
+        if (!previewLoaded || !outputDirectory || saveInProgress) return;
+        const ready = entries.filter((entry) => entry.blob && !entry.savedName);
         if (!ready.length) return;
+        approvalGranted = true;
+        saveInProgress = true;
+        updateButtons();
+        const target = outputDirectory.name;
+        logEvent(`User approved ${ready.length} image(s) for saving to ${target}.`);
+        setStatus(reviewStatus, `Saving ${ready.length} approved image${ready.length === 1 ? '' : 's'} to ${target}…`);
+        const used = new Set(entries.filter((entry) => entry.savedName).map((entry) => entry.savedName.toLowerCase()));
         let saved = 0;
-        let targetFolder = outputDirectory.name;
-        logEvent(`Saving ${ready.length} image(s) to destination folder: ${targetFolder}.`);
         for (const entry of ready) {
             try {
-                let name = entry.name;
-                const dot = name.lastIndexOf('.');
-                const stem = dot > 0 ? name.slice(0, dot) : name;
-                const ext = dot > 0 ? name.slice(dot) : '';
+                let name = uniqueName(filenameForBlob(entry.filename, entry.blob), used);
+                const dot = name.lastIndexOf('.'), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
                 let suffix = 2;
                 while (true) {
                     try {
@@ -376,6 +426,7 @@
                         name = `${stem}-${suffix++}${ext}`;
                     } catch (error) {
                         if (error.name !== 'NotFoundError') throw error;
+                        used.add(name.toLowerCase());
                         break;
                     }
                 }
@@ -383,85 +434,103 @@
                 const writable = await handle.createWritable();
                 await writable.write(entry.blob);
                 await writable.close();
+                entry.filename = name;
                 entry.savedName = name;
+                entry.saveError = '';
                 saved += 1;
-                logEvent(`Saved ${name} (${entry.blob.size} bytes) to ${targetFolder}.`);
+                logEvent(`Saved image ${entry.index}: ${name} (${entry.blob.size} bytes).`);
             } catch (error) {
-                console.error('Could not save', entry.name, error);
                 entry.saveError = `Save failed: ${error.message || 'write error'}`;
-                logEvent(`Save failed for ${entry.name}: ${error.name || 'Error'}: ${error.message || String(error)}`);
+                logEvent(`Save failed for image ${entry.index} (${entry.filename}): ${error.name || 'Error'}: ${error.message || String(error)}`);
             }
         }
+        saveInProgress = false;
         renderEntries();
-        requireDestinationAgain();
-        setStatus(`${saved} of ${ready.length} image${ready.length === 1 ? '' : 's'} saved to ${targetFolder}${saved < ready.length ? '. Some files could not be saved.' : '.'}`, saved < ready.length);
+        const remaining = entries.filter((entry) => entry.blob && !entry.savedName).length;
+        if (remaining) {
+            setStatus(reviewStatus, `${saved} saved; ${remaining} could not be saved. Use the retry-save button to try again.`, true);
+            logEvent(`Save incomplete: ${saved} saved, ${remaining} unsaved.`);
+        } else {
+            const skipped = entries.filter((entry) => !entry.blob && entry.error).length;
+            setStatus(reviewStatus, `Approved and saved ${entries.filter((entry) => entry.savedName).length} image(s) to ${target}${skipped ? `; ${skipped} could not be fetched` : ''}.`);
+            logEvent(`Save complete: all approved images saved to ${target}.`);
+        }
+        updateButtons();
     }
 
-    async function retryFailedFetches() {
-        const failed = entries.filter((entry) => !entry.blob && entry.error);
-        if (!failed.length || retryInProgress) return;
-        if (!retryDirectory) {
-            logEvent('Retry stopped: the original destination folder handle is unavailable.');
-            setStatus('Error: the original destination folder is no longer available. Run extraction again and choose a destination.');
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+        return new Promise((resolve, reject) => {
+            const helper = document.createElement('textarea');
+            helper.value = text;
+            helper.style.position = 'fixed';
+            helper.style.opacity = '0';
+            document.body.append(helper);
+            helper.select();
+            const copied = document.execCommand('copy');
+            helper.remove();
+            if (copied) resolve(); else reject(new Error('Clipboard copy was not allowed'));
+        });
+    }
+
+    originalInput.addEventListener('change', () => {
+        originalFile = originalInput.files[0] || null;
+        invalidateComparison(`Original file selected: ${originalFile ? `${originalFile.name} (${originalFile.size} bytes)` : 'none'}.`);
+        setStatus(compareStatus, originalFile && aiFile ? 'Ready to compare both files.' : 'Choose both files to compare them.');
+        updateButtons();
+    });
+    manifestInput.addEventListener('change', () => {
+        aiFile = manifestInput.files[0] || null;
+        invalidateComparison(`AI file selected: ${aiFile ? `${aiFile.name} (${aiFile.size} bytes)` : 'none'}.`);
+        setStatus(compareStatus, originalFile && aiFile ? 'Ready to compare both files.' : 'Choose both files to compare them.');
+        updateButtons();
+    });
+    verifyBtn.addEventListener('click', verifyFiles);
+    folderBtn.addEventListener('click', async () => {
+        if (!window.showDirectoryPicker) {
+            logEvent('Destination selection unavailable: this browser lacks the File System Access API.');
+            setStatus(reviewStatus, 'Error: this browser does not support selecting a writable folder.', true);
             return;
         }
-
-        logEvent(`Manual retry started for ${failed.length} skipped image(s), using destination ${retryFolderName}.`);
-        retryInProgress = true;
-        updateRetryButton();
-        outputDirectory = retryDirectory;
-        folderName.textContent = retryFolderName;
-
-        const usedNames = new Set(entries.filter((entry) => entry.blob).map((entry) => entry.name.toLowerCase()));
-        const recovered = [];
-        for (let index = 0; index < failed.length; index += 1) {
-            const entry = failed[index];
-            setStatus(`Retrying failed image ${index + 1} of ${failed.length}…`);
-            try {
-                const loaded = await loadImageWithRetries(entry.reference, (retry) => {
-                    setStatus(`Image ${index + 1} of ${failed.length} failed to fetch. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`);
-                });
-                entry.blob = loaded.blob;
-                entry.name = uniqueName(loaded.name, usedNames);
-                delete entry.error;
-                delete entry.saveError;
-                recovered.push(entry);
-            } catch (error) {
-                entry.error = error.message || 'Could not load image after retry';
+        try {
+            outputDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
+            folderName.textContent = outputDirectory.name;
+            logEvent(`Destination selected: ${outputDirectory.name}.`);
+            setStatus(reviewStatus, 'Destination selected. Load image previews to review the filenames.');
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                outputDirectory = null;
+                folderName.textContent = 'Required before preview';
+                logEvent('Destination selection cancelled.');
+                setStatus(reviewStatus, 'Error: choose a destination folder before previewing.', true);
+            } else {
+                logEvent(`Destination selection failed: ${error.name || 'Error'}: ${error.message || String(error)}`);
+                setStatus(reviewStatus, `Error choosing destination: ${error.message || 'access denied'}`, true);
             }
         }
-
-        renderEntries();
-        if (recovered.length) {
-            logEvent(`Manual retry recovered ${recovered.length} image(s); ${failed.length - recovered.length} remain skipped.`);
-            await saveImages(recovered);
-        } else {
-            logEvent(`Manual retry failed for all ${failed.length} image(s).`);
-            requireDestinationAgain();
-            setStatus(`Retry failed for all ${failed.length} image${failed.length === 1 ? '' : 's'}.`, true);
-        }
-        retryInProgress = false;
-        updateRetryButton();
-        updateExtractAvailability();
-    }
-
-    fileInput.addEventListener('change', () => setFiles(fileInput.files));
-    extractBtn.addEventListener('click', extract);
+        updateButtons();
+    });
+    previewBtn.addEventListener('click', loadPreviews);
     retryBtn.addEventListener('click', retryFailedFetches);
+    approveBtn.addEventListener('click', approveAndSave);
+    copyPromptBtn.addEventListener('click', async () => {
+        try {
+            await copyText(promptText.value.trim());
+            logEvent('AI prompt copied to clipboard.');
+            setStatus(compareStatus, 'Prompt copied. Attach your original file when you send it to AI.');
+        } catch (error) {
+            logEvent(`Could not copy AI prompt: ${error.message || String(error)}`);
+            setStatus(compareStatus, 'Error: could not copy the prompt. Select and copy it manually.', true);
+        }
+    });
     copyLogBtn.addEventListener('click', async () => {
         logEvent('User requested a copy of the diagnostic log.');
         try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(diagnosticLog.value);
-            } else {
-                diagnosticLog.focus();
-                diagnosticLog.select();
-                if (!document.execCommand('copy')) throw new Error('Clipboard copy was not allowed');
-            }
-            setStatus('Diagnostic log copied to the clipboard.');
+            await copyText(diagnosticLog.value);
+            setStatus(compareStatus, 'Diagnostic log copied to the clipboard.');
         } catch (error) {
             logEvent(`Could not copy log: ${error.message || String(error)}`);
-            setStatus('Error: could not copy the log. Use Download log instead.');
+            setStatus(compareStatus, 'Error: could not copy the log. Use Download log instead.', true);
         }
     });
     downloadLogBtn.addEventListener('click', () => {
@@ -476,64 +545,38 @@
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        setStatus('Diagnostic log downloaded.');
-    });
-    folderBtn.addEventListener('click', async () => {
-        if (!window.showDirectoryPicker) {
-            logEvent('Destination selection unavailable: browser does not support the File System Access API.');
-            setStatus('Error: this browser does not support folder access. Open this tool in a browser with the File System Access API.');
-            return;
-        }
-        try {
-            outputDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
-            folderName.textContent = outputDirectory.name;
-            logEvent(`Destination folder selected: ${outputDirectory.name}.`);
-            updateExtractAvailability();
-            setStatus(selectedFiles.length ? `Destination set to ${outputDirectory.name}. Ready to extract.` : `Destination set to ${outputDirectory.name}. Now choose your source files.`);
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                outputDirectory = null;
-                folderName.textContent = 'Required — choose a destination folder';
-                updateExtractAvailability();
-                logEvent('Destination folder selection cancelled.');
-                setStatus('Error: no destination folder was selected.');
-            } else {
-                logEvent(`Destination folder selection failed: ${error.name || 'Error'}: ${error.message || String(error)}`);
-                setStatus(`Error choosing destination folder: ${error.message || 'access denied'}`);
-            }
-        }
+        setStatus(compareStatus, 'Diagnostic log downloaded.');
     });
     clearBtn.addEventListener('click', () => {
-        selectedFiles = [];
+        originalFile = null;
+        aiFile = null;
+        originalInput.value = '';
+        manifestInput.value = '';
+        validatedPlan = null;
         entries = [];
-        retryDirectory = null;
-        retryFolderName = '';
-        requireDestinationAgain();
+        outputDirectory = null;
+        previewLoaded = false;
+        approvalGranted = false;
+        fetchingPreview = false;
+        retryInProgress = false;
+        saveInProgress = false;
         clearPreviews();
         results.replaceChildren();
-        imageCount.textContent = '0';
-        resultBadge.textContent = 'Nothing extracted yet';
-        updateRetryButton();
-        updateExtractAvailability();
-        setStatus('Choose one or more files to begin.');
+        reviewSection.hidden = true;
+        countSummary.hidden = true;
+        folderName.textContent = 'Required before preview';
+        resultBadge.textContent = 'Waiting for preview';
+        setStatus(compareStatus, 'Choose both files to compare them.');
+        setStatus(reviewStatus, 'Choose a destination folder to begin previewing.');
+        logEvent('Workflow reset by user.');
+        updateButtons();
     });
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); }
-    });
-    for (const eventName of ['dragenter', 'dragover']) {
-        dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.add('dragover'); });
-    }
-    for (const eventName of ['dragleave', 'drop']) {
-        dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.remove('dragover'); });
-    }
-    dropzone.addEventListener('drop', (event) => setFiles(event.dataTransfer.files));
-    window.addEventListener('error', (event) => {
-        logEvent(`Uncaught JavaScript error: ${event.message || 'unknown error'} at ${event.filename || 'unknown file'}:${event.lineno || 0}:${event.colno || 0}`);
-    });
+    window.addEventListener('error', (event) => logEvent(`Uncaught JavaScript error: ${event.message || 'unknown error'} at ${event.filename || 'unknown file'}:${event.lineno || 0}:${event.colno || 0}`));
     window.addEventListener('unhandledrejection', (event) => {
-        const reason = event.reason;
-        logEvent(`Unhandled promise rejection: ${reason?.name || 'Error'}: ${reason?.message || String(reason)}`);
+        const error = event.reason;
+        logEvent(`Unhandled promise rejection: ${error?.name || 'Error'}: ${error?.message || String(error)}`);
     });
-    logEvent(`Image Extractor initialized. User agent: ${navigator.userAgent}`);
+
+    logEvent(`Image Extractor AI workflow initialized. User agent: ${navigator.userAgent}`);
+    updateButtons();
 })();
