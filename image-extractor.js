@@ -6,6 +6,7 @@
     const folderName = document.getElementById('folderName');
     const dropzone = document.getElementById('dropzone');
     const extractBtn = document.getElementById('extractBtn');
+    const retryBtn = document.getElementById('retryBtn');
     const clearBtn = document.getElementById('clearBtn');
     const statusText = document.getElementById('statusText');
     const imageCount = document.getElementById('imageCount');
@@ -16,6 +17,7 @@
     let entries = [];
     let outputDirectory = null;
     let previewUrls = [];
+    let retryInProgress = false;
 
     function setStatus(message, isError = /^Error:/i.test(message)) {
         statusText.textContent = message;
@@ -24,6 +26,13 @@
 
     function updateExtractAvailability() {
         extractBtn.disabled = selectedFiles.length === 0 || !outputDirectory;
+    }
+
+    function updateRetryButton() {
+        const failedCount = entries.filter((entry) => !entry.blob && entry.error).length;
+        retryBtn.hidden = failedCount === 0;
+        retryBtn.disabled = retryInProgress || failedCount === 0;
+        retryBtn.textContent = `Retry failed fetches (${failedCount})`;
     }
 
     function requireDestinationAgain() {
@@ -39,7 +48,12 @@
     function setFiles(fileList) {
         selectedFiles = Array.from(fileList || []).filter((file) => /\.(txt|md|markdown|json)$/i.test(file.name));
         fileInput.value = '';
+        entries = [];
+        clearPreviews();
+        imageCount.textContent = '0';
+        resultBadge.textContent = 'Nothing extracted yet';
         updateExtractAvailability();
+        updateRetryButton();
         setStatus(selectedFiles.length && !outputDirectory
             ? 'Error: choose a destination folder before extracting.'
             : (selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} ready.` : 'Choose .txt, .md, or .json files to begin.'));
@@ -130,6 +144,7 @@
     function renderEntries() {
         clearPreviews();
         results.replaceChildren();
+        updateRetryButton();
         imageCount.textContent = String(entries.length);
         resultBadge.textContent = `${entries.filter((entry) => entry.blob).length} ready · ${entries.filter((entry) => !entry.blob).length} skipped`;
         if (!entries.length) {
@@ -215,8 +230,8 @@
         updateExtractAvailability();
     }
 
-    async function saveImages() {
-        const ready = entries.filter((entry) => entry.blob);
+    async function saveImages(entriesToSave = entries.filter((entry) => entry.blob)) {
+        const ready = entriesToSave.filter((entry) => entry.blob);
         if (!ready.length) return;
         let saved = 0;
         let targetFolder = outputDirectory.name;
@@ -252,8 +267,61 @@
         setStatus(`${saved} of ${ready.length} image${ready.length === 1 ? '' : 's'} saved to ${targetFolder}${saved < ready.length ? '. Some files could not be saved.' : '.'}`, saved < ready.length);
     }
 
+    async function retryFailedFetches() {
+        const failed = entries.filter((entry) => !entry.blob && entry.error);
+        if (!failed.length || retryInProgress) return;
+        if (!window.showDirectoryPicker) {
+            setStatus('Error: this browser does not support folder access, so retried images cannot be saved to a destination.');
+            return;
+        }
+
+        retryInProgress = true;
+        updateRetryButton();
+        try {
+            outputDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
+            folderName.textContent = outputDirectory.name;
+        } catch (error) {
+            outputDirectory = null;
+            folderName.textContent = 'Required - choose a destination folder';
+            retryInProgress = false;
+            updateRetryButton();
+            if (error.name === 'AbortError') setStatus('Error: choose a destination folder to retry and save failed images.');
+            else setStatus(`Error choosing destination folder: ${error.message || 'access denied'}`);
+            return;
+        }
+
+        const usedNames = new Set(entries.filter((entry) => entry.blob).map((entry) => entry.name.toLowerCase()));
+        const recovered = [];
+        for (let index = 0; index < failed.length; index += 1) {
+            const entry = failed[index];
+            setStatus(`Retrying failed image ${index + 1} of ${failed.length}…`);
+            try {
+                const loaded = await loadImage(entry.reference);
+                entry.blob = loaded.blob;
+                entry.name = uniqueName(loaded.name, usedNames);
+                delete entry.error;
+                delete entry.saveError;
+                recovered.push(entry);
+            } catch (error) {
+                entry.error = error.message || 'Could not load image after retry';
+            }
+        }
+
+        renderEntries();
+        if (recovered.length) {
+            await saveImages(recovered);
+        } else {
+            requireDestinationAgain();
+            setStatus(`Retry failed for all ${failed.length} image${failed.length === 1 ? '' : 's'}.`, true);
+        }
+        retryInProgress = false;
+        updateRetryButton();
+        updateExtractAvailability();
+    }
+
     fileInput.addEventListener('change', () => setFiles(fileInput.files));
     extractBtn.addEventListener('click', extract);
+    retryBtn.addEventListener('click', retryFailedFetches);
     folderBtn.addEventListener('click', async () => {
         if (!window.showDirectoryPicker) {
             setStatus('Error: this browser does not support folder access. Open this tool in a browser with the File System Access API.');
@@ -281,6 +349,7 @@
         results.replaceChildren();
         imageCount.textContent = '0';
         resultBadge.textContent = 'Nothing extracted yet';
+        updateRetryButton();
         updateExtractAvailability();
         setStatus('Choose one or more files to begin.');
     });
