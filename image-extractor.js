@@ -1,6 +1,8 @@
 (() => {
     'use strict';
 
+    const MAX_FETCH_RETRIES = 3;
+
     const fileInput = document.getElementById('fileInput');
     const folderBtn = document.getElementById('folderBtn');
     const folderName = document.getElementById('folderName');
@@ -12,12 +14,44 @@
     const imageCount = document.getElementById('imageCount');
     const resultBadge = document.getElementById('resultBadge');
     const results = document.getElementById('results');
+    const diagnosticLog = document.getElementById('diagnosticLog');
+    const copyLogBtn = document.getElementById('copyLogBtn');
+    const downloadLogBtn = document.getElementById('downloadLogBtn');
 
     let selectedFiles = [];
     let entries = [];
     let outputDirectory = null;
+    let retryDirectory = null;
+    let retryFolderName = '';
     let previewUrls = [];
     let retryInProgress = false;
+    const logLines = [];
+
+    function logEvent(message) {
+        logLines.push(`[${new Date().toISOString()}] ${message}`);
+        if (logLines.length > 1500) logLines.shift();
+        diagnosticLog.value = logLines.join('\n');
+        diagnosticLog.scrollTop = diagnosticLog.scrollHeight;
+    }
+
+    function safeLogReference(reference) {
+        if (/^data:image\//i.test(reference)) {
+            return `${reference.slice(0, reference.indexOf(',') > 0 ? reference.indexOf(',') : 80)}… [embedded data omitted]`;
+        }
+        try {
+            const url = new URL(reference);
+            url.username = '';
+            url.password = '';
+            for (const key of [...url.searchParams.keys()]) {
+                if (/token|key|signature|secret|auth|password|credential|access/i.test(key)) {
+                    url.searchParams.set(key, '[redacted]');
+                }
+            }
+            return url.href;
+        } catch (_) {
+            return String(reference).slice(0, 500);
+        }
+    }
 
     function setStatus(message, isError = /^Error:/i.test(message)) {
         statusText.textContent = message;
@@ -46,9 +80,14 @@
     }
 
     function setFiles(fileList) {
-        selectedFiles = Array.from(fileList || []).filter((file) => /\.(txt|md|markdown|json)$/i.test(file.name));
+        const incomingFiles = Array.from(fileList || []);
+        selectedFiles = incomingFiles.filter((file) => /\.(txt|md|markdown|json)$/i.test(file.name));
+        incomingFiles.filter((file) => !selectedFiles.includes(file)).forEach((file) => logEvent(`Skipped unsupported input file: ${file.name}`));
+        selectedFiles.forEach((file) => logEvent(`Selected input: ${file.name} (${file.size} bytes, ${file.type || 'unknown MIME type'})`));
         fileInput.value = '';
         entries = [];
+        retryDirectory = null;
+        retryFolderName = '';
         clearPreviews();
         imageCount.textContent = '0';
         resultBadge.textContent = 'Nothing extracted yet';
@@ -72,24 +111,77 @@
 
     function collectReferences(text) {
         const found = [];
-        const add = (value) => {
-            const clean = String(value || '').trim().replace(/^<|>$/g, '').replace(/[),.;]+$/g, '');
+        const ignored = new Set();
+        const add = (value, explicitImageReference = false) => {
+            let clean = String(value || '').trim().replace(/^<|>$/g, '');
+            const styleSuffix = clean.search(/\\?\)\{[^}]*\]/);
+            if (styleSuffix >= 0) {
+                const wrappedValue = clean;
+                clean = clean.slice(0, styleSuffix);
+                logEvent(`Removed trailing image style syntax from link: ${safeLogReference(wrappedValue)}`);
+            }
+            clean = clean.replace(/[),.;\\]+$/g, '');
+            const normalized = normalizeImageReference(clean);
+            if (normalized !== clean) logEvent(`Normalized image URL: ${safeLogReference(clean)} -> ${safeLogReference(normalized)}`);
+            clean = normalized;
+            if (!explicitImageReference && !isLikelyImageReference(clean)) {
+                if (clean && !ignored.has(clean)) {
+                    ignored.add(clean);
+                    logEvent(`Ignored non-image link: ${safeLogReference(clean)}`);
+                }
+                return;
+            }
             if (clean) found.push(clean);
         };
         const patterns = [
-            /!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\s*\)/g,
-            /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi,
-            /(?:https?:\/\/|data:image\/)[^\s"'<>]+/gi
+            { regex: /!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+[^)]*)?\s*\)/g, explicitImage: true },
+            { regex: /\[[^\]]*\)\{[^}]*\]\((https?:\/\/[^\\\s)]+)\\?\)\{[^}]*\)/gi, explicitImage: true },
+            { regex: /\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/g, explicitImage: false },
+            { regex: /<img\b[^>]*?\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi, explicitImage: true },
+            { regex: /(?:https?:\/\/|data:image\/)[^\s"'<>]+/gi, explicitImage: false }
         ];
         for (const pattern of patterns) {
             let match;
-            while ((match = pattern.exec(text)) !== null) {
+            while ((match = pattern.regex.exec(text)) !== null) {
                 // Markdown and HTML patterns use capture groups; the raw URL
                 // pattern does not, so fall back to the full match.
-                add(match.slice(1).find(Boolean) || match[0]);
+                add(match.slice(1).find(Boolean) || match[0], pattern.explicitImage);
             }
         }
         return [...new Set(found)];
+    }
+
+    function isLikelyImageReference(reference) {
+        if (/^data:image\//i.test(reference)) return true;
+        let url;
+        try { url = new URL(reference); } catch (_) { return false; }
+        if (/\.(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp)$/i.test(url.pathname)) return true;
+        const imageFormats = /^(?:avif|bmp|gif|ico|jpe?g|png|svg|tiff?|webp|image\/(?:avif|bmp|gif|ico|jpe?g|png|svg\+xml|tiff?|webp))$/i;
+        for (const [key, value] of url.searchParams) {
+            if (/^(?:fm|format|mime|type|content-type|response-content-type)$/i.test(key) && imageFormats.test(value.trim())) return true;
+        }
+        return false;
+    }
+
+    function normalizeImageReference(reference) {
+        if (/^data:image\//i.test(reference)) return reference;
+        let url;
+        try { url = new URL(reference); } catch (_) { return reference; }
+
+        const host = url.hostname.toLowerCase().replace(/^www\./, '');
+        if (host !== 'github.com') return reference;
+        const parts = url.pathname.split('/').filter(Boolean);
+        const markerIndex = parts.findIndex((part, index) => index >= 2 && (part === 'blob' || part === 'raw'));
+        if (parts.length < 5 || markerIndex !== 2) return reference;
+
+        let fileParts = parts.slice(markerIndex + 1);
+        if (fileParts[0] === 'refs' && ['heads', 'tags'].includes(fileParts[1])) {
+            fileParts = fileParts.slice(2);
+        }
+        url.hostname = 'raw.githubusercontent.com';
+        url.pathname = `/${parts[0]}/${parts[1]}/${fileParts.join('/')}`;
+        url.searchParams.delete('raw');
+        return url.href;
     }
 
     function safeName(value, fallback) {
@@ -122,12 +214,32 @@
         try { url = new URL(reference); } catch (_) { throw new Error('Not an absolute image URL'); }
         if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported URL type');
         const response = await fetch(url.href, { mode: 'cors' });
+        logEvent(`HTTP response ${response.status} (${response.type}) from ${safeLogReference(response.url || url.href)}; content-type=${response.headers.get('content-type') || 'not provided'}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
         if (!blob.type.toLowerCase().startsWith('image/')) throw new Error('Link did not return an image');
         let name = safeName(url.pathname, `image${extensionFromType(blob.type)}`);
         if (!/\.[a-z0-9]{2,5}$/i.test(name)) name += extensionFromType(blob.type);
         return { blob, name };
+    }
+
+    async function loadImageWithRetries(reference, onRetry) {
+        let lastError;
+        for (let retry = 0; retry <= MAX_FETCH_RETRIES; retry += 1) {
+            logEvent(`Fetch attempt ${retry + 1}/${MAX_FETCH_RETRIES + 1}: ${safeLogReference(reference)}`);
+            try {
+                const loaded = await loadImage(reference);
+                logEvent(`Fetch succeeded: ${loaded.name}; type=${loaded.blob.type || 'unknown'}; size=${loaded.blob.size} bytes`);
+                return loaded;
+            } catch (error) {
+                lastError = error;
+                logEvent(`Fetch failed on attempt ${retry + 1}: ${error.name || 'Error'}: ${error.message || String(error)}`);
+                if (retry === MAX_FETCH_RETRIES) break;
+                if (onRetry) onRetry(retry + 1);
+                await new Promise((resolve) => setTimeout(resolve, 250 * (retry + 1)));
+            }
+        }
+        throw new Error(`Failed after ${MAX_FETCH_RETRIES + 1} attempts: ${lastError?.message || 'Could not load image'}`);
     }
 
     function uniqueName(name, used) {
@@ -183,9 +295,13 @@
     async function extract() {
         if (!selectedFiles.length) return;
         if (!outputDirectory) {
+            logEvent('Extraction stopped: no destination folder selected.');
             setStatus('Error: choose a destination folder before extracting.');
             return;
         }
+        retryDirectory = outputDirectory;
+        retryFolderName = outputDirectory.name;
+        logEvent(`Extraction started. Destination: ${retryFolderName}. Automatic retries per image: ${MAX_FETCH_RETRIES}.`);
         extractBtn.disabled = true;
         entries = [];
         clearPreviews();
@@ -193,17 +309,24 @@
         const references = new Map();
         for (const file of selectedFiles) {
             try {
+                logEvent(`Reading text file: ${file.name}`);
                 const text = await file.text();
-                for (const reference of collectReferences(text)) {
+                const fileReferences = collectReferences(text);
+                logEvent(`Parsed ${fileReferences.length} image reference(s) from ${file.name}.`);
+                for (const reference of fileReferences) {
                     const key = reference.startsWith('data:') ? reference.slice(0, 120) : reference;
                     if (!references.has(key)) references.set(key, { reference, sourceFile: file.name });
                 }
             } catch (error) {
                 console.error('Could not read file', file.name, error);
+                logEvent(`Could not read ${file.name}: ${error.name || 'Error'}: ${error.message || String(error)}`);
             }
         }
         const items = [...references.values()];
+        logEvent(`Found ${items.length} unique image reference(s) across selected files.`);
+        items.forEach((item, index) => logEvent(`Image ${index + 1} source ${item.sourceFile}: ${safeLogReference(item.reference)}`));
         if (!items.length) {
+            logEvent('Extraction stopped: no image references were parsed.');
             renderEntries();
             requireDestinationAgain();
             setStatus('No image references found.');
@@ -215,15 +338,19 @@
         for (const item of items) {
             setStatus(`Checking images… ${done} of ${items.length}`);
             try {
-                const loaded = await loadImage(item.reference);
+                const loaded = await loadImageWithRetries(item.reference, (retry) => {
+                    setStatus(`Image ${done + 1} of ${items.length} failed to fetch. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`);
+                });
                 entries.push({ ...item, blob: loaded.blob, name: uniqueName(loaded.name, usedNames) });
             } catch (error) {
                 entries.push({ ...item, blob: null, name: safeName(item.reference, 'image'), error: error.message || 'Could not load image' });
+                logEvent(`Skipped image after ${MAX_FETCH_RETRIES + 1} attempts: ${safeLogReference(item.reference)}; final error: ${error.message || String(error)}`);
             }
             done += 1;
         }
         renderEntries();
         const ready = entries.filter((entry) => entry.blob).length;
+        logEvent(`Fetch phase complete: ${ready} ready, ${entries.length - ready} skipped.`);
         setStatus(`${ready} image${ready === 1 ? '' : 's'} ready to save${entries.length > ready ? `; ${entries.length - ready} skipped` : ''}.`);
         if (ready) await saveImages();
         else requireDestinationAgain();
@@ -235,6 +362,7 @@
         if (!ready.length) return;
         let saved = 0;
         let targetFolder = outputDirectory.name;
+        logEvent(`Saving ${ready.length} image(s) to destination folder: ${targetFolder}.`);
         for (const entry of ready) {
             try {
                 let name = entry.name;
@@ -257,9 +385,11 @@
                 await writable.close();
                 entry.savedName = name;
                 saved += 1;
+                logEvent(`Saved ${name} (${entry.blob.size} bytes) to ${targetFolder}.`);
             } catch (error) {
                 console.error('Could not save', entry.name, error);
                 entry.saveError = `Save failed: ${error.message || 'write error'}`;
+                logEvent(`Save failed for ${entry.name}: ${error.name || 'Error'}: ${error.message || String(error)}`);
             }
         }
         renderEntries();
@@ -270,25 +400,17 @@
     async function retryFailedFetches() {
         const failed = entries.filter((entry) => !entry.blob && entry.error);
         if (!failed.length || retryInProgress) return;
-        if (!window.showDirectoryPicker) {
-            setStatus('Error: this browser does not support folder access, so retried images cannot be saved to a destination.');
+        if (!retryDirectory) {
+            logEvent('Retry stopped: the original destination folder handle is unavailable.');
+            setStatus('Error: the original destination folder is no longer available. Run extraction again and choose a destination.');
             return;
         }
 
+        logEvent(`Manual retry started for ${failed.length} skipped image(s), using destination ${retryFolderName}.`);
         retryInProgress = true;
         updateRetryButton();
-        try {
-            outputDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
-            folderName.textContent = outputDirectory.name;
-        } catch (error) {
-            outputDirectory = null;
-            folderName.textContent = 'Required - choose a destination folder';
-            retryInProgress = false;
-            updateRetryButton();
-            if (error.name === 'AbortError') setStatus('Error: choose a destination folder to retry and save failed images.');
-            else setStatus(`Error choosing destination folder: ${error.message || 'access denied'}`);
-            return;
-        }
+        outputDirectory = retryDirectory;
+        folderName.textContent = retryFolderName;
 
         const usedNames = new Set(entries.filter((entry) => entry.blob).map((entry) => entry.name.toLowerCase()));
         const recovered = [];
@@ -296,7 +418,9 @@
             const entry = failed[index];
             setStatus(`Retrying failed image ${index + 1} of ${failed.length}…`);
             try {
-                const loaded = await loadImage(entry.reference);
+                const loaded = await loadImageWithRetries(entry.reference, (retry) => {
+                    setStatus(`Image ${index + 1} of ${failed.length} failed to fetch. Retrying (${retry} of ${MAX_FETCH_RETRIES})…`);
+                });
                 entry.blob = loaded.blob;
                 entry.name = uniqueName(loaded.name, usedNames);
                 delete entry.error;
@@ -309,8 +433,10 @@
 
         renderEntries();
         if (recovered.length) {
+            logEvent(`Manual retry recovered ${recovered.length} image(s); ${failed.length - recovered.length} remain skipped.`);
             await saveImages(recovered);
         } else {
+            logEvent(`Manual retry failed for all ${failed.length} image(s).`);
             requireDestinationAgain();
             setStatus(`Retry failed for all ${failed.length} image${failed.length === 1 ? '' : 's'}.`, true);
         }
@@ -322,14 +448,46 @@
     fileInput.addEventListener('change', () => setFiles(fileInput.files));
     extractBtn.addEventListener('click', extract);
     retryBtn.addEventListener('click', retryFailedFetches);
+    copyLogBtn.addEventListener('click', async () => {
+        logEvent('User requested a copy of the diagnostic log.');
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(diagnosticLog.value);
+            } else {
+                diagnosticLog.focus();
+                diagnosticLog.select();
+                if (!document.execCommand('copy')) throw new Error('Clipboard copy was not allowed');
+            }
+            setStatus('Diagnostic log copied to the clipboard.');
+        } catch (error) {
+            logEvent(`Could not copy log: ${error.message || String(error)}`);
+            setStatus('Error: could not copy the log. Use Download log instead.');
+        }
+    });
+    downloadLogBtn.addEventListener('click', () => {
+        logEvent('User downloaded the diagnostic log.');
+        const blob = new Blob([diagnosticLog.value], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'image-extractor-diagnostic-log.txt';
+        link.style.display = 'none';
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus('Diagnostic log downloaded.');
+    });
     folderBtn.addEventListener('click', async () => {
         if (!window.showDirectoryPicker) {
+            logEvent('Destination selection unavailable: browser does not support the File System Access API.');
             setStatus('Error: this browser does not support folder access. Open this tool in a browser with the File System Access API.');
             return;
         }
         try {
             outputDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
             folderName.textContent = outputDirectory.name;
+            logEvent(`Destination folder selected: ${outputDirectory.name}.`);
             updateExtractAvailability();
             setStatus(selectedFiles.length ? `Destination set to ${outputDirectory.name}. Ready to extract.` : `Destination set to ${outputDirectory.name}. Now choose your source files.`);
         } catch (error) {
@@ -337,13 +495,19 @@
                 outputDirectory = null;
                 folderName.textContent = 'Required — choose a destination folder';
                 updateExtractAvailability();
+                logEvent('Destination folder selection cancelled.');
                 setStatus('Error: no destination folder was selected.');
-            } else setStatus(`Error choosing destination folder: ${error.message || 'access denied'}`);
+            } else {
+                logEvent(`Destination folder selection failed: ${error.name || 'Error'}: ${error.message || String(error)}`);
+                setStatus(`Error choosing destination folder: ${error.message || 'access denied'}`);
+            }
         }
     });
     clearBtn.addEventListener('click', () => {
         selectedFiles = [];
         entries = [];
+        retryDirectory = null;
+        retryFolderName = '';
         requireDestinationAgain();
         clearPreviews();
         results.replaceChildren();
@@ -364,4 +528,12 @@
         dropzone.addEventListener(eventName, (event) => { event.preventDefault(); dropzone.classList.remove('dragover'); });
     }
     dropzone.addEventListener('drop', (event) => setFiles(event.dataTransfer.files));
+    window.addEventListener('error', (event) => {
+        logEvent(`Uncaught JavaScript error: ${event.message || 'unknown error'} at ${event.filename || 'unknown file'}:${event.lineno || 0}:${event.colno || 0}`);
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        logEvent(`Unhandled promise rejection: ${reason?.name || 'Error'}: ${reason?.message || String(reason)}`);
+    });
+    logEvent(`Image Extractor initialized. User agent: ${navigator.userAgent}`);
 })();

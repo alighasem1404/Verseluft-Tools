@@ -21,6 +21,11 @@
 .extractor-item-source { margin-top: 4px; font-size: .82rem; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .extractor-item-status { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 .extractor-note { line-height: 1.6; }
+.extractor-log-panel { display: grid; gap: 12px; margin-top: 8px; }
+.extractor-log-panel .panel-title { align-items: center; }
+.extractor-log-panel .muted-note { margin-top: 5px; }
+.extractor-log-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.extractor-log-output { width: 100%; min-height: 150px !important; max-height: 340px; resize: vertical; font: 12px/1.5 Consolas, "Courier New", monospace; }
 @media (max-width: 700px) {
     .extractor-controls { grid-template-columns: 1fr; }
     .extractor-item { grid-template-columns: 52px minmax(0,1fr); }

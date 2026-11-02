@@ -58,7 +58,20 @@
                     <span id="resultBadge" class="badge">Nothing extracted yet</span>
                 </div>
                 <div id="results" class="extractor-results" aria-live="polite"></div>
-                <p class="muted-note extractor-note">Choose a destination folder before extracting. Images are written directly to that folder; there is no Downloads-folder fallback. Remote image links must allow browser access (CORS). Embedded data images work locally. Relative file paths cannot be read unless the image files themselves are selected.</p>
+                <section class="extractor-log-panel" aria-labelledby="logTitle">
+                    <div class="panel-title">
+                        <div>
+                            <h3 id="logTitle">Diagnostic log</h3>
+                            <p class="muted-note">Includes parsed links, each fetch attempt, and save results. Sensitive URL query values are hidden.</p>
+                        </div>
+                        <div class="extractor-log-actions">
+                            <button id="copyLogBtn" class="btn btn-ghost soft-focus" type="button">Copy log</button>
+                            <button id="downloadLogBtn" class="btn btn-ghost soft-focus" type="button">Download log</button>
+                        </div>
+                    </div>
+                    <textarea id="diagnosticLog" class="extractor-log-output" readonly aria-label="Diagnostic log"></textarea>
+                </section>
+                <p class="muted-note extractor-note">Choose a destination folder before extracting. Each image gets 3 automatic retries before it is skipped; the retry button reuses this destination. Images are written directly to the folder with no Downloads fallback. Remote image links must allow browser access (CORS). Embedded data images work locally. Relative file paths cannot be read unless the image files themselves are selected.</p>
             </section>
         </main>
     </div>
